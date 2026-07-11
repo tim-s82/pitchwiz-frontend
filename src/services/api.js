@@ -1,0 +1,184 @@
+// API and Mock Data Service for PitchWiz
+
+const MOCK_PITCH_LENGTHS = [
+  { id: 1, length_yards: 22, description: "22 Yards (Adults & U15+)" },
+  { id: 2, length_yards: 19, description: "19 Yards (U12/U13)" },
+  { id: 3, length_yards: 17, description: "17 Yards (U10/U11)" },
+];
+
+const MOCK_VENUES = [
+  { id: 1, name: "Main Ground" },
+  { id: 2, name: "School Ground" },
+];
+
+const MOCK_PITCHES = [
+  { 
+    id: 1, 
+    venue: 1, 
+    name: "Main Grass", 
+    pitch_type: "GRASS", 
+    supported_lengths: [1], 
+    blocks_pitches: [2], // Blocks Pitch 2 (Outfield Astro)
+    is_active: true 
+  },
+  { 
+    id: 2, 
+    venue: 1, 
+    name: "Outfield Astro", 
+    pitch_type: "ASTRO", 
+    supported_lengths: [2, 3], 
+    blocks_pitches: [], 
+    is_active: true 
+  },
+  { 
+    id: 3, 
+    venue: 2, 
+    name: "Pitch 1 (Grass)", 
+    pitch_type: "GRASS", 
+    supported_lengths: [1, 2], 
+    blocks_pitches: [], 
+    is_active: true 
+  },
+  { 
+    id: 4, 
+    venue: 2, 
+    name: "Pitch 2 (Astro)", 
+    pitch_type: "ASTRO", 
+    supported_lengths: [2, 3], 
+    blocks_pitches: [], 
+    is_active: true 
+  },
+];
+
+const MOCK_TEAMS = [
+  { id: 1, name: "1st XI", manager: 2, required_length: 1, is_external: false },
+  { id: 2, name: "2nd XI", manager: 2, required_length: 1, is_external: false },
+  { id: 3, name: "U15s Boys", manager: 3, required_length: 1, is_external: false },
+  { id: 4, name: "U13s Boys", manager: 4, required_length: 2, is_external: false },
+  { id: 5, name: "U11s Mixed", manager: 5, required_length: 3, is_external: false },
+  { id: 6, name: "Dorset Cricket", manager: null, required_length: 1, is_external: true },
+  { id: 7, name: "Wessex Seniors", manager: null, required_length: 1, is_external: true },
+];
+
+const MOCK_FIXTURES = [
+  { id: 1, team: 1, opponent: "Westbourne CC", start_date: "2026-07-11", end_date: "2026-07-11", play_cricket_id: "PC1001" },
+  { id: 2, team: 2, opponent: "Broadstone CC", start_date: "2026-07-11", end_date: "2026-07-11", play_cricket_id: "PC1002" },
+  { id: 3, team: 4, opponent: "Poole Town CC", start_date: "2026-07-12", end_date: "2026-07-12", play_cricket_id: "PC1003" },
+  { id: 4, team: 3, opponent: "Wimborne CC", start_date: "2026-07-15", end_date: "2026-07-15", play_cricket_id: "PC1004" },
+  { id: 5, team: 6, opponent: "Hampshire Seniors", start_date: "2026-07-18", end_date: "2026-07-20", play_cricket_id: null }, // Multi-day
+];
+
+// Let's store bookings in memory to allow additions/updates in UI demo
+let mockBookings = [
+  {
+    id: 1,
+    fixture: 1,
+    pitch: 1,
+    start_date: "2026-07-11",
+    end_date: "2026-07-11",
+    time_slot: "AFTERNOON",
+    requires_teas: true,
+    requires_drinks: true,
+    requested_by: 2,
+    external_contact_name: "",
+    external_contact_email: "",
+    status: "APPROVED",
+    notes: "Requires covers if it rains on Friday night."
+  },
+  {
+    id: 2,
+    fixture: 3,
+    pitch: 2,
+    start_date: "2026-07-12",
+    end_date: "2026-07-12",
+    time_slot: "MORNING",
+    requires_teas: false,
+    requires_drinks: true,
+    requested_by: 4,
+    external_contact_name: "",
+    external_contact_email: "",
+    status: "PENDING",
+    notes: "U13 cup game. Must finish by 1:00 PM."
+  },
+  {
+    id: 3,
+    fixture: 5,
+    pitch: 1,
+    start_date: "2026-07-18",
+    end_date: "2026-07-20",
+    time_slot: "ALL_DAY",
+    requires_teas: true,
+    requires_drinks: true,
+    requested_by: null,
+    external_contact_name: "Sarah Miller",
+    external_contact_email: "sarah@dorsetcricket.co.uk",
+    status: "PENDING",
+    notes: "Dorset U18s County Championship Match (3 days)."
+  }
+];
+
+// Helper to make API calls with fallback to mock data
+async function apiRequest(endpoint, options = {}) {
+  try {
+    const response = await fetch(endpoint, options);
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.warn(`API call failed for ${endpoint}. Falling back to mock data.`, error.message);
+    
+    // Simulate latency
+    await new Promise(resolve => setTimeout(resolve, 150));
+
+    if (endpoint.includes('/venues/')) return MOCK_VENUES;
+    if (endpoint.includes('/pitches/')) return MOCK_PITCHES;
+    if (endpoint.includes('/teams/')) return MOCK_TEAMS;
+    if (endpoint.includes('/fixtures/')) return MOCK_FIXTURES;
+    if (endpoint.includes('/pitchbookings/')) {
+      if (options.method === 'POST') {
+        const body = JSON.parse(options.body);
+        const newBooking = {
+          id: mockBookings.length + 1,
+          status: 'PENDING',
+          ...body
+        };
+        mockBookings.push(newBooking);
+        return newBooking;
+      }
+      return mockBookings;
+    }
+    throw error;
+  }
+}
+
+export const api = {
+  getVenues: () => apiRequest('/api/venues/'),
+  getPitches: () => apiRequest('/api/pitches/'),
+  getTeams: () => apiRequest('/api/teams/'),
+  getFixtures: () => apiRequest('/api/fixtures/'),
+  getBookings: () => apiRequest('/api/pitchbookings/'),
+  createBooking: (bookingData) => apiRequest('/api/pitchbookings/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(bookingData),
+  }),
+  // Local-only update for mock data (to show live feedback in dashboards)
+  updateBookingStatus: async (id, status) => {
+    try {
+      const response = await fetch(`/api/pitchbookings/${id}/`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+      });
+      if (response.ok) return await response.json();
+    } catch (e) {
+      console.warn("API Patch failed, updating mock data locally.");
+    }
+    const idx = mockBookings.findIndex(b => b.id === id);
+    if (idx !== -1) {
+      mockBookings[idx] = { ...mockBookings[idx], status };
+      return mockBookings[idx];
+    }
+    return null;
+  },
+  getPitchLengths: () => Promise.resolve(MOCK_PITCH_LENGTHS)
+};
