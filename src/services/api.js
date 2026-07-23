@@ -117,11 +117,26 @@ let mockBookings = [
   }
 ];
 
+// Mutable copy of mock teams for local CRUD
+let mockTeamsList = [...MOCK_TEAMS];
+let mockTeamNextId = MOCK_TEAMS.length + 1;
+
 // Helper to make API calls with fallback to mock data
 async function apiRequest(endpoint, options = {}) {
   try {
     const response = await fetch(endpoint, options);
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    if (!response.ok) {
+      let errorMsg = `HTTP error! status: ${response.status}`;
+      try {
+        const errData = await response.json();
+        errorMsg += ` - Details: ${JSON.stringify(errData)}`;
+      } catch (e) {
+        // Ignore json parse error if body is empty or not json
+      }
+      throw new Error(errorMsg);
+    }
+    // DELETE returns 204 No Content
+    if (response.status === 204) return null;
     return await response.json();
   } catch (error) {
     console.warn(`API call failed for ${endpoint}. Falling back to mock data.`, error.message);
@@ -129,11 +144,54 @@ async function apiRequest(endpoint, options = {}) {
     // Simulate latency
     await new Promise(resolve => setTimeout(resolve, 150));
 
-    if (endpoint.includes('/venues/')) return MOCK_VENUES;
-    if (endpoint.includes('/pitches/')) return MOCK_PITCHES;
-    if (endpoint.includes('/teams/')) return MOCK_TEAMS;
-    if (endpoint.includes('/fixtures/')) return MOCK_FIXTURES;
-    if (endpoint.includes('/pitchbookings/')) {
+    if (endpoint.includes('/venues')) return MOCK_VENUES;
+    if (endpoint.includes('/pitchlengths')) return MOCK_PITCH_LENGTHS;
+
+    // Teams CRUD mock fallback
+    if (endpoint.includes('/teams')) {
+      if (options.method === 'POST') {
+        const body = JSON.parse(options.body);
+        const newTeam = { id: mockTeamNextId++, ...body };
+        mockTeamsList.push(newTeam);
+        return newTeam;
+      }
+      if (options.method === 'PUT' || options.method === 'PATCH') {
+        const idMatch = endpoint.match(/\/teams\/(\d+)/);
+        if (idMatch) {
+          const id = parseInt(idMatch[1], 10);
+          const idx = mockTeamsList.findIndex(t => t.id === id);
+          if (idx !== -1) {
+            const body = JSON.parse(options.body);
+            mockTeamsList[idx] = { ...mockTeamsList[idx], ...body };
+            return mockTeamsList[idx];
+          }
+        }
+        return null;
+      }
+      if (options.method === 'DELETE') {
+        const idMatch = endpoint.match(/\/teams\/(\d+)/);
+        if (idMatch) {
+          const id = parseInt(idMatch[1], 10);
+          mockTeamsList = mockTeamsList.filter(t => t.id !== id);
+        }
+        return null;
+      }
+      return mockTeamsList;
+    }
+
+    if (endpoint.includes('/pitches')) return MOCK_PITCHES;
+    if (endpoint.includes('/fixtures')) {
+      if (options.method === 'POST') {
+        const body = JSON.parse(options.body);
+        // Mutable mock fixtures array support
+        if (!window.mockFixturesList) window.mockFixturesList = [...MOCK_FIXTURES];
+        const newFix = { id: window.mockFixturesList.length + 1, ...body };
+        window.mockFixturesList.push(newFix);
+        return newFix;
+      }
+      return window.mockFixturesList || MOCK_FIXTURES;
+    }
+    if (endpoint.includes('/pitchbookings')) {
       if (options.method === 'POST') {
         const body = JSON.parse(options.body);
         const newBooking = {
@@ -153,13 +211,33 @@ async function apiRequest(endpoint, options = {}) {
 export const api = {
   getVenues: () => apiRequest('/api/venues/'),
   getPitches: () => apiRequest('/api/pitches/'),
+  getPitchLengths: () => apiRequest('/api/pitchlengths/'),
   getTeams: () => apiRequest('/api/teams/'),
   getFixtures: () => apiRequest('/api/fixtures/'),
+  createFixture: (data) => apiRequest('/api/fixtures/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  }),
   getBookings: () => apiRequest('/api/pitchbookings/'),
   createBooking: (bookingData) => apiRequest('/api/pitchbookings/', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(bookingData),
+  }),
+  // Team CRUD
+  createTeam: (data) => apiRequest('/api/teams/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  }),
+  updateTeam: (id, data) => apiRequest(`/api/teams/${id}/`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  }),
+  deleteTeam: (id) => apiRequest(`/api/teams/${id}/`, {
+    method: 'DELETE',
   }),
   // Local-only update for mock data (to show live feedback in dashboards)
   updateBookingStatus: async (id, status) => {
@@ -180,5 +258,4 @@ export const api = {
     }
     return null;
   },
-  getPitchLengths: () => Promise.resolve(MOCK_PITCH_LENGTHS)
 };

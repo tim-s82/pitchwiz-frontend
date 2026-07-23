@@ -14,7 +14,7 @@ export default function CalendarView({
   const [selectedVenueId, setSelectedVenueId] = useState('all');
   const [selectedTeamId, setSelectedTeamId] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
-  
+
   // Date range state: start at current week or today
   const [startDateStr, setStartDateStr] = useState(() => {
     const today = new Date();
@@ -92,9 +92,9 @@ export default function CalendarView({
   // Build booking grid cell mapping: returns booking info if occupied or blocked
   const getCellStatus = (pitchId, dateStr, timeSlot) => {
     // 1. Check direct bookings on this pitch
-    const directBooking = bookings.find(b => 
-      b.pitch === pitchId && 
-      isDateInBooking(dateStr, b) && 
+    const directBooking = bookings.find(b =>
+      b.pitch === pitchId &&
+      isDateInBooking(dateStr, b) &&
       (b.time_slot === 'ALL_DAY' || timeSlot === 'ALL_DAY' || b.time_slot === timeSlot)
     );
 
@@ -104,10 +104,10 @@ export default function CalendarView({
       }
       const fixtureObj = fixtures.find(f => f.id === directBooking.fixture);
       const teamObj = fixtureObj ? teams.find(t => t.id === fixtureObj.team) : null;
-      const label = teamObj 
-        ? `${teamObj.name} vs ${fixtureObj.opponent}` 
+      const label = teamObj
+        ? `${teamObj.name} vs ${fixtureObj.opponent}`
         : directBooking.external_contact_name || 'External Booking';
-      
+
       return {
         type: 'BOOKED',
         booking: directBooking,
@@ -141,7 +141,7 @@ export default function CalendarView({
 
   const handleCellClick = (pitchId, dateStr, timeSlot, existingCell) => {
     if (existingCell) return; // Can't book already booked/blocked slots
-    
+
     setModalData({
       pitchId: pitchId.toString(),
       date: dateStr,
@@ -183,7 +183,7 @@ export default function CalendarView({
       setIsModalOpen(false);
     } catch (err) {
       console.error(err);
-      alert("Failed to submit request.");
+      alert(`Failed to submit request:\n${err.message}`);
     }
   };
 
@@ -193,7 +193,7 @@ export default function CalendarView({
       <div className="glass-panel p-6 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         {/* Date Selector */}
         <div className="flex items-center space-x-3">
-          <button 
+          <button
             onClick={() => shiftWeek(-1)}
             className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 transition border border-slate-700 text-slate-300"
           >
@@ -203,7 +203,7 @@ export default function CalendarView({
             <Calendar className="text-emerald-500" size={22} />
             <span>Week Starting {new Date(startDateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
           </div>
-          <button 
+          <button
             onClick={() => shiftWeek(1)}
             className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 transition border border-slate-700 text-slate-300"
           >
@@ -272,15 +272,15 @@ export default function CalendarView({
       {/* Responsive Calendar Matrix */}
       <div className="glass-panel rounded-2xl overflow-hidden border border-slate-800">
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-left min-w-[900px]">
+          <table className="w-full table-fixed border-collapse text-left min-w-[900px]">
             <thead>
               <tr className="bg-slate-900/80 border-b border-slate-850">
-                <th className="p-4 text-xs font-semibold uppercase tracking-wider text-slate-400 w-56 font-display border-r border-slate-800">
+                <th className="p-4 text-xs font-semibold uppercase tracking-wider text-slate-400 w-56 font-display border-r border-slate-800 shrink-0">
                   Venue / Pitch
                 </th>
                 {datesList.map(day => (
-                  <th key={day.isoStr} className="p-4 text-center border-r border-slate-800 last:border-r-0">
-                    <span className="block text-sm font-semibold text-slate-200">{day.label}</span>
+                  <th key={day.isoStr} className="p-4 text-center border-r border-slate-800 last:border-r-0 truncate">
+                    <span className="block text-sm font-semibold text-slate-200 truncate">{day.label}</span>
                   </th>
                 ))}
               </tr>
@@ -309,13 +309,13 @@ export default function CalendarView({
                         {datesList.map(day => {
                           const cell = getCellStatus(pitch.id, day.isoStr, 'MORNING');
                           return (
-                            <td 
-                              key={day.isoStr} 
-                              className="p-2 border-r border-slate-800 last:border-r-0 h-24 align-top"
+                            <td
+                              key={day.isoStr}
+                              className="p-2 border-r border-slate-800 last:border-r-0 align-top"
                             >
-                              <CellContent 
-                                cell={cell} 
-                                onClick={() => handleCellClick(pitch.id, day.isoStr, 'MORNING', cell)} 
+                              <CellContent
+                                cell={cell}
+                                onClick={() => handleCellClick(pitch.id, day.isoStr, 'MORNING', cell)}
                               />
                             </td>
                           );
@@ -333,13 +333,13 @@ export default function CalendarView({
                         {datesList.map(day => {
                           const cell = getCellStatus(pitch.id, day.isoStr, 'AFTERNOON');
                           return (
-                            <td 
-                              key={day.isoStr} 
-                              className="p-2 border-r border-slate-800 last:border-r-0 h-24 align-top"
+                            <td
+                              key={day.isoStr}
+                              className="p-2 border-r border-slate-800 last:border-r-0 align-top"
                             >
-                              <CellContent 
-                                cell={cell} 
-                                onClick={() => handleCellClick(pitch.id, day.isoStr, 'AFTERNOON', cell)} 
+                              <CellContent
+                                cell={cell}
+                                onClick={() => handleCellClick(pitch.id, day.isoStr, 'AFTERNOON', cell)}
                               />
                             </td>
                           );
@@ -360,7 +360,7 @@ export default function CalendarView({
           <div className="glass-panel w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden border border-slate-800">
             <div className="bg-slate-900 px-6 py-4 border-b border-slate-800 flex justify-between items-center">
               <h3 className="text-lg font-bold font-display text-slate-100">Request Pitch Booking</h3>
-              <button 
+              <button
                 onClick={() => setIsModalOpen(false)}
                 className="text-slate-400 hover:text-slate-200 transition"
               >
@@ -529,9 +529,9 @@ export default function CalendarView({
 function CellContent({ cell, onClick }) {
   if (!cell) {
     return (
-      <button 
+      <button
         onClick={onClick}
-        className="w-full h-full flex items-center justify-center border border-dashed border-slate-800 rounded-xl hover:border-emerald-500/50 hover:bg-emerald-950/25 group transition cursor-pointer"
+        className="w-full h-24 flex items-center justify-center border border-dashed border-slate-800 rounded-xl hover:border-emerald-500/50 hover:bg-emerald-950/25 group transition cursor-pointer overflow-hidden"
       >
         <Plus size={16} className="text-slate-650 group-hover:text-emerald-400 group-hover:scale-110 transition duration-300" />
       </button>
@@ -540,41 +540,39 @@ function CellContent({ cell, onClick }) {
 
   if (cell.type === 'BLOCKED') {
     return (
-      <div 
-        className="w-full h-full bg-slate-900/60 border border-slate-800 rounded-xl p-2.5 flex flex-col justify-between"
+      <div
+        className="w-full h-24 bg-slate-900/60 border border-slate-800 rounded-xl p-2.5 flex flex-col justify-between overflow-hidden"
         title={cell.reason}
       >
-        <div className="flex items-center space-x-1 text-slate-500">
-          <ShieldAlert size={14} className="shrink-0 text-amber-600" />
-          <span className="text-xxs font-bold uppercase tracking-wider font-display">{cell.label}</span>
+        <div className="flex items-start space-x-1 text-slate-500">
+          <ShieldAlert size={14} className="shrink-0 text-amber-600 mt-0.5" />
+          <span className="text-[10px] font-bold uppercase tracking-wider font-display line-clamp-3">{cell.label}</span>
         </div>
-        <span className="text-xxs text-slate-500 leading-snug">Outfield Overlap</span>
+        <span className="text-[10px] text-slate-500 leading-snug line-clamp-1">Outfield Overlap</span>
       </div>
     );
   }
 
   // BOOKED cell
   const isApproved = cell.status === 'APPROVED';
-  
+
   return (
-    <div className={`w-full h-full border rounded-xl p-2.5 flex flex-col justify-between transition-all duration-300 hover:-translate-y-0.5 ${
-      isApproved 
-        ? 'bg-emerald-950/30 border-emerald-900/80 shadow-sm shadow-emerald-900/10' 
-        : 'bg-amber-950/20 border-amber-900/50'
-    }`}>
+    <div className={`w-full h-24 border rounded-xl p-2.5 flex flex-col justify-between overflow-hidden transition-all duration-300 hover:-translate-y-0.5 ${isApproved
+      ? 'bg-emerald-950/30 border-emerald-900/80 shadow-sm shadow-emerald-900/10'
+      : 'bg-amber-950/20 border-amber-900/50'
+      }`}>
       <div>
         <div className="flex items-center justify-between gap-1 mb-1">
-          <span className={`text-[9px] px-1.5 py-0.5 rounded font-extrabold uppercase font-display ${
-            isApproved ? 'bg-emerald-900/50 text-emerald-400' : 'bg-amber-900/50 text-amber-400'
-          }`}>
+          <span className={`text-[9px] px-1.5 py-0.5 rounded font-extrabold uppercase font-display truncate ${isApproved ? 'bg-emerald-900/50 text-emerald-400' : 'bg-amber-900/50 text-amber-400'
+            }`}>
             {isApproved ? 'Confirmed' : 'Pending'}
           </span>
         </div>
-        <p className="text-xs font-semibold text-slate-200 line-clamp-2 leading-snug" title={cell.label}>
+        <p className="text-xs font-semibold text-slate-200 line-clamp-3 leading-snug" title={cell.label}>
           {cell.label}
         </p>
       </div>
-      
+
       {cell.booking.notes && (
         <span className="text-[10px] text-slate-450 line-clamp-1 italic">
           "{cell.booking.notes}"

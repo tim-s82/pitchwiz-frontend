@@ -50,7 +50,7 @@ export default function PublicBookingForm({
       setSubmitted(true);
     } catch (e) {
       console.error(e);
-      alert("Failed to submit booking request. Please check your data.");
+      alert(`Failed to submit booking request:\n${e.message}`);
     } finally {
       setLoading(false);
     }

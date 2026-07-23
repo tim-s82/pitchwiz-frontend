@@ -4,7 +4,8 @@ import CalendarView from './components/CalendarView';
 import SecretaryDashboard from './components/SecretaryDashboard';
 import CatererDashboard from './components/CatererDashboard';
 import PublicBookingForm from './components/PublicBookingForm';
-import { Calendar, ShieldAlert, Utensils, FormInput, Activity, HelpCircle } from 'lucide-react';
+import TeamsManager from './components/TeamsManager';
+import { Calendar, ShieldAlert, Utensils, FormInput, Activity, HelpCircle, Users } from 'lucide-react';
 
 export default function App() {
   const [activeView, setActiveView] = useState('calendar');
@@ -52,17 +53,15 @@ export default function App() {
     // If it's a club booking, we also generate a fixture locally or in mock
     let fixId = null;
     if (payload.fixture_team) {
-      // Internal booking
-      const newFixture = {
-        id: fixtures.length + 1,
+      // Internal booking - create fixture on backend
+      const newFixtureData = {
         team: payload.fixture_team,
         opponent: payload.fixture_opponent,
         start_date: payload.start_date,
         end_date: payload.end_date,
-        play_cricket_id: null
       };
-      setFixtures(prev => [...prev, newFixture]);
-      fixId = newFixture.id;
+      const createdFixture = await api.createFixture(newFixtureData);
+      fixId = createdFixture.id;
     }
 
     const bookingData = {
@@ -73,7 +72,7 @@ export default function App() {
       time_slot: payload.time_slot,
       requires_teas: payload.requires_teas,
       requires_drinks: payload.requires_drinks,
-      requested_by: payload.fixture_team ? 2 : null, // Simulate Manager ID 2 for internal
+      requested_by: null, // Set to null since no users exist in the DB yet
       external_contact_name: payload.external_contact_name || '',
       external_contact_email: payload.external_contact_email || '',
       status: 'PENDING',
@@ -99,7 +98,7 @@ export default function App() {
     <div className="flex flex-col min-h-screen bg-slate-950 text-slate-100 selection:bg-emerald-500 selection:text-slate-950">
       {/* Premium Header/Navigation */}
       <header className="sticky top-0 z-40 bg-slate-950/80 backdrop-blur-md border-b border-slate-900 px-6 py-4">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="max-w-[1600px] mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/20 font-bold font-display text-lg text-slate-950">
               PW
@@ -170,12 +169,24 @@ export default function App() {
               <FormInput size={14} />
               <span>Request Pitch</span>
             </button>
+
+            <button
+              onClick={() => setActiveView('teams')}
+              className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display ${
+                activeView === 'teams' 
+                  ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60' 
+                  : 'text-slate-450 hover:text-slate-200'
+              }`}
+            >
+              <Users size={14} />
+              <span>Teams</span>
+            </button>
           </nav>
         </div>
       </header>
 
       {/* Main View Port */}
-      <main className="flex-grow max-w-7xl w-full mx-auto px-6 py-8">
+      <main className="flex-grow max-w-[1600px] w-full mx-auto px-6 py-8">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-32 space-y-4">
             <Activity className="animate-spin text-emerald-400" size={36} />
@@ -221,13 +232,20 @@ export default function App() {
                 onBookingCreated={handleBookingCreated}
               />
             )}
+            {activeView === 'teams' && (
+              <TeamsManager
+                teams={teams}
+                pitchLengths={pitchLengths}
+                onTeamsChanged={loadData}
+              />
+            )}
           </div>
         )}
       </main>
 
       {/* Premium Footer */}
       <footer className="border-t border-slate-900 bg-slate-950 py-6 px-6 text-center text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
+        <div className="max-w-[1600px] mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
           <span>&copy; 2026 PitchWiz. Designed for cricket club match efficiency.</span>
           <div className="flex space-x-4">
             <a href="file:///c:/Users/timsh/github/pitchwiz-backend/GEMINI.md" className="hover:text-emerald-400 transition">Backend Docs</a>
