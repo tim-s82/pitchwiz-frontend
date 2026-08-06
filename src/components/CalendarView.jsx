@@ -9,7 +9,8 @@ export default function CalendarView({
   fixtures,
   bookings,
   pitchLengths,
-  onBookingCreated
+  onBookingCreated,
+  currentUser
 }) {
   const [selectedVenueId, setSelectedVenueId] = useState('all');
   const [selectedTeamId, setSelectedTeamId] = useState('all');
@@ -66,6 +67,15 @@ export default function CalendarView({
     if (selectedTeamId === 'all') return null;
     return teams.find(t => t.id === parseInt(selectedTeamId));
   }, [selectedTeamId, teams]);
+
+  // Compute allowed teams for the current user
+  const allowedTeams = useMemo(() => {
+    if (!currentUser) return teams;
+    const hasAdminOrSec = currentUser.roles?.includes('ADMIN') || currentUser.roles?.includes('FIXTURE_SECRETARY') || currentUser.roles?.includes('USER_MANAGER');
+    if (hasAdminOrSec) return teams;
+    // Otherwise, only teams where user is manager
+    return teams.filter(t => t.managers?.includes(currentUser.id));
+  }, [currentUser, teams]);
 
   // Filter Pitches based on venue and selected team compatibility
   const filteredPitches = useMemo(() => {
@@ -409,7 +419,7 @@ export default function CalendarView({
                   required
                 >
                   <option value="">Select Your Team</option>
-                  {teams.filter(t => !t.is_external).map(t => (
+                  {allowedTeams.filter(t => !t.is_external).map(t => (
                     <option key={t.id} value={t.id}>{t.name}</option>
                   ))}
                 </select>

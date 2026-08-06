@@ -124,7 +124,28 @@ let mockTeamNextId = MOCK_TEAMS.length + 1;
 // Helper to make API calls with fallback to mock data
 async function apiRequest(endpoint, options = {}) {
   try {
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      options.headers = {
+        ...options.headers,
+        'Authorization': `Bearer ${token}`
+      };
+    }
+
     const response = await fetch(endpoint, options);
+    
+    if (response.status === 401) {
+        // TODO: Handle token refresh logic
+        window.dispatchEvent(new Event('auth-unauthorized'));
+    }
+    if (response.status === 403) {
+      const errData = await response.json().catch(() => ({}));
+      if (errData.code === 'FORCE_RESET' || errData.code === 'PASSWORD_EXPIRED') {
+        window.dispatchEvent(new CustomEvent('auth-force-reset', { detail: errData.code }));
+      }
+      throw new Error(`HTTP 403 Forbidden: ${errData.detail || 'Access denied'}`);
+    }
+
     if (!response.ok) {
       let errorMsg = `HTTP error! status: ${response.status}`;
       try {

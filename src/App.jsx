@@ -5,7 +5,9 @@ import SecretaryDashboard from './components/SecretaryDashboard';
 import CatererDashboard from './components/CatererDashboard';
 import PublicBookingForm from './components/PublicBookingForm';
 import TeamsManager from './components/TeamsManager';
-import { Calendar, ShieldAlert, Utensils, FormInput, Activity, HelpCircle, Users } from 'lucide-react';
+import UserManagement from './components/UserManagement';
+import { LoginScreen, ForcePasswordResetScreen } from './components/AuthScreens';
+import { Calendar, ShieldAlert, Utensils, FormInput, Activity, HelpCircle, Users, LogOut, Shield } from 'lucide-react';
 
 export default function App() {
   const [activeView, setActiveView] = useState('calendar');
@@ -19,17 +21,23 @@ export default function App() {
   const [bookings, setBookings] = useState([]);
   const [pitchLengths, setPitchLengths] = useState([]);
 
+  const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('access_token'));
+  const [isForceReset, setIsForceReset] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+
   // Fetch all initial data
   const loadData = async () => {
+    if (!isAuthenticated) return;
     setLoading(true);
     try {
-      const [v, p, t, f, b, pl] = await Promise.all([
+      const [v, p, t, f, b, pl, me] = await Promise.all([
         api.getVenues(),
         api.getPitches(),
         api.getTeams(),
         api.getFixtures(),
         api.getBookings(),
-        api.getPitchLengths()
+        api.getPitchLengths(),
+        api.getMe ? api.getMe() : fetch('/api/users/me/', { headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` } }).then(res => res.json())
       ]);
       setVenues(v);
       setPitches(p);
@@ -37,6 +45,7 @@ export default function App() {
       setFixtures(f);
       setBookings(b);
       setPitchLengths(pl);
+      setCurrentUser(me);
     } catch (err) {
       console.error("Failed to load core data: ", err);
     } finally {
@@ -45,8 +54,38 @@ export default function App() {
   };
 
   useEffect(() => {
-    loadData();
-  }, []);
+    const handleUnauthorized = () => {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      setIsAuthenticated(false);
+    };
+    const handleForceReset = () => setIsForceReset(true);
+
+    window.addEventListener('auth-unauthorized', handleUnauthorized);
+    window.addEventListener('auth-force-reset', handleForceReset);
+
+    if (isAuthenticated) {
+      loadData();
+    } else {
+      setLoading(false);
+    }
+
+    return () => {
+      window.removeEventListener('auth-unauthorized', handleUnauthorized);
+      window.removeEventListener('auth-force-reset', handleForceReset);
+    };
+  }, [isAuthenticated]);
+
+  const handleLoginSuccess = () => {
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    setIsAuthenticated(false);
+    setCurrentUser(null);
+  };
 
   // Handler to submit booking request
   const handleBookingCreated = async (payload) => {
@@ -94,6 +133,16 @@ export default function App() {
     }
   };
 
+  if (!isAuthenticated) {
+    return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
+  }
+
+  if (isForceReset) {
+    return <ForcePasswordResetScreen onResetSuccess={() => setIsForceReset(false)} onCancel={handleLogout} />;
+  }
+
+  const hasRole = (role) => currentUser?.roles?.includes(role) || currentUser?.roles?.includes('ADMIN');
+
   return (
     <div className="flex flex-col min-h-screen bg-slate-950 text-slate-100 selection:bg-emerald-500 selection:text-slate-950">
       {/* Premium Header/Navigation */}
@@ -114,8 +163,7 @@ export default function App() {
             </div>
           </div>
 
-          {/* Navigation Views Switcher */}
-          <nav className="flex space-x-1.5 bg-slate-900 p-1 rounded-xl border border-slate-850">
+          <nav className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => setActiveView('calendar')}
               className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display ${
@@ -125,61 +173,85 @@ export default function App() {
               }`}
             >
               <Calendar size={14} />
-              <span>Availability Calendar</span>
+              <span>Availability</span>
             </button>
 
-            <button
-              onClick={() => setActiveView('secretary')}
-              className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display relative ${
-                activeView === 'secretary' 
-                  ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60' 
-                  : 'text-slate-450 hover:text-slate-200'
-              }`}
-            >
-              <ShieldAlert size={14} />
-              <span>Secretary Panel</span>
-              {bookings.filter(b => b.status === 'PENDING').length > 0 && (
-                <span className="absolute -top-1.5 -right-1 flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                </span>
-              )}
-            </button>
+            {hasRole('FIXTURE_SECRETARY') && (
+              <button
+                onClick={() => setActiveView('secretary')}
+                className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display ${
+                  activeView === 'secretary' 
+                    ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60' 
+                    : 'text-slate-450 hover:text-slate-200'
+                }`}
+              >
+                <ShieldAlert size={14} />
+                <span>Secretary Panel</span>
+              </button>
+            )}
+
+            {hasRole('CATERER') && (
+              <button
+                onClick={() => setActiveView('caterer')}
+                className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display ${
+                  activeView === 'caterer' 
+                    ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60' 
+                    : 'text-slate-450 hover:text-slate-200'
+                }`}
+              >
+                <Utensils size={14} />
+                <span>Caterer Dashboard</span>
+              </button>
+            )}
+
+            {hasRole('TEAM_MANAGER') && (
+              <button
+                onClick={() => setActiveView('publicForm')}
+                className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display ${
+                  activeView === 'publicForm' 
+                    ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60' 
+                    : 'text-slate-450 hover:text-slate-200'
+                }`}
+              >
+                <FormInput size={14} />
+                <span>Request Pitch</span>
+              </button>
+            )}
+
+            {(hasRole('USER_MANAGER') || hasRole('FIXTURE_SECRETARY')) && (
+              <button
+                onClick={() => setActiveView('teams')}
+                className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display ${
+                  activeView === 'teams' 
+                    ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60' 
+                    : 'text-slate-450 hover:text-slate-200'
+                }`}
+              >
+                <Users size={14} />
+                <span>Teams</span>
+              </button>
+            )}
+
+            {(hasRole('USER_MANAGER') || hasRole('ADMIN')) && (
+              <button
+                onClick={() => setActiveView('users')}
+                className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display ${
+                  activeView === 'users' 
+                    ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60' 
+                    : 'text-slate-450 hover:text-slate-200'
+                }`}
+              >
+                <Shield size={14} />
+                <span>Users</span>
+              </button>
+            )}
 
             <button
-              onClick={() => setActiveView('caterer')}
-              className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display ${
-                activeView === 'caterer' 
-                  ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60' 
-                  : 'text-slate-450 hover:text-slate-200'
-              }`}
+              onClick={handleLogout}
+              className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display text-slate-450 hover:text-red-400`}
             >
-              <Utensils size={14} />
-              <span>Caterer Dashboard</span>
-            </button>
-
-            <button
-              onClick={() => setActiveView('publicForm')}
-              className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display ${
-                activeView === 'publicForm' 
-                  ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60' 
-                  : 'text-slate-450 hover:text-slate-200'
-              }`}
-            >
-              <FormInput size={14} />
-              <span>Request Pitch</span>
-            </button>
-
-            <button
-              onClick={() => setActiveView('teams')}
-              className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display ${
-                activeView === 'teams' 
-                  ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60' 
-                  : 'text-slate-450 hover:text-slate-200'
-              }`}
-            >
-              <Users size={14} />
-              <span>Teams</span>
+              <LogOut size={14} />
+              <span>Sign Out</span>
             </button>
           </nav>
         </div>
@@ -203,6 +275,7 @@ export default function App() {
                 bookings={bookings}
                 pitchLengths={pitchLengths}
                 onBookingCreated={handleBookingCreated}
+                currentUser={currentUser}
               />
             )}
             {activeView === 'secretary' && (
@@ -214,6 +287,7 @@ export default function App() {
                 bookings={bookings}
                 pitchLengths={pitchLengths}
                 onBookingStatusUpdate={handleBookingStatusUpdate}
+                currentUser={currentUser}
               />
             )}
             {activeView === 'caterer' && (
@@ -223,6 +297,7 @@ export default function App() {
                 teams={teams}
                 fixtures={fixtures}
                 bookings={bookings}
+                currentUser={currentUser}
               />
             )}
             {activeView === 'publicForm' && (
@@ -238,6 +313,9 @@ export default function App() {
                 pitchLengths={pitchLengths}
                 onTeamsChanged={loadData}
               />
+            )}
+            {activeView === 'users' && (
+              <UserManagement />
             )}
           </div>
         )}
