@@ -48,7 +48,7 @@ export default function SecretaryDashboard({
     const conflicts = [];
 
     // 1. Direct overlap
-    const directOverlap = bookings.find(b => 
+    const directOverlap = bookings.find(b =>
       b.id !== booking.id &&
       b.pitch === booking.pitch &&
       b.status === 'APPROVED' &&
@@ -57,8 +57,8 @@ export default function SecretaryDashboard({
       (b.time_slot === 'ALL_DAY' || booking.time_slot === 'ALL_DAY' || b.time_slot === booking.time_slot)
     );
     if (directOverlap) {
-      const matchDetails = directOverlap.fixture 
-        ? fixtures.find(f => f.id === directOverlap.fixture) 
+      const matchDetails = directOverlap.fixture
+        ? fixtures.find(f => f.id === directOverlap.fixture)
         : null;
       conflicts.push(`Direct Overlap: Already booked for ${matchDetails ? matchDetails.opponent : directOverlap.external_contact_name || 'Another fixture'}`);
     }
@@ -220,9 +220,8 @@ export default function SecretaryDashboard({
       <div className="flex border-b border-slate-800">
         <button
           onClick={() => setActiveTab('pending')}
-          className={`pb-4 px-6 font-semibold text-sm transition-all duration-300 relative ${
-            activeTab === 'pending' ? 'text-emerald-400' : 'text-slate-400 hover:text-slate-200'
-          }`}
+          className={`pb-4 px-6 font-semibold text-sm transition-all duration-300 relative ${activeTab === 'pending' ? 'text-emerald-400' : 'text-slate-400 hover:text-slate-200'
+            }`}
         >
           Pending Requests
           {pendingBookings.length > 0 && (
@@ -234,9 +233,8 @@ export default function SecretaryDashboard({
         </button>
         <button
           onClick={() => setActiveTab('changes')}
-          className={`pb-4 px-6 font-semibold text-sm transition-all duration-300 relative ${
-            activeTab === 'changes' ? 'text-emerald-400' : 'text-slate-400 hover:text-slate-200'
-          }`}
+          className={`pb-4 px-6 font-semibold text-sm transition-all duration-300 relative ${activeTab === 'changes' ? 'text-emerald-400' : 'text-slate-400 hover:text-slate-200'
+            }`}
         >
           Change Requests
           {pendingChangeRequests.length > 0 && (
@@ -248,9 +246,8 @@ export default function SecretaryDashboard({
         </button>
         <button
           onClick={() => setActiveTab('resolved')}
-          className={`pb-4 px-6 font-semibold text-sm transition-all duration-300 relative ${
-            activeTab === 'resolved' ? 'text-emerald-400' : 'text-slate-400 hover:text-slate-200'
-          }`}
+          className={`pb-4 px-6 font-semibold text-sm transition-all duration-300 relative ${activeTab === 'resolved' ? 'text-emerald-400' : 'text-slate-400 hover:text-slate-200'
+            }`}
         >
           Booking History
           {activeTab === 'resolved' && <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-500" />}
@@ -268,27 +265,25 @@ export default function SecretaryDashboard({
             pendingBookings.map(booking => {
               const pitchObj = pitches.find(p => p.id === booking.pitch);
               const venueObj = pitchObj ? venues.find(v => v.id === pitchObj.venue) : null;
-              
+
               const fixtureObj = booking.fixture ? fixtures.find(f => f.id === booking.fixture) : null;
               const teamObj = fixtureObj ? teams.find(t => t.id === fixtureObj.team) : null;
-              const label = teamObj 
-                ? `${teamObj.name} vs ${fixtureObj.opponent}` 
+              const label = teamObj
+                ? `${teamObj.name} vs ${fixtureObj.opponent}`
                 : `${booking.external_contact_name || 'External'} (Dorset/Public)`;
-              
+
               const conflicts = detectConflicts(booking);
 
               return (
-                <div 
-                  key={booking.id} 
-                  className={`glass-panel p-6 rounded-2xl border transition duration-300 flex flex-col lg:flex-row lg:items-center justify-between gap-6 ${
-                    conflicts.length > 0 ? 'border-amber-900/50 bg-amber-950/5' : 'border-slate-800'
-                  }`}
+                <div
+                  key={booking.id}
+                  className={`glass-panel p-6 rounded-2xl border transition duration-300 flex flex-col lg:flex-row lg:items-center justify-between gap-6 ${conflicts.length > 0 ? 'border-amber-900/50 bg-amber-950/5' : 'border-slate-800'
+                    }`}
                 >
                   <div className="space-y-3 max-w-2xl">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className={`text-xxs px-2 py-0.5 rounded font-extrabold font-display uppercase ${
-                        booking.fixture ? 'bg-indigo-900/50 text-indigo-400 border border-indigo-900/55' : 'bg-pink-900/40 text-pink-400 border border-pink-900/50'
-                      }`}>
+                      <span className={`text-xxs px-2 py-0.5 rounded font-extrabold font-display uppercase ${booking.fixture ? 'bg-indigo-900/50 text-indigo-400 border border-indigo-900/55' : 'bg-pink-900/40 text-pink-400 border border-pink-900/50'
+                        }`}>
                         {booking.fixture ? 'Club Fixture' : 'External Booking'}
                       </span>
                       {booking.requires_teas && (
@@ -304,7 +299,7 @@ export default function SecretaryDashboard({
                     </div>
 
                     <h3 className="text-lg font-bold font-display text-slate-100">{label}</h3>
-                    
+
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-slate-400 text-xs">
                       <div className="flex items-center space-x-1.5">
                         <MapPin size={14} className="text-slate-500" />
@@ -313,8 +308,8 @@ export default function SecretaryDashboard({
                       <div className="flex items-center space-x-1.5">
                         <Calendar size={14} className="text-slate-500" />
                         <span>
-                          {booking.start_date === booking.end_date 
-                            ? booking.start_date 
+                          {booking.start_date === booking.end_date
+                            ? booking.start_date
                             : `${booking.start_date} to ${booking.end_date}`}
                         </span>
                       </div>
@@ -390,7 +385,7 @@ export default function SecretaryDashboard({
             })
           )}
         </div>
-      ) : (
+      ) : activeTab === 'resolved' ? (
         /* Resolved History Tab */
         <div className="glass-panel rounded-2xl overflow-hidden border border-slate-800">
           <div className="overflow-x-auto">
@@ -418,8 +413,8 @@ export default function SecretaryDashboard({
                     const venueObj = pitchObj ? venues.find(v => v.id === pitchObj.venue) : null;
                     const fixObj = b.fixture ? fixtures.find(f => f.id === b.fixture) : null;
                     const teamObj = fixObj ? teams.find(t => t.id === fixObj.team) : null;
-                    const label = teamObj 
-                      ? `${teamObj.name} vs ${fixObj.opponent}` 
+                    const label = teamObj
+                      ? `${teamObj.name} vs ${fixObj.opponent}`
                       : b.external_contact_name || 'External Org';
 
                     return (
@@ -443,9 +438,8 @@ export default function SecretaryDashboard({
                           </span>
                         </td>
                         <td className="p-4">
-                          <span className={`inline-block text-xxs font-bold uppercase tracking-wider px-2 py-0.5 rounded font-display ${
-                            b.status === 'APPROVED' ? 'bg-emerald-950/60 text-emerald-400' : 'bg-red-950/60 text-red-400'
-                          }`}>
+                          <span className={`inline-block text-xxs font-bold uppercase tracking-wider px-2 py-0.5 rounded font-display ${b.status === 'APPROVED' ? 'bg-emerald-950/60 text-emerald-400' : 'bg-red-950/60 text-red-400'
+                            }`}>
                             {b.status === 'APPROVED' ? 'Approved' : 'Denied'}
                           </span>
                         </td>
