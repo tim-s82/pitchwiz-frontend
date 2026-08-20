@@ -15,6 +15,7 @@ export default function CalendarView({
   const [selectedVenueId, setSelectedVenueId] = useState('all');
   const [selectedTeamId, setSelectedTeamId] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
+  const [viewMode, setViewMode] = useState('transposed'); // 'standard' (pitches down) or 'transposed' (pitches across)
 
   // Date range state: start at current week or today
   const [startDateStr, setStartDateStr] = useState(() => {
@@ -103,7 +104,7 @@ export default function CalendarView({
   const getCellStatus = (pitchId, dateStr, timeSlot) => {
     // 1. Check direct bookings on this pitch
     const directBooking = bookings.find(b =>
-      b.pitch === pitchId &&
+      b.pitch == pitchId &&
       isDateInBooking(dateStr, b) &&
       (b.time_slot === 'ALL_DAY' || timeSlot === 'ALL_DAY' || b.time_slot === timeSlot)
     );
@@ -149,8 +150,12 @@ export default function CalendarView({
     return null;
   };
 
+  const isExternalUser = useMemo(() => {
+    return currentUser?.roles?.includes('EXTERNAL');
+  }, [currentUser]);
+
   const handleCellClick = (pitchId, dateStr, timeSlot, existingCell) => {
-    if (existingCell) return; // Can't book already booked/blocked slots
+    if (existingCell || isExternalUser) return; // Can't book already booked/blocked slots or if external user
 
     setModalData({
       pitchId: pitchId.toString(),
@@ -221,47 +226,71 @@ export default function CalendarView({
           </button>
         </div>
 
-        {/* Filters */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full md:w-auto">
-          <div className="flex items-center space-x-2">
-            <Filter size={16} className="text-slate-400 shrink-0" />
-            <select
-              value={selectedVenueId}
-              onChange={(e) => setSelectedVenueId(e.target.value)}
-              className="bg-slate-800 text-slate-200 text-sm rounded-xl py-2 px-3 outline-none border border-slate-700 w-full focus:border-emerald-500"
+        {/* Filters & View Mode Toggle */}
+        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+          {/* View Mode Toggle Button Group */}
+          <div className="flex bg-slate-900 p-1 rounded-xl border border-slate-800 shrink-0">
+            <button
+              onClick={() => setViewMode('transposed')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold font-display transition ${
+                viewMode === 'transposed' ? 'bg-emerald-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'
+              }`}
+              title="Pitches across (columns), Days & Sessions down (rows)"
             >
-              <option value="all">All Venues</option>
-              {venues.map(v => (
-                <option key={v.id} value={v.id}>{v.name}</option>
-              ))}
-            </select>
+              Pitches Across
+            </button>
+            <button
+              onClick={() => setViewMode('standard')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold font-display transition ${
+                viewMode === 'standard' ? 'bg-emerald-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'
+              }`}
+              title="Days across (columns), Pitches down (rows)"
+            >
+              Days Across
+            </button>
           </div>
 
-          <select
-            value={selectedTeamId}
-            onChange={(e) => setSelectedTeamId(e.target.value)}
-            className="bg-slate-800 text-slate-200 text-sm rounded-xl py-2 px-3 outline-none border border-slate-700 w-full focus:border-emerald-500"
-          >
-            <option value="all">Filter by Team Length</option>
-            {teams.filter(t => !t.is_external).map(t => {
-              const length = pitchLengths.find(l => l.id === t.required_length);
-              return (
-                <option key={t.id} value={t.id}>
-                  {t.name} ({length ? `${length.length_yards}y` : 'No length'})
-                </option>
-              );
-            })}
-          </select>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full md:w-auto">
+            <div className="flex items-center space-x-2">
+              <Filter size={16} className="text-slate-400 shrink-0" />
+              <select
+                value={selectedVenueId}
+                onChange={(e) => setSelectedVenueId(e.target.value)}
+                className="bg-slate-800 text-slate-200 text-sm rounded-xl py-2 px-3 outline-none border border-slate-700 w-full focus:border-emerald-500"
+              >
+                <option value="all">All Venues</option>
+                {venues.map(v => (
+                  <option key={v.id} value={v.id}>{v.name}</option>
+                ))}
+              </select>
+            </div>
 
-          <select
-            value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            className="bg-slate-800 text-slate-200 text-sm rounded-xl py-2 px-3 outline-none border border-slate-700 w-full focus:border-emerald-500"
-          >
-            <option value="all">All Booking Statuses</option>
-            <option value="APPROVED">Confirmed Only</option>
-            <option value="PENDING">Pending Only</option>
-          </select>
+            <select
+              value={selectedTeamId}
+              onChange={(e) => setSelectedTeamId(e.target.value)}
+              className="bg-slate-800 text-slate-200 text-sm rounded-xl py-2 px-3 outline-none border border-slate-700 w-full focus:border-emerald-500"
+            >
+              <option value="all">Filter by Team Length</option>
+              {teams.filter(t => !t.is_external).map(t => {
+                const length = pitchLengths.find(l => l.id === t.required_length);
+                return (
+                  <option key={t.id} value={t.id}>
+                    {t.name} ({length ? `${length.length_yards}y` : 'No length'})
+                  </option>
+                );
+              })}
+            </select>
+
+            <select
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value)}
+              className="bg-slate-800 text-slate-200 text-sm rounded-xl py-2 px-3 outline-none border border-slate-700 w-full focus:border-emerald-500"
+            >
+              <option value="all">All Booking Statuses</option>
+              <option value="APPROVED">Confirmed Only</option>
+              <option value="PENDING">Pending Only</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -282,7 +311,109 @@ export default function CalendarView({
       {/* Responsive Calendar Matrix */}
       <div className="glass-panel rounded-2xl overflow-hidden border border-slate-800">
         <div className="overflow-x-auto">
-          <table className="w-full table-fixed border-collapse text-left min-w-[900px]">
+          {viewMode === 'transposed' ? (
+            /* TRANSPOSED MODE: Pitches Across (Columns), Days & Sessions Down (Rows) */
+            <table className="w-full table-fixed border-collapse text-left min-w-[900px]">
+              <thead>
+                <tr className="bg-slate-900/80 border-b border-slate-850">
+                  <th className="p-4 text-xs font-semibold uppercase tracking-wider text-slate-400 w-56 font-display border-r border-slate-800 shrink-0">
+                    Day & Session
+                  </th>
+                  {filteredPitches.map(pitch => {
+                    const venueName = venues.find(v => v.id === pitch.venue)?.name || '';
+                    return (
+                      <th key={pitch.id} className="p-4 text-center border-r border-slate-800 last:border-r-0 truncate">
+                        <span className="text-xs text-emerald-400 block font-display tracking-wide truncate">{venueName}</span>
+                        <span className="block text-sm font-semibold text-slate-100 truncate">{pitch.name}</span>
+                      </th>
+                    );
+                  })}
+                </tr>
+              </thead>
+              <tbody>
+                {filteredPitches.length === 0 ? (
+                  <tr>
+                    <td colSpan={2} className="p-12 text-center text-slate-400">
+                      No compatible pitches found. Try clearing filters.
+                    </td>
+                  </tr>
+                ) : (
+                  datesList.map(day => (
+                    <React.Fragment key={day.isoStr}>
+                      {/* Day Group Header Row - Prominent thick border & background */}
+                      <tr className="bg-slate-900/90 border-t-4 border-b-2 border-emerald-500/40">
+                        <td
+                          colSpan={filteredPitches.length + 1}
+                          className="px-4 py-2 text-emerald-400 font-bold font-display text-sm tracking-wide bg-slate-900/90"
+                        >
+                          {day.label}
+                        </td>
+                      </tr>
+                      {/* Morning Slot Row */}
+                      <tr className="border-b border-slate-800/30 hover:bg-slate-800/10">
+                        <td className="px-3 py-1.5 border-r border-slate-800 font-medium bg-slate-950/40">
+                          <span className="text-xs text-slate-300 font-semibold block">Morning</span>
+                          <span className="text-[10px] text-slate-500 block">09:00 - 13:00</span>
+                        </td>
+                        {filteredPitches.map(pitch => {
+                          const cell = getCellStatus(pitch.id, day.isoStr, 'MORNING');
+                          return (
+                            <td key={pitch.id} className="p-1 border-r border-slate-800/40 last:border-r-0 align-top">
+                              <CellContent
+                                cell={cell}
+                                onClick={() => handleCellClick(pitch.id, day.isoStr, 'MORNING', cell)}
+                                compact={true}
+                              />
+                            </td>
+                          );
+                        })}
+                      </tr>
+                      {/* Afternoon Slot Row */}
+                      <tr className="border-b border-slate-800/30 hover:bg-slate-800/10">
+                        <td className="px-3 py-1.5 border-r border-slate-800 font-medium bg-slate-950/40">
+                          <span className="text-xs text-slate-300 font-semibold block">Afternoon</span>
+                          <span className="text-[10px] text-slate-500 block">13:30 - 18:00</span>
+                        </td>
+                        {filteredPitches.map(pitch => {
+                          const cell = getCellStatus(pitch.id, day.isoStr, 'AFTERNOON');
+                          return (
+                            <td key={pitch.id} className="p-1 border-r border-slate-800/40 last:border-r-0 align-top">
+                              <CellContent
+                                cell={cell}
+                                onClick={() => handleCellClick(pitch.id, day.isoStr, 'AFTERNOON', cell)}
+                                compact={true}
+                              />
+                            </td>
+                          );
+                        })}
+                      </tr>
+                      {/* Evening Slot Row */}
+                      <tr className="border-b-2 border-slate-800 hover:bg-slate-800/10">
+                        <td className="px-3 py-1.5 border-r border-slate-800 font-medium bg-slate-950/40">
+                          <span className="text-xs text-slate-300 font-semibold block">Evening</span>
+                          <span className="text-[10px] text-slate-500 block">18:00 - 21:00</span>
+                        </td>
+                        {filteredPitches.map(pitch => {
+                          const cell = getCellStatus(pitch.id, day.isoStr, 'EVENING');
+                          return (
+                            <td key={pitch.id} className="p-1 border-r border-slate-800/40 last:border-r-0 align-top">
+                              <CellContent
+                                cell={cell}
+                                onClick={() => handleCellClick(pitch.id, day.isoStr, 'EVENING', cell)}
+                                compact={true}
+                              />
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    </React.Fragment>
+                  ))
+                )}
+              </tbody>
+            </table>
+          ) : (
+            /* STANDARD MODE: Days Across (Columns), Pitches Down (Rows) */
+            <table className="w-full table-fixed border-collapse text-left min-w-[900px]">
             <thead>
               <tr className="bg-slate-900/80 border-b border-slate-850">
                 <th className="p-4 text-xs font-semibold uppercase tracking-wider text-slate-400 w-56 font-display border-r border-slate-800 shrink-0">
@@ -332,7 +463,7 @@ export default function CalendarView({
                         })}
                       </tr>
                       {/* Afternoon Slot Row */}
-                      <tr className="border-b border-slate-850 hover:bg-slate-800/10 last:border-b-0">
+                      <tr className="border-b border-slate-850 hover:bg-slate-800/10">
                         <td className="p-4 border-r border-slate-800 font-medium">
                           <span className="text-xs text-emerald-400 block font-display tracking-wide">{venueName}</span>
                           <span className="text-slate-100 font-semibold">{pitch.name}</span>
@@ -355,12 +486,37 @@ export default function CalendarView({
                           );
                         })}
                       </tr>
+                      {/* Evening Slot Row */}
+                      <tr className="border-b border-slate-850 hover:bg-slate-800/10 last:border-b-0">
+                        <td className="p-4 border-r border-slate-800 font-medium">
+                          <span className="text-xs text-emerald-400 block font-display tracking-wide">{venueName}</span>
+                          <span className="text-slate-100 font-semibold">{pitch.name}</span>
+                          <span className="text-xxs text-slate-400 block mt-1 bg-slate-800/80 px-2 py-0.5 rounded w-max">
+                            Evening (18:00 - 21:00)
+                          </span>
+                        </td>
+                        {datesList.map(day => {
+                          const cell = getCellStatus(pitch.id, day.isoStr, 'EVENING');
+                          return (
+                            <td
+                              key={day.isoStr}
+                              className="p-2 border-r border-slate-800 last:border-r-0 align-top"
+                            >
+                              <CellContent
+                                cell={cell}
+                                onClick={() => handleCellClick(pitch.id, day.isoStr, 'EVENING', cell)}
+                              />
+                            </td>
+                          );
+                        })}
+                      </tr>
                     </React.Fragment>
                   );
                 })
               )}
             </tbody>
           </table>
+          )}
         </div>
       </div>
 
@@ -418,10 +574,15 @@ export default function CalendarView({
                   className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 outline-none focus:border-emerald-500"
                   required
                 >
-                  <option value="">Select Your Team</option>
-                  {allowedTeams.filter(t => !t.is_external).map(t => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
-                  ))}
+                  <option value="">Select Team</option>
+                  {allowedTeams
+                    .filter(t => {
+                      const hasAdminOrSec = currentUser?.roles?.includes('ADMIN') || currentUser?.roles?.includes('FIXTURE_SECRETARY');
+                      return hasAdminOrSec ? true : !t.is_external;
+                    })
+                    .map(t => (
+                      <option key={t.id} value={t.id}>{t.name} {t.is_external ? '(External)' : ''}</option>
+                    ))}
                 </select>
               </div>
 
@@ -536,14 +697,23 @@ export default function CalendarView({
 }
 
 // Inner helper component for cell mapping
-function CellContent({ cell, onClick }) {
+function CellContent({ cell, onClick, compact = false, isExternal = false }) {
+  const heightClass = compact ? 'h-16' : 'h-24';
+
   if (!cell) {
+    if (isExternal) {
+      return (
+        <div className={`w-full ${heightClass} border border-slate-900 rounded-xl bg-slate-950/40 flex items-center justify-center`}>
+          <span className="text-[10px] text-emerald-500/70 font-semibold font-display">Available</span>
+        </div>
+      );
+    }
     return (
       <button
         onClick={onClick}
-        className="w-full h-24 flex items-center justify-center border border-dashed border-slate-800 rounded-xl hover:border-emerald-500/50 hover:bg-emerald-950/25 group transition cursor-pointer overflow-hidden"
+        className={`w-full ${heightClass} flex items-center justify-center border border-dashed border-slate-800 rounded-xl hover:border-emerald-500/50 hover:bg-emerald-950/25 group transition cursor-pointer overflow-hidden`}
       >
-        <Plus size={16} className="text-slate-650 group-hover:text-emerald-400 group-hover:scale-110 transition duration-300" />
+        <Plus size={14} className="text-slate-650 group-hover:text-emerald-400 group-hover:scale-110 transition duration-300" />
       </button>
     );
   }
@@ -551,14 +721,16 @@ function CellContent({ cell, onClick }) {
   if (cell.type === 'BLOCKED') {
     return (
       <div
-        className="w-full h-24 bg-slate-900/60 border border-slate-800 rounded-xl p-2.5 flex flex-col justify-between overflow-hidden"
-        title={cell.reason}
+        className={`w-full ${heightClass} bg-slate-900/60 border border-slate-800 rounded-xl ${compact ? 'p-1.5' : 'p-2.5'} flex flex-col justify-between overflow-hidden`}
+        title={isExternal ? 'Unavailable' : cell.reason}
       >
         <div className="flex items-start space-x-1 text-slate-500">
-          <ShieldAlert size={14} className="shrink-0 text-amber-600 mt-0.5" />
-          <span className="text-[10px] font-bold uppercase tracking-wider font-display line-clamp-3">{cell.label}</span>
+          <ShieldAlert size={12} className="shrink-0 text-amber-600 mt-0.5" />
+          <span className="text-[10px] font-bold uppercase tracking-wider font-display line-clamp-2">
+            {isExternal ? 'Unavailable' : cell.label}
+          </span>
         </div>
-        <span className="text-[10px] text-slate-500 leading-snug line-clamp-1">Outfield Overlap</span>
+        {!compact && !isExternal && <span className="text-[10px] text-slate-500 leading-snug line-clamp-1">Outfield Overlap</span>}
       </div>
     );
   }
@@ -567,23 +739,23 @@ function CellContent({ cell, onClick }) {
   const isApproved = cell.status === 'APPROVED';
 
   return (
-    <div className={`w-full h-24 border rounded-xl p-2.5 flex flex-col justify-between overflow-hidden transition-all duration-300 hover:-translate-y-0.5 ${isApproved
+    <div className={`w-full ${heightClass} border rounded-xl ${compact ? 'p-1.5' : 'p-2.5'} flex flex-col justify-between overflow-hidden transition-all duration-300 ${isApproved
       ? 'bg-emerald-950/30 border-emerald-900/80 shadow-sm shadow-emerald-900/10'
       : 'bg-amber-950/20 border-amber-900/50'
       }`}>
       <div>
-        <div className="flex items-center justify-between gap-1 mb-1">
-          <span className={`text-[9px] px-1.5 py-0.5 rounded font-extrabold uppercase font-display truncate ${isApproved ? 'bg-emerald-900/50 text-emerald-400' : 'bg-amber-900/50 text-amber-400'
+        <div className="flex items-center justify-between gap-1 mb-0.5">
+          <span className={`text-[9px] px-1.5 py-0.2 rounded font-extrabold uppercase font-display truncate ${isApproved ? 'bg-emerald-900/50 text-emerald-400' : 'bg-amber-900/50 text-amber-400'
             }`}>
-            {isApproved ? 'Confirmed' : 'Pending'}
+            {isApproved ? 'Booked' : 'Pending'}
           </span>
         </div>
-        <p className="text-xs font-semibold text-slate-200 line-clamp-3 leading-snug" title={cell.label}>
-          {cell.label}
+        <p className="text-xs font-semibold text-slate-300 line-clamp-2 leading-tight">
+          {isExternal ? 'Booked' : cell.label}
         </p>
       </div>
 
-      {cell.booking.notes && (
+      {!compact && !isExternal && cell.booking.notes && (
         <span className="text-[10px] text-slate-450 line-clamp-1 italic">
           "{cell.booking.notes}"
         </span>

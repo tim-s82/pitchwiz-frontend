@@ -1,8 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { api } from '../services/api';
 import {
   Users, Plus, Pencil, Trash2, Check, X,
-  AlertTriangle, Shield, Globe, Ruler
+  AlertTriangle, Shield, Globe, Ruler, UserCheck
 } from 'lucide-react';
 
 export default function TeamsManager({ teams, pitchLengths, onTeamsChanged }) {
@@ -11,11 +11,31 @@ export default function TeamsManager({ teams, pitchLengths, onTeamsChanged }) {
   const [saving, setSaving] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [toast, setToast] = useState(null);
+  const [availableUsers, setAvailableUsers] = useState([]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const res = await fetch('/api/users/', {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAvailableUsers(data);
+      }
+    } catch (e) {
+      console.warn('Could not fetch users for manager selection', e);
+    }
+  };
 
   // Form state
   const [formName, setFormName] = useState('');
   const [formLengthId, setFormLengthId] = useState('');
   const [formIsExternal, setFormIsExternal] = useState(false);
+  const [formManagers, setFormManagers] = useState([]);
 
   const clubTeams = useMemo(() => teams.filter(t => !t.is_external), [teams]);
   const externalTeams = useMemo(() => teams.filter(t => t.is_external), [teams]);
@@ -29,6 +49,7 @@ export default function TeamsManager({ teams, pitchLengths, onTeamsChanged }) {
     setFormName('');
     setFormLengthId('');
     setFormIsExternal(false);
+    setFormManagers([]);
     setEditingTeam(null);
     setShowForm(false);
   };
@@ -42,6 +63,7 @@ export default function TeamsManager({ teams, pitchLengths, onTeamsChanged }) {
     setFormName(team.name);
     setFormLengthId(team.required_length ? String(team.required_length) : '');
     setFormIsExternal(team.is_external);
+    setFormManagers(team.managers || []);
     setEditingTeam(team);
     setShowForm(true);
   };
@@ -56,7 +78,7 @@ export default function TeamsManager({ teams, pitchLengths, onTeamsChanged }) {
         name: formName.trim(),
         required_length: formLengthId ? parseInt(formLengthId, 10) : null,
         is_external: formIsExternal,
-        manager: null,
+        managers: formManagers,
       };
 
       if (editingTeam) {
@@ -278,7 +300,7 @@ export default function TeamsManager({ teams, pitchLengths, onTeamsChanged }) {
             </div>
 
             {/* Is External Toggle */}
-            <div className="sm:col-span-3 flex items-center gap-3 pb-0.5">
+            <div className="sm:col-span-2 flex items-center gap-3 pb-0.5">
               <button
                 type="button"
                 role="switch"
@@ -297,6 +319,42 @@ export default function TeamsManager({ teams, pitchLengths, onTeamsChanged }) {
               <label className="text-sm text-slate-300 select-none cursor-pointer" onClick={() => setFormIsExternal(!formIsExternal)}>
                 External Team
               </label>
+            </div>
+
+            {/* Assigned Managers */}
+            <div className="sm:col-span-12 pt-2 border-t border-slate-800">
+              <label className="block text-xs font-medium text-slate-400 mb-1.5">
+                Assigned Team Managers
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {availableUsers
+                  .filter(u => u.roles?.includes('TEAM_MANAGER') || u.roles?.includes('ADMIN'))
+                  .map(u => {
+                    const isSelected = formManagers.includes(u.id);
+                    return (
+                      <button
+                        type="button"
+                        key={u.id}
+                        onClick={() => {
+                          setFormManagers(prev =>
+                            isSelected ? prev.filter(id => id !== u.id) : [...prev, u.id]
+                          );
+                        }}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition flex items-center gap-1.5 ${
+                          isSelected
+                            ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
+                            : 'bg-slate-900 text-slate-400 border-slate-800 hover:border-slate-700'
+                        }`}
+                      >
+                        <UserCheck size={13} />
+                        <span>{u.username} ({u.first_name} {u.last_name})</span>
+                      </button>
+                    );
+                  })}
+                {availableUsers.filter(u => u.roles?.includes('TEAM_MANAGER') || u.roles?.includes('ADMIN')).length === 0 && (
+                  <span className="text-xs text-slate-500 italic">No users with Team Manager role found. Create them in User Management.</span>
+                )}
+              </div>
             </div>
 
             {/* Action Buttons */}

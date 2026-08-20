@@ -260,23 +260,56 @@ export const api = {
   deleteTeam: (id) => apiRequest(`/api/teams/${id}/`, {
     method: 'DELETE',
   }),
+
+  // Venue CRUD
+  createVenue: (data) => apiRequest('/api/venues/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  }),
+  updateVenue: (id, data) => apiRequest(`/api/venues/${id}/`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  }),
+  deleteVenue: (id) => apiRequest(`/api/venues/${id}/`, {
+    method: 'DELETE',
+  }),
+
+  // Pitch CRUD
+  createPitch: (data) => apiRequest('/api/pitches/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  }),
+  updatePitch: (id, data) => apiRequest(`/api/pitches/${id}/`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  }),
+  deletePitch: (id) => apiRequest(`/api/pitches/${id}/`, {
+    method: 'DELETE',
+  }),
+
+  // PitchLength CRUD
+  createPitchLength: (data) => apiRequest('/api/pitchlengths/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  }),
+  updatePitchLength: (id, data) => apiRequest(`/api/pitchlengths/${id}/`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  }),
+  deletePitchLength: (id) => apiRequest(`/api/pitchlengths/${id}/`, {
+    method: 'DELETE',
+  }),
+
   // Local-only update for mock data (to show live feedback in dashboards)
-  updateBookingStatus: async (id, status) => {
-    try {
-      const response = await fetch(`/api/pitchbookings/${id}/`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status })
-      });
-      if (response.ok) return await response.json();
-    } catch (e) {
-      console.warn("API Patch failed, updating mock data locally.");
-    }
-    const idx = mockBookings.findIndex(b => b.id === id);
-    if (idx !== -1) {
-      mockBookings[idx] = { ...mockBookings[idx], status };
-      return mockBookings[idx];
-    }
-    return null;
-  },
+  updateBookingStatus: (id, status) => apiRequest(`/api/pitchbookings/${id}/`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status })
+  }),
 };

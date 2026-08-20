@@ -6,8 +6,9 @@ import CatererDashboard from './components/CatererDashboard';
 import PublicBookingForm from './components/PublicBookingForm';
 import TeamsManager from './components/TeamsManager';
 import UserManagement from './components/UserManagement';
+import VenuesManager from './components/VenuesManager';
 import { LoginScreen, ForcePasswordResetScreen } from './components/AuthScreens';
-import { Calendar, ShieldAlert, Utensils, FormInput, Activity, HelpCircle, Users, LogOut, Shield } from 'lucide-react';
+import { Calendar, ShieldAlert, Utensils, FormInput, Activity, HelpCircle, Users, LogOut, Shield, MapPin } from 'lucide-react';
 
 export default function App() {
   const [activeView, setActiveView] = useState('calendar');
@@ -103,6 +104,10 @@ export default function App() {
       fixId = createdFixture.id;
     }
 
+    // Determine initial booking status: auto-approve if requested by Fixture Secretary or Admin
+    const isAutoApproved = currentUser?.roles?.includes('ADMIN') || currentUser?.roles?.includes('FIXTURE_SECRETARY');
+    const initialStatus = isAutoApproved ? 'APPROVED' : 'PENDING';
+
     const bookingData = {
       fixture: fixId,
       pitch: payload.pitch,
@@ -111,10 +116,10 @@ export default function App() {
       time_slot: payload.time_slot,
       requires_teas: payload.requires_teas,
       requires_drinks: payload.requires_drinks,
-      requested_by: null, // Set to null since no users exist in the DB yet
+      requested_by: currentUser ? currentUser.id : null,
       external_contact_name: payload.external_contact_name || '',
       external_contact_email: payload.external_contact_email || '',
-      status: 'PENDING',
+      status: initialStatus,
       notes: payload.notes || ''
     };
 
@@ -204,7 +209,21 @@ export default function App() {
               </button>
             )}
 
-            {hasRole('TEAM_MANAGER') && (
+            {(hasRole('TEAM_MANAGER') || hasRole('FIXTURE_SECRETARY') || hasRole('ADMIN')) && (
+              <button
+                onClick={() => setActiveView('calendar')}
+                className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display ${
+                  activeView === 'calendar' 
+                    ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60' 
+                    : 'text-slate-450 hover:text-slate-200'
+                }`}
+              >
+                <FormInput size={14} />
+                <span>Request Pitch</span>
+              </button>
+            )}
+
+            {hasRole('EXTERNAL') && (
               <button
                 onClick={() => setActiveView('publicForm')}
                 className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display ${
@@ -214,7 +233,7 @@ export default function App() {
                 }`}
               >
                 <FormInput size={14} />
-                <span>Request Pitch</span>
+                <span>External Pitch Request</span>
               </button>
             )}
 
@@ -229,6 +248,20 @@ export default function App() {
               >
                 <Users size={14} />
                 <span>Teams</span>
+              </button>
+            )}
+
+            {(hasRole('USER_MANAGER') || hasRole('FIXTURE_SECRETARY')) && (
+              <button
+                onClick={() => setActiveView('venues')}
+                className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display ${
+                  activeView === 'venues' 
+                    ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60' 
+                    : 'text-slate-450 hover:text-slate-200'
+                }`}
+              >
+                <MapPin size={14} />
+                <span>Venues & Pitches</span>
               </button>
             )}
 
@@ -312,6 +345,14 @@ export default function App() {
                 teams={teams}
                 pitchLengths={pitchLengths}
                 onTeamsChanged={loadData}
+              />
+            )}
+            {activeView === 'venues' && (
+              <VenuesManager
+                venues={venues}
+                pitches={pitches}
+                pitchLengths={pitchLengths}
+                onDataChanged={loadData}
               />
             )}
             {activeView === 'users' && (
