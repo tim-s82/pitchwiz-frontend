@@ -8,14 +8,4 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ]
-  // server: {
-  //   port: 3000,
-  //   proxy: {
-  //     '/api': {
-  //       target: import.meta.env.VITE_API_URL,
-  //       changeOrigin: true,
-  //       secure: false,
-  //     }
-  //   }
-  // }
 })

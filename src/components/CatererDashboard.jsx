@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { Coffee, ListCollapse, Utensils, Calendar, MapPin, Clock, FileText, Check, X, AlertCircle } from 'lucide-react';
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 export default function CatererDashboard({
   venues,
@@ -12,13 +13,14 @@ export default function CatererDashboard({
   const [cateringRequests, setCateringRequests] = useState([]);
   const [rejectModal, setRejectModal] = useState({ open: false, crId: null, reason: '' });
 
+
   useEffect(() => {
     fetchCateringRequests();
   }, []);
 
   const fetchCateringRequests = async () => {
     try {
-      const res = await fetch('/api/catering-requests/', {
+      const res = await fetch(`${API_BASE_URL}/api/catering-requests/`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
       });
       if (res.ok) setCateringRequests(await res.json());
@@ -28,8 +30,8 @@ export default function CatererDashboard({
   // Filter only APPROVED bookings that require teas or drinks (legacy fallback)
   const upcomingCatering = useMemo(() => {
     return bookings
-      .filter(b => 
-        b.status === 'APPROVED' && 
+      .filter(b =>
+        b.status === 'APPROVED' &&
         (b.requires_teas || b.requires_drinks)
       )
       .sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
@@ -57,7 +59,7 @@ export default function CatererDashboard({
 
   const handleApproveCatering = async (id) => {
     try {
-      await fetch(`/api/catering-requests/${id}/`, {
+      await fetch(`${API_BASE_URL}/api/catering-requests/${id}/`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -79,7 +81,7 @@ export default function CatererDashboard({
       return;
     }
     try {
-      await fetch(`/api/catering-requests/${rejectModal.crId}/`, {
+      await fetch(`${API_BASE_URL}/api/catering-requests/${rejectModal.crId}/`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -107,7 +109,7 @@ export default function CatererDashboard({
             <p className="text-sm text-slate-400">Manage catering requests for confirmed matches.</p>
           </div>
         </div>
-        
+
         {/* Caterer Summary Stats */}
         <div className="flex gap-4">
           <div className="bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-2 flex items-center space-x-2">
@@ -138,9 +140,8 @@ export default function CatererDashboard({
       <div className="flex border-b border-slate-800">
         <button
           onClick={() => setActiveTab('pending')}
-          className={`pb-4 px-6 font-semibold text-sm transition-all duration-300 relative ${
-            activeTab === 'pending' ? 'text-emerald-400' : 'text-slate-400 hover:text-slate-200'
-          }`}
+          className={`pb-4 px-6 font-semibold text-sm transition-all duration-300 relative ${activeTab === 'pending' ? 'text-emerald-400' : 'text-slate-400 hover:text-slate-200'
+            }`}
         >
           Pending Catering Requests
           {pendingCateringRequests.length > 0 && (
@@ -152,9 +153,8 @@ export default function CatererDashboard({
         </button>
         <button
           onClick={() => setActiveTab('upcoming')}
-          className={`pb-4 px-6 font-semibold text-sm transition-all duration-300 relative ${
-            activeTab === 'upcoming' ? 'text-emerald-400' : 'text-slate-400 hover:text-slate-200'
-          }`}
+          className={`pb-4 px-6 font-semibold text-sm transition-all duration-300 relative ${activeTab === 'upcoming' ? 'text-emerald-400' : 'text-slate-400 hover:text-slate-200'
+            }`}
         >
           Upcoming Orders
           {activeTab === 'upcoming' && <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-500" />}
@@ -222,7 +222,7 @@ export default function CatererDashboard({
         /* Upcoming Orders Tab (legacy view from bookings) */
         <div className="space-y-4">
           <h3 className="text-base font-bold font-display tracking-wide text-slate-200">Confirmed Catering</h3>
-          
+
           {upcomingCatering.length === 0 ? (
             <div className="glass-panel p-12 text-center text-slate-400 rounded-2xl">
               No catering requests for the upcoming scheduled matches.
@@ -234,9 +234,9 @@ export default function CatererDashboard({
                 const venueObj = pitchObj ? venues.find(v => v.id === pitchObj.venue) : null;
                 const fixtureObj = booking.fixture ? fixtures.find(f => f.id === booking.fixture) : null;
                 const teamObj = fixtureObj ? teams.find(t => t.id === fixtureObj.team) : null;
-                
-                const fixtureLabel = teamObj 
-                  ? `${teamObj.name} vs ${fixtureObj.opponent}` 
+
+                const fixtureLabel = teamObj
+                  ? `${teamObj.name} vs ${fixtureObj.opponent}`
                   : booking.external_contact_name || 'External Match';
 
                 return (

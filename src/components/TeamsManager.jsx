@@ -4,6 +4,7 @@ import {
   Users, Plus, Pencil, Trash2, Check, X,
   AlertTriangle, Shield, Globe, Ruler, UserCheck
 } from 'lucide-react';
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 export default function TeamsManager({ teams, pitchLengths, onTeamsChanged }) {
   const [showForm, setShowForm] = useState(false);
@@ -19,7 +20,7 @@ export default function TeamsManager({ teams, pitchLengths, onTeamsChanged }) {
 
   const fetchUsers = async () => {
     try {
-      const res = await fetch('/api/users/', {
+      const res = await fetch(`${API_BASE_URL}/api/users/`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
       });
       if (res.ok) {
@@ -242,11 +243,10 @@ export default function TeamsManager({ teams, pitchLengths, onTeamsChanged }) {
 
       {/* Toast Notification */}
       {toast && (
-        <div className={`flex items-center gap-2.5 px-4 py-3 rounded-xl text-sm font-medium border transition-all animate-in fade-in slide-in-from-top-2 duration-300 ${
-          toast.type === 'error'
-            ? 'bg-red-950/60 text-red-300 border-red-900/40'
-            : 'bg-emerald-950/60 text-emerald-300 border-emerald-900/40'
-        }`}>
+        <div className={`flex items-center gap-2.5 px-4 py-3 rounded-xl text-sm font-medium border transition-all animate-in fade-in slide-in-from-top-2 duration-300 ${toast.type === 'error'
+          ? 'bg-red-950/60 text-red-300 border-red-900/40'
+          : 'bg-emerald-950/60 text-emerald-300 border-emerald-900/40'
+          }`}>
           {toast.type === 'error' ? <AlertTriangle size={15} /> : <Check size={15} />}
           {toast.message}
         </div>
@@ -306,14 +306,12 @@ export default function TeamsManager({ teams, pitchLengths, onTeamsChanged }) {
                 role="switch"
                 aria-checked={formIsExternal}
                 onClick={() => setFormIsExternal(!formIsExternal)}
-                className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-emerald-500/40 ${
-                  formIsExternal ? 'bg-amber-600' : 'bg-slate-700'
-                }`}
+                className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-emerald-500/40 ${formIsExternal ? 'bg-amber-600' : 'bg-slate-700'
+                  }`}
               >
                 <span
-                  className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-lg ring-0 transition-transform duration-200 ease-in-out ${
-                    formIsExternal ? 'translate-x-5' : 'translate-x-0'
-                  }`}
+                  className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-lg ring-0 transition-transform duration-200 ease-in-out ${formIsExternal ? 'translate-x-5' : 'translate-x-0'
+                    }`}
                 />
               </button>
               <label className="text-sm text-slate-300 select-none cursor-pointer" onClick={() => setFormIsExternal(!formIsExternal)}>
@@ -340,11 +338,10 @@ export default function TeamsManager({ teams, pitchLengths, onTeamsChanged }) {
                             isSelected ? prev.filter(id => id !== u.id) : [...prev, u.id]
                           );
                         }}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition flex items-center gap-1.5 ${
-                          isSelected
-                            ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
-                            : 'bg-slate-900 text-slate-400 border-slate-800 hover:border-slate-700'
-                        }`}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition flex items-center gap-1.5 ${isSelected
+                          ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
+                          : 'bg-slate-900 text-slate-400 border-slate-800 hover:border-slate-700'
+                          }`}
                       >
                         <UserCheck size={13} />
                         <span>{u.username} ({u.first_name} {u.last_name})</span>
