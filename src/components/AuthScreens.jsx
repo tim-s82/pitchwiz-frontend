@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Lock, Mail, KeyRound, AlertCircle, RefreshCw } from 'lucide-react';
 import { api } from '../services/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 export function LoginScreen({ onLoginSuccess }) {
   const [username, setUsername] = useState('');
@@ -13,7 +14,7 @@ export function LoginScreen({ onLoginSuccess }) {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch('/api/token/', {
+      const response = await fetch(`${API_BASE_URL}/api/token/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
@@ -124,9 +125,9 @@ export function ForcePasswordResetScreen({ onResetSuccess, onCancel }) {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch('/api/users/change_password/', {
+      const response = await fetch(`${API_BASE_URL}/api/users/change_password/`, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('access_token')}`
         },

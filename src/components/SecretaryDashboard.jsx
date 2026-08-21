@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { api } from '../services/api';
 import { ShieldCheck, UserCheck, Check, X, AlertTriangle, HelpCircle, RefreshCcw, MapPin, Calendar, Clock, Coffee, GitPullRequestArrow } from 'lucide-react';
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 export default function SecretaryDashboard({
   venues,
@@ -28,7 +29,7 @@ export default function SecretaryDashboard({
 
   const fetchChangeRequests = async () => {
     try {
-      const res = await fetch('/api/booking-change-requests/', {
+      const res = await fetch(`${API_BASE_URL}/api/booking-change-requests/`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
       });
       if (res.ok) setChangeRequests(await res.json());
@@ -126,7 +127,7 @@ export default function SecretaryDashboard({
       return;
     }
     try {
-      await fetch(`/api/pitchbookings/${rejectModal.bookingId}/`, {
+      await fetch(`${API_BASE_URL}/api/pitchbookings/${rejectModal.bookingId}/`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -144,7 +145,7 @@ export default function SecretaryDashboard({
   // Change request approve/reject
   const handleApproveChange = async (crId) => {
     try {
-      await fetch(`/api/booking-change-requests/${crId}/`, {
+      await fetch(`${API_BASE_URL}/api/booking-change-requests/${crId}/`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -166,7 +167,7 @@ export default function SecretaryDashboard({
       return;
     }
     try {
-      await fetch(`/api/booking-change-requests/${changeRejectModal.crId}/`, {
+      await fetch(`${API_BASE_URL}/api/booking-change-requests/${changeRejectModal.crId}/`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -182,7 +183,7 @@ export default function SecretaryDashboard({
   const handleProposeAlternative = async (bookingId, newPitchId) => {
     if (!newPitchId) return;
     try {
-      const response = await fetch(`/api/pitchbookings/${bookingId}/`, {
+      const response = await fetch(`${API_BASE_URL}/api/pitchbookings/${bookingId}/`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

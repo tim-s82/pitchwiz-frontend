@@ -38,7 +38,7 @@ export default function App() {
         api.getFixtures(),
         api.getBookings(),
         api.getPitchLengths(),
-        api.getMe ? api.getMe() : fetch('/api/users/me/', { headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` } }).then(res => res.json())
+        api.getMe ? api.getMe() : fetch(`${API_BASE_URL}/api/users/me/`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` } }).then(res => res.json())
       ]);
       setVenues(v);
       setPitches(p);
@@ -171,11 +171,10 @@ export default function App() {
           <nav className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => setActiveView('calendar')}
-              className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display ${
-                activeView === 'calendar' 
-                  ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60' 
+              className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display ${activeView === 'calendar'
+                  ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
                   : 'text-slate-450 hover:text-slate-200'
-              }`}
+                }`}
             >
               <Calendar size={14} />
               <span>Availability</span>
@@ -184,11 +183,10 @@ export default function App() {
             {hasRole('FIXTURE_SECRETARY') && (
               <button
                 onClick={() => setActiveView('secretary')}
-                className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display ${
-                  activeView === 'secretary' 
-                    ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60' 
+                className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display ${activeView === 'secretary'
+                    ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
                     : 'text-slate-450 hover:text-slate-200'
-                }`}
+                  }`}
               >
                 <ShieldAlert size={14} />
                 <span>Secretary Panel</span>
@@ -198,11 +196,10 @@ export default function App() {
             {hasRole('CATERER') && (
               <button
                 onClick={() => setActiveView('caterer')}
-                className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display ${
-                  activeView === 'caterer' 
-                    ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60' 
+                className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display ${activeView === 'caterer'
+                    ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
                     : 'text-slate-450 hover:text-slate-200'
-                }`}
+                  }`}
               >
                 <Utensils size={14} />
                 <span>Caterer Dashboard</span>
@@ -212,11 +209,10 @@ export default function App() {
             {(hasRole('TEAM_MANAGER') || hasRole('FIXTURE_SECRETARY') || hasRole('ADMIN')) && (
               <button
                 onClick={() => setActiveView('calendar')}
-                className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display ${
-                  activeView === 'calendar' 
-                    ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60' 
+                className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display ${activeView === 'calendar'
+                    ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
                     : 'text-slate-450 hover:text-slate-200'
-                }`}
+                  }`}
               >
                 <FormInput size={14} />
                 <span>Request Pitch</span>
@@ -226,11 +222,10 @@ export default function App() {
             {hasRole('EXTERNAL') && (
               <button
                 onClick={() => setActiveView('publicForm')}
-                className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display ${
-                  activeView === 'publicForm' 
-                    ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60' 
+                className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display ${activeView === 'publicForm'
+                    ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
                     : 'text-slate-450 hover:text-slate-200'
-                }`}
+                  }`}
               >
                 <FormInput size={14} />
                 <span>External Pitch Request</span>
@@ -240,11 +235,10 @@ export default function App() {
             {(hasRole('USER_MANAGER') || hasRole('FIXTURE_SECRETARY')) && (
               <button
                 onClick={() => setActiveView('teams')}
-                className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display ${
-                  activeView === 'teams' 
-                    ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60' 
+                className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display ${activeView === 'teams'
+                    ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
                     : 'text-slate-450 hover:text-slate-200'
-                }`}
+                  }`}
               >
                 <Users size={14} />
                 <span>Teams</span>
@@ -254,11 +248,10 @@ export default function App() {
             {(hasRole('USER_MANAGER') || hasRole('FIXTURE_SECRETARY')) && (
               <button
                 onClick={() => setActiveView('venues')}
-                className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display ${
-                  activeView === 'venues' 
-                    ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60' 
+                className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display ${activeView === 'venues'
+                    ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
                     : 'text-slate-450 hover:text-slate-200'
-                }`}
+                  }`}
               >
                 <MapPin size={14} />
                 <span>Venues & Pitches</span>
@@ -268,11 +261,10 @@ export default function App() {
             {(hasRole('USER_MANAGER') || hasRole('ADMIN')) && (
               <button
                 onClick={() => setActiveView('users')}
-                className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display ${
-                  activeView === 'users' 
-                    ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60' 
+                className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display ${activeView === 'users'
+                    ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
                     : 'text-slate-450 hover:text-slate-200'
-                }`}
+                  }`}
               >
                 <Shield size={14} />
                 <span>Users</span>

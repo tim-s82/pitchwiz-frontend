@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { UserPlus, Shield, Lock, Unlock, Key, Trash2, Pencil, Check, X, AlertCircle } from 'lucide-react';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+
 const AVAILABLE_ROLES = [
   { id: 'ADMIN', label: 'Admin' },
   { id: 'USER_MANAGER', label: 'User Manager' },
@@ -37,7 +39,7 @@ export default function UserManagement() {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch('/api/users/', {
+      const response = await fetch(`${API_BASE_URL}/api/users/`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
       });
       if (!response.ok) throw new Error("Failed to fetch users");
@@ -113,7 +115,7 @@ export default function UserManagement() {
           roles: selectedRoles,
         };
 
-        const response = await fetch(`/api/users/${editingUser.id}/`, {
+        const response = await fetch(`${API_BASE_URL}/api/users/${editingUser.id}/`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -145,7 +147,7 @@ export default function UserManagement() {
           roles: selectedRoles,
         };
 
-        const response = await fetch('/api/users/', {
+        const response = await fetch(`${API_BASE_URL}/api/users/`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -176,9 +178,9 @@ export default function UserManagement() {
 
   const toggleLock = async (user) => {
     try {
-      await fetch(`/api/users/${user.id}/`, {
+      await fetch(`${API_BASE_URL}/api/users/${user.id}/`, {
         method: 'PATCH',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('access_token')}`
         },
@@ -194,9 +196,9 @@ export default function UserManagement() {
 
   const forceReset = async (user) => {
     try {
-      await fetch(`/api/users/${user.id}/`, {
+      await fetch(`${API_BASE_URL}/api/users/${user.id}/`, {
         method: 'PATCH',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('access_token')}`
         },
@@ -213,7 +215,7 @@ export default function UserManagement() {
   const deleteUser = async (id, name) => {
     if (!window.confirm(`Are you sure you want to delete user "${name}"?`)) return;
     try {
-      await fetch(`/api/users/${id}/`, {
+      await fetch(`${API_BASE_URL}/api/users/${id}/`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
       });
@@ -231,11 +233,10 @@ export default function UserManagement() {
     <div className="space-y-6">
       {/* Toast Notification */}
       {toast && (
-        <div className={`fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-xl flex items-center space-x-2 text-sm font-semibold animate-in fade-in slide-in-from-bottom-3 ${
-          toast.type === 'error'
-            ? 'bg-rose-500 text-white shadow-rose-500/20'
-            : 'bg-emerald-500 text-slate-950 shadow-emerald-500/20'
-        }`}>
+        <div className={`fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-xl flex items-center space-x-2 text-sm font-semibold animate-in fade-in slide-in-from-bottom-3 ${toast.type === 'error'
+          ? 'bg-rose-500 text-white shadow-rose-500/20'
+          : 'bg-emerald-500 text-slate-950 shadow-emerald-500/20'
+          }`}>
           {toast.type === 'error' ? <AlertCircle size={18} /> : <Check size={18} />}
           <span>{toast.message}</span>
         </div>
@@ -312,7 +313,7 @@ export default function UserManagement() {
                           <Unlock size={12} /> <span>Active</span>
                         </span>
                       )}
-                      
+
                       {u.force_password_reset && (
                         <span className="flex items-center space-x-1 text-orange-400 text-xs font-semibold px-2 py-0.5 bg-orange-400/10 border border-orange-400/20 rounded-md" title="Must change password on next login">
                           <Key size={12} /> <span>Reset Required</span>
@@ -322,21 +323,21 @@ export default function UserManagement() {
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end space-x-2">
-                      <button 
+                      <button
                         onClick={() => openEditModal(u)}
                         className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-400 hover:bg-slate-800 transition-colors"
                         title="Edit User"
                       >
                         <Pencil size={15} />
                       </button>
-                      <button 
+                      <button
                         onClick={() => toggleLock(u)}
                         className={`p-1.5 rounded-lg transition-colors ${u.is_locked ? 'text-teal-400 hover:bg-teal-400/10' : 'text-red-400 hover:bg-red-400/10'}`}
                         title={u.is_locked ? "Unlock User Account" : "Lock User Account"}
                       >
                         {u.is_locked ? <Unlock size={15} /> : <Lock size={15} />}
                       </button>
-                      <button 
+                      <button
                         onClick={() => forceReset(u)}
                         disabled={u.force_password_reset}
                         className={`p-1.5 rounded-lg transition-colors ${u.force_password_reset ? 'text-slate-600 cursor-not-allowed' : 'text-orange-400 hover:bg-orange-400/10'}`}
@@ -344,7 +345,7 @@ export default function UserManagement() {
                       >
                         <Key size={15} />
                       </button>
-                      <button 
+                      <button
                         onClick={() => deleteUser(u.id, u.username)}
                         className="p-1.5 rounded-lg text-rose-400 hover:bg-rose-400/10 transition-colors"
                         title="Delete User"
@@ -453,16 +454,15 @@ export default function UserManagement() {
                       <label
                         key={r.id}
                         onClick={() => toggleRole(r.id)}
-                        className={`flex items-center space-x-2.5 p-2 rounded-lg cursor-pointer border transition text-xs select-none ${
-                          isChecked
-                            ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400'
-                            : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
-                        }`}
+                        className={`flex items-center space-x-2.5 p-2 rounded-lg cursor-pointer border transition text-xs select-none ${isChecked
+                          ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400'
+                          : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
+                          }`}
                       >
                         <input
                           type="checkbox"
                           checked={isChecked}
-                          onChange={() => {}} // Handled by label click
+                          onChange={() => { }} // Handled by label click
                           className="rounded text-emerald-500 bg-slate-950 border-slate-700 focus:ring-emerald-500"
                         />
                         <span className="font-semibold">{r.label}</span>

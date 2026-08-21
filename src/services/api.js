@@ -1,4 +1,5 @@
 // API and Mock Data Service for PitchWiz
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://[IP_ADDRESS]';
 
 const MOCK_PITCH_LENGTHS = [
   { id: 1, length_yards: 22, description: "22 Yards (Adults & U15+)" },
@@ -12,41 +13,41 @@ const MOCK_VENUES = [
 ];
 
 const MOCK_PITCHES = [
-  { 
-    id: 1, 
-    venue: 1, 
-    name: "Main Grass", 
-    pitch_type: "GRASS", 
-    supported_lengths: [1], 
+  {
+    id: 1,
+    venue: 1,
+    name: "Main Grass",
+    pitch_type: "GRASS",
+    supported_lengths: [1],
     blocks_pitches: [2], // Blocks Pitch 2 (Outfield Astro)
-    is_active: true 
+    is_active: true
   },
-  { 
-    id: 2, 
-    venue: 1, 
-    name: "Outfield Astro", 
-    pitch_type: "ASTRO", 
-    supported_lengths: [2, 3], 
-    blocks_pitches: [], 
-    is_active: true 
+  {
+    id: 2,
+    venue: 1,
+    name: "Outfield Astro",
+    pitch_type: "ASTRO",
+    supported_lengths: [2, 3],
+    blocks_pitches: [],
+    is_active: true
   },
-  { 
-    id: 3, 
-    venue: 2, 
-    name: "Pitch 1 (Grass)", 
-    pitch_type: "GRASS", 
-    supported_lengths: [1, 2], 
-    blocks_pitches: [], 
-    is_active: true 
+  {
+    id: 3,
+    venue: 2,
+    name: "Pitch 1 (Grass)",
+    pitch_type: "GRASS",
+    supported_lengths: [1, 2],
+    blocks_pitches: [],
+    is_active: true
   },
-  { 
-    id: 4, 
-    venue: 2, 
-    name: "Pitch 2 (Astro)", 
-    pitch_type: "ASTRO", 
-    supported_lengths: [2, 3], 
-    blocks_pitches: [], 
-    is_active: true 
+  {
+    id: 4,
+    venue: 2,
+    name: "Pitch 2 (Astro)",
+    pitch_type: "ASTRO",
+    supported_lengths: [2, 3],
+    blocks_pitches: [],
+    is_active: true
   },
 ];
 
@@ -132,11 +133,11 @@ async function apiRequest(endpoint, options = {}) {
       };
     }
 
-    const response = await fetch(endpoint, options);
-    
+    const response = await fetch(`${API_BASE_URL}/${endpoint}`, options);
+
     if (response.status === 401) {
-        // TODO: Handle token refresh logic
-        window.dispatchEvent(new Event('auth-unauthorized'));
+      // TODO: Handle token refresh logic
+      window.dispatchEvent(new Event('auth-unauthorized'));
     }
     if (response.status === 403) {
       const errData = await response.json().catch(() => ({}));
@@ -161,7 +162,7 @@ async function apiRequest(endpoint, options = {}) {
     return await response.json();
   } catch (error) {
     console.warn(`API call failed for ${endpoint}. Falling back to mock data.`, error.message);
-    
+
     // Simulate latency
     await new Promise(resolve => setTimeout(resolve, 150));
 
