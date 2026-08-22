@@ -133,7 +133,7 @@ async function apiRequest(endpoint, options = {}) {
       };
     }
 
-    const response = await fetch(`${API_BASE_URL}/${endpoint}`, options);
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
 
     if (response.status === 401) {
       // TODO: Handle token refresh logic
