@@ -9,6 +9,7 @@ import UserManagement from './components/UserManagement';
 import VenuesManager from './components/VenuesManager';
 import { LoginScreen, ForcePasswordResetScreen } from './components/AuthScreens';
 import { Calendar, ShieldAlert, Utensils, FormInput, Activity, HelpCircle, Users, LogOut, Shield, MapPin } from 'lucide-react';
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 export default function App() {
   const [activeView, setActiveView] = useState('calendar');
@@ -172,8 +173,8 @@ export default function App() {
             <button
               onClick={() => setActiveView('calendar')}
               className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display ${activeView === 'calendar'
-                  ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
-                  : 'text-slate-450 hover:text-slate-200'
+                ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
+                : 'text-slate-450 hover:text-slate-200'
                 }`}
             >
               <Calendar size={14} />
@@ -184,8 +185,8 @@ export default function App() {
               <button
                 onClick={() => setActiveView('secretary')}
                 className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display ${activeView === 'secretary'
-                    ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
-                    : 'text-slate-450 hover:text-slate-200'
+                  ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
+                  : 'text-slate-450 hover:text-slate-200'
                   }`}
               >
                 <ShieldAlert size={14} />
@@ -197,8 +198,8 @@ export default function App() {
               <button
                 onClick={() => setActiveView('caterer')}
                 className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display ${activeView === 'caterer'
-                    ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
-                    : 'text-slate-450 hover:text-slate-200'
+                  ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
+                  : 'text-slate-450 hover:text-slate-200'
                   }`}
               >
                 <Utensils size={14} />
@@ -210,8 +211,8 @@ export default function App() {
               <button
                 onClick={() => setActiveView('calendar')}
                 className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display ${activeView === 'calendar'
-                    ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
-                    : 'text-slate-450 hover:text-slate-200'
+                  ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
+                  : 'text-slate-450 hover:text-slate-200'
                   }`}
               >
                 <FormInput size={14} />
@@ -223,8 +224,8 @@ export default function App() {
               <button
                 onClick={() => setActiveView('publicForm')}
                 className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display ${activeView === 'publicForm'
-                    ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
-                    : 'text-slate-450 hover:text-slate-200'
+                  ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
+                  : 'text-slate-450 hover:text-slate-200'
                   }`}
               >
                 <FormInput size={14} />
@@ -236,8 +237,8 @@ export default function App() {
               <button
                 onClick={() => setActiveView('teams')}
                 className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display ${activeView === 'teams'
-                    ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
-                    : 'text-slate-450 hover:text-slate-200'
+                  ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
+                  : 'text-slate-450 hover:text-slate-200'
                   }`}
               >
                 <Users size={14} />
@@ -249,8 +250,8 @@ export default function App() {
               <button
                 onClick={() => setActiveView('venues')}
                 className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display ${activeView === 'venues'
-                    ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
-                    : 'text-slate-450 hover:text-slate-200'
+                  ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
+                  : 'text-slate-450 hover:text-slate-200'
                   }`}
               >
                 <MapPin size={14} />
@@ -262,8 +263,8 @@ export default function App() {
               <button
                 onClick={() => setActiveView('users')}
                 className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display ${activeView === 'users'
-                    ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
-                    : 'text-slate-450 hover:text-slate-200'
+                  ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
+                  : 'text-slate-450 hover:text-slate-200'
                   }`}
               >
                 <Shield size={14} />
