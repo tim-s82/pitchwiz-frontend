@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { api } from '../services/api';
-import { Calendar, Filter, Plus, ChevronLeft, ChevronRight, CheckCircle2, AlertTriangle, HelpCircle, ShieldAlert } from 'lucide-react';
+import { Calendar, Filter, Plus, ChevronLeft, ChevronRight, CheckCircle2, AlertTriangle, HelpCircle, ShieldAlert, Pencil, Trash2 } from 'lucide-react';
 
 export default function CalendarView({
   venues,
@@ -10,6 +10,8 @@ export default function CalendarView({
   bookings,
   pitchLengths,
   onBookingCreated,
+  onBookingUpdated,
+  onBookingDeleted,
   currentUser
 }) {
   const [selectedVenueId, setSelectedVenueId] = useState('all');
@@ -27,7 +29,7 @@ export default function CalendarView({
     return monday.toISOString().split('T')[0];
   });
 
-  // Modal State
+  // Modal State (create)
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalData, setModalData] = useState({
     pitchId: '',
@@ -41,6 +43,19 @@ export default function CalendarView({
     isMultiDay: false,
     endDate: ''
   });
+
+  // Edit modal state
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editData, setEditData] = useState(null); // the booking being edited
+  const [editForm, setEditForm] = useState({});
+  const [editSaving, setEditSaving] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  useEffect(() => {
+    if (venues.length > 0 && selectedVenueId === 'all') {
+      setSelectedVenueId(venues[0].id.toString());
+    }
+  }, [venues, selectedVenueId]);
 
   // Generate 7 days starting from startDateStr
   const datesList = useMemo(() => {
@@ -80,7 +95,7 @@ export default function CalendarView({
 
   // Filter Pitches based on venue and selected team compatibility
   const filteredPitches = useMemo(() => {
-    return pitches.filter(pitch => {
+    const filtered = pitches.filter(pitch => {
       // 1. Venue Filter
       if (selectedVenueId !== 'all' && pitch.venue !== parseInt(selectedVenueId)) {
         return false;
@@ -93,7 +108,16 @@ export default function CalendarView({
       }
       return true;
     });
-  }, [pitches, selectedVenueId, filteredTeam]);
+
+    // Sort alphabetically by Venue Name, then by Pitch Name
+    return [...filtered].sort((a, b) => {
+      const venueA = venues.find(v => v.id === a.venue)?.name || '';
+      const venueB = venues.find(v => v.id === b.venue)?.name || '';
+      const venueCompare = venueA.localeCompare(venueB, undefined, { sensitivity: 'base', numeric: true });
+      if (venueCompare !== 0) return venueCompare;
+      return a.name.localeCompare(b.name, undefined, { sensitivity: 'base', numeric: true });
+    });
+  }, [pitches, selectedVenueId, filteredTeam, venues]);
 
   // Check if a date falls within booking range
   const isDateInBooking = (dateStr, booking) => {
@@ -128,11 +152,11 @@ export default function CalendarView({
     }
 
     // 2. Outfield Overlap Blocking Logic
-    // Find if another pitch blocks this pitch, and check if that other pitch has an approved booking
-    const blockingPitch = pitches.find(p => p.blocks_pitches.includes(pitchId));
-    if (blockingPitch) {
+    // Find all pitches that block this pitch, and check if any of them has an approved booking
+    const blockingPitches = pitches.filter(p => p.blocks_pitches.includes(pitchId));
+    for (const bp of blockingPitches) {
       const activeBlockingBooking = bookings.find(b =>
-        b.pitch === blockingPitch.id &&
+        b.pitch === bp.id &&
         isDateInBooking(dateStr, b) &&
         b.status === 'APPROVED' &&
         (b.time_slot === 'ALL_DAY' || timeSlot === 'ALL_DAY' || b.time_slot === timeSlot)
@@ -141,8 +165,8 @@ export default function CalendarView({
       if (activeBlockingBooking) {
         return {
           type: 'BLOCKED',
-          label: `Blocked (${blockingPitch.name} active)`,
-          reason: `Outfield overlap due to booking on ${blockingPitch.name}`
+          label: `Blocked (${bp.name} active)`,
+          reason: `Outfield overlap due to booking on ${bp.name}`
         };
       }
     }
@@ -154,9 +178,51 @@ export default function CalendarView({
     return currentUser?.roles?.includes('EXTERNAL');
   }, [currentUser]);
 
-  const handleCellClick = (pitchId, dateStr, timeSlot, existingCell) => {
-    if (existingCell || isExternalUser) return; // Can't book already booked/blocked slots or if external user
+  const canEditBooking = (booking) => {
+    if (!currentUser || isExternalUser) return false;
+    if (currentUser.roles?.includes('ADMIN') || currentUser.roles?.includes('FIXTURE_SECRETARY')) return true;
+    if (currentUser.roles?.includes('TEAM_MANAGER')) {
+      if (booking.requested_by === currentUser.id) return true;
+      // Check if current user manages the team on the booking's fixture
+      if (booking.fixture) {
+        const fix = fixtures.find(f => f.id === booking.fixture);
+        if (fix) {
+          const team = teams.find(t => t.id === fix.team);
+          if (team && team.managers?.includes(currentUser.id)) return true;
+        }
+      }
+    }
+    return false;
+  };
 
+  const handleCellClick = (pitchId, dateStr, timeSlot, existingCell) => {
+    if (isExternalUser) return;
+
+    // If there's an existing BOOKED cell the user owns → open edit modal
+    if (existingCell?.type === 'BOOKED' && canEditBooking(existingCell.booking)) {
+      const b = existingCell.booking;
+      const fix = b.fixture ? fixtures.find(f => f.id === b.fixture) : null;
+      setEditData(b);
+      setEditForm({
+        pitchId: b.pitch.toString(),
+        timeSlot: b.time_slot,
+        date: b.start_date,
+        endDate: b.end_date,
+        isMultiDay: b.start_date !== b.end_date,
+        opponent: fix?.opponent || b.external_contact_name || '',
+        requiresTeas: b.requires_teas,
+        requiresDrinks: b.requires_drinks,
+        notes: b.notes || ''
+      });
+      setShowDeleteConfirm(false);
+      setIsEditModalOpen(true);
+      return;
+    }
+
+    // If blocked or another user's booking → do nothing
+    if (existingCell) return;
+
+    // Empty slot → open create modal
     setModalData({
       pitchId: pitchId.toString(),
       date: dateStr,
@@ -187,8 +253,6 @@ export default function CalendarView({
       requires_teas: modalData.requiresTeas,
       requires_drinks: modalData.requiresDrinks,
       notes: modalData.notes,
-      // For simplicity, we auto-create a fixture or handle it in serialization.
-      // We will supply values that map to creation
       fixture_team: parseInt(modalData.teamId),
       fixture_opponent: modalData.opponent
     };
@@ -199,6 +263,41 @@ export default function CalendarView({
     } catch (err) {
       console.error(err);
       alert(`Failed to submit request:\n${err.message}`);
+    }
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    setEditSaving(true);
+    try {
+      await onBookingUpdated(editData.id, {
+        pitch: parseInt(editForm.pitchId),
+        time_slot: editForm.timeSlot,
+        start_date: editForm.date,
+        end_date: editForm.isMultiDay ? editForm.endDate : editForm.date,
+        requires_teas: editForm.requiresTeas,
+        requires_drinks: editForm.requiresDrinks,
+        notes: editForm.notes
+      });
+      setIsEditModalOpen(false);
+    } catch (err) {
+      console.error(err);
+      alert(`Failed to save changes:\n${err.message}`);
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
+  const handleDeleteBooking = async () => {
+    setEditSaving(true);
+    try {
+      await onBookingDeleted(editData.id);
+      setIsEditModalOpen(false);
+    } catch (err) {
+      console.error(err);
+      alert(`Failed to cancel booking:\n${err.message}`);
+    } finally {
+      setEditSaving(false);
     }
   };
 
@@ -232,18 +331,16 @@ export default function CalendarView({
           <div className="flex bg-slate-900 p-1 rounded-xl border border-slate-800 shrink-0">
             <button
               onClick={() => setViewMode('transposed')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold font-display transition ${
-                viewMode === 'transposed' ? 'bg-emerald-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'
-              }`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold font-display transition ${viewMode === 'transposed' ? 'bg-emerald-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'
+                }`}
               title="Pitches across (columns), Days & Sessions down (rows)"
             >
               Pitches Across
             </button>
             <button
               onClick={() => setViewMode('standard')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold font-display transition ${
-                viewMode === 'standard' ? 'bg-emerald-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'
-              }`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold font-display transition ${viewMode === 'standard' ? 'bg-emerald-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'
+                }`}
               title="Days across (columns), Pitches down (rows)"
             >
               Days Across
@@ -258,10 +355,10 @@ export default function CalendarView({
                 onChange={(e) => setSelectedVenueId(e.target.value)}
                 className="bg-slate-800 text-slate-200 text-sm rounded-xl py-2 px-3 outline-none border border-slate-700 w-full focus:border-emerald-500"
               >
-                <option value="all">All Venues</option>
                 {venues.map(v => (
                   <option key={v.id} value={v.id}>{v.name}</option>
                 ))}
+                {/* <option value="all">All Venues</option> */}
               </select>
             </div>
 
@@ -270,7 +367,7 @@ export default function CalendarView({
               onChange={(e) => setSelectedTeamId(e.target.value)}
               className="bg-slate-800 text-slate-200 text-sm rounded-xl py-2 px-3 outline-none border border-slate-700 w-full focus:border-emerald-500"
             >
-              <option value="all">Filter by Team Length</option>
+              <option value="all">Filter by Team</option>
               {teams.filter(t => !t.is_external).map(t => {
                 const length = pitchLengths.find(l => l.id === t.required_length);
                 return (
@@ -363,6 +460,7 @@ export default function CalendarView({
                                 cell={cell}
                                 onClick={() => handleCellClick(pitch.id, day.isoStr, 'MORNING', cell)}
                                 compact={true}
+                                isExternal={isExternalUser}
                               />
                             </td>
                           );
@@ -382,6 +480,7 @@ export default function CalendarView({
                                 cell={cell}
                                 onClick={() => handleCellClick(pitch.id, day.isoStr, 'AFTERNOON', cell)}
                                 compact={true}
+                                isExternal={isExternalUser}
                               />
                             </td>
                           );
@@ -401,6 +500,7 @@ export default function CalendarView({
                                 cell={cell}
                                 onClick={() => handleCellClick(pitch.id, day.isoStr, 'EVENING', cell)}
                                 compact={true}
+                                isExternal={isExternalUser}
                               />
                             </td>
                           );
@@ -414,108 +514,111 @@ export default function CalendarView({
           ) : (
             /* STANDARD MODE: Days Across (Columns), Pitches Down (Rows) */
             <table className="w-full table-fixed border-collapse text-left min-w-[900px]">
-            <thead>
-              <tr className="bg-slate-900/80 border-b border-slate-850">
-                <th className="p-4 text-xs font-semibold uppercase tracking-wider text-slate-400 w-56 font-display border-r border-slate-800 shrink-0">
-                  Venue / Pitch
-                </th>
-                {datesList.map(day => (
-                  <th key={day.isoStr} className="p-4 text-center border-r border-slate-800 last:border-r-0 truncate">
-                    <span className="block text-sm font-semibold text-slate-200 truncate">{day.label}</span>
+              <thead>
+                <tr className="bg-slate-900/80 border-b border-slate-850">
+                  <th className="p-4 text-xs font-semibold uppercase tracking-wider text-slate-400 w-56 font-display border-r border-slate-800 shrink-0">
+                    Venue / Pitch
                   </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filteredPitches.length === 0 ? (
-                <tr>
-                  <td colSpan={datesList.length + 1} className="p-12 text-center text-slate-400">
-                    No compatible pitches found. Try clearing filters.
-                  </td>
+                  {datesList.map(day => (
+                    <th key={day.isoStr} className="p-4 text-center border-r border-slate-800 last:border-r-0 truncate">
+                      <span className="block text-sm font-semibold text-slate-200 truncate">{day.label}</span>
+                    </th>
+                  ))}
                 </tr>
-              ) : (
-                filteredPitches.map(pitch => {
-                  const venueName = venues.find(v => v.id === pitch.venue)?.name || '';
-                  return (
-                    <React.Fragment key={pitch.id}>
-                      {/* Morning Slot Row */}
-                      <tr className="border-b border-slate-850 hover:bg-slate-800/10">
-                        <td className="p-4 border-r border-slate-800 font-medium">
-                          <span className="text-xs text-emerald-400 block font-display tracking-wide">{venueName}</span>
-                          <span className="text-slate-100 font-semibold">{pitch.name}</span>
-                          <span className="text-xxs text-slate-400 block mt-1 bg-slate-800/80 px-2 py-0.5 rounded w-max">
-                            Morning (09:00 - 13:00)
-                          </span>
-                        </td>
-                        {datesList.map(day => {
-                          const cell = getCellStatus(pitch.id, day.isoStr, 'MORNING');
-                          return (
-                            <td
-                              key={day.isoStr}
-                              className="p-2 border-r border-slate-800 last:border-r-0 align-top"
-                            >
-                              <CellContent
-                                cell={cell}
-                                onClick={() => handleCellClick(pitch.id, day.isoStr, 'MORNING', cell)}
-                              />
-                            </td>
-                          );
-                        })}
-                      </tr>
-                      {/* Afternoon Slot Row */}
-                      <tr className="border-b border-slate-850 hover:bg-slate-800/10">
-                        <td className="p-4 border-r border-slate-800 font-medium">
-                          <span className="text-xs text-emerald-400 block font-display tracking-wide">{venueName}</span>
-                          <span className="text-slate-100 font-semibold">{pitch.name}</span>
-                          <span className="text-xxs text-slate-400 block mt-1 bg-slate-800/80 px-2 py-0.5 rounded w-max">
-                            Afternoon (13:30 - 18:00)
-                          </span>
-                        </td>
-                        {datesList.map(day => {
-                          const cell = getCellStatus(pitch.id, day.isoStr, 'AFTERNOON');
-                          return (
-                            <td
-                              key={day.isoStr}
-                              className="p-2 border-r border-slate-800 last:border-r-0 align-top"
-                            >
-                              <CellContent
-                                cell={cell}
-                                onClick={() => handleCellClick(pitch.id, day.isoStr, 'AFTERNOON', cell)}
-                              />
-                            </td>
-                          );
-                        })}
-                      </tr>
-                      {/* Evening Slot Row */}
-                      <tr className="border-b border-slate-850 hover:bg-slate-800/10 last:border-b-0">
-                        <td className="p-4 border-r border-slate-800 font-medium">
-                          <span className="text-xs text-emerald-400 block font-display tracking-wide">{venueName}</span>
-                          <span className="text-slate-100 font-semibold">{pitch.name}</span>
-                          <span className="text-xxs text-slate-400 block mt-1 bg-slate-800/80 px-2 py-0.5 rounded w-max">
-                            Evening (18:00 - 21:00)
-                          </span>
-                        </td>
-                        {datesList.map(day => {
-                          const cell = getCellStatus(pitch.id, day.isoStr, 'EVENING');
-                          return (
-                            <td
-                              key={day.isoStr}
-                              className="p-2 border-r border-slate-800 last:border-r-0 align-top"
-                            >
-                              <CellContent
-                                cell={cell}
-                                onClick={() => handleCellClick(pitch.id, day.isoStr, 'EVENING', cell)}
-                              />
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    </React.Fragment>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filteredPitches.length === 0 ? (
+                  <tr>
+                    <td colSpan={datesList.length + 1} className="p-12 text-center text-slate-400">
+                      No compatible pitches found. Try clearing filters.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredPitches.map(pitch => {
+                    const venueName = venues.find(v => v.id === pitch.venue)?.name || '';
+                    return (
+                      <React.Fragment key={pitch.id}>
+                        {/* Morning Slot Row */}
+                        <tr className="border-b border-slate-850 hover:bg-slate-800/10">
+                          <td className="p-4 border-r border-slate-800 font-medium">
+                            <span className="text-xs text-emerald-400 block font-display tracking-wide">{venueName}</span>
+                            <span className="text-slate-100 font-semibold">{pitch.name}</span>
+                            <span className="text-xxs text-slate-400 block mt-1 bg-slate-800/80 px-2 py-0.5 rounded w-max">
+                              Morning (09:00 - 13:00)
+                            </span>
+                          </td>
+                          {datesList.map(day => {
+                            const cell = getCellStatus(pitch.id, day.isoStr, 'MORNING');
+                            return (
+                              <td
+                                key={day.isoStr}
+                                className="p-2 border-r border-slate-800 last:border-r-0 align-top"
+                              >
+                                <CellContent
+                                  cell={cell}
+                                  onClick={() => handleCellClick(pitch.id, day.isoStr, 'MORNING', cell)}
+                                  isExternal={isExternalUser}
+                                />
+                              </td>
+                            );
+                          })}
+                        </tr>
+                        {/* Afternoon Slot Row */}
+                        <tr className="border-b border-slate-850 hover:bg-slate-800/10">
+                          <td className="p-4 border-r border-slate-800 font-medium">
+                            <span className="text-xs text-emerald-400 block font-display tracking-wide">{venueName}</span>
+                            <span className="text-slate-100 font-semibold">{pitch.name}</span>
+                            <span className="text-xxs text-slate-400 block mt-1 bg-slate-800/80 px-2 py-0.5 rounded w-max">
+                              Afternoon (13:30 - 18:00)
+                            </span>
+                          </td>
+                          {datesList.map(day => {
+                            const cell = getCellStatus(pitch.id, day.isoStr, 'AFTERNOON');
+                            return (
+                              <td
+                                key={day.isoStr}
+                                className="p-2 border-r border-slate-800 last:border-r-0 align-top"
+                              >
+                                <CellContent
+                                  cell={cell}
+                                  onClick={() => handleCellClick(pitch.id, day.isoStr, 'AFTERNOON', cell)}
+                                  isExternal={isExternalUser}
+                                />
+                              </td>
+                            );
+                          })}
+                        </tr>
+                        {/* Evening Slot Row */}
+                        <tr className="border-b border-slate-850 hover:bg-slate-800/10 last:border-b-0">
+                          <td className="p-4 border-r border-slate-800 font-medium">
+                            <span className="text-xs text-emerald-400 block font-display tracking-wide">{venueName}</span>
+                            <span className="text-slate-100 font-semibold">{pitch.name}</span>
+                            <span className="text-xxs text-slate-400 block mt-1 bg-slate-800/80 px-2 py-0.5 rounded w-max">
+                              Evening (18:00 - 21:00)
+                            </span>
+                          </td>
+                          {datesList.map(day => {
+                            const cell = getCellStatus(pitch.id, day.isoStr, 'EVENING');
+                            return (
+                              <td
+                                key={day.isoStr}
+                                className="p-2 border-r border-slate-800 last:border-r-0 align-top"
+                              >
+                                <CellContent
+                                  cell={cell}
+                                  onClick={() => handleCellClick(pitch.id, day.isoStr, 'EVENING', cell)}
+                                  isExternal={isExternalUser}
+                                />
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      </React.Fragment>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
           )}
         </div>
       </div>
@@ -539,7 +642,18 @@ export default function CalendarView({
                   <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Pitch</label>
                   <select
                     value={modalData.pitchId}
-                    onChange={(e) => setModalData({ ...modalData, pitchId: e.target.value })}
+                    onChange={(e) => {
+                      const newPitchId = e.target.value;
+                      let updatedTeamId = modalData.teamId;
+                      if (newPitchId && modalData.teamId) {
+                        const newPitch = pitches.find(p => p.id === parseInt(newPitchId));
+                        const currentTeam = teams.find(t => t.id === parseInt(modalData.teamId));
+                        if (newPitch && currentTeam && currentTeam.required_length && !newPitch.supported_lengths.includes(currentTeam.required_length)) {
+                          updatedTeamId = ''; // Reset team selection if incompatible
+                        }
+                      }
+                      setModalData({ ...modalData, pitchId: newPitchId, teamId: updatedTeamId });
+                    }}
                     className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 outline-none focus:border-emerald-500"
                     required
                   >
@@ -577,8 +691,18 @@ export default function CalendarView({
                   <option value="">Select Team</option>
                   {allowedTeams
                     .filter(t => {
+                      // 1. Role-based external filter
                       const hasAdminOrSec = currentUser?.roles?.includes('ADMIN') || currentUser?.roles?.includes('FIXTURE_SECRETARY');
-                      return hasAdminOrSec ? true : !t.is_external;
+                      if (!hasAdminOrSec && t.is_external) return false;
+
+                      // 2. Pitch compatibility length filter
+                      if (modalData.pitchId) {
+                        const selectedPitch = pitches.find(p => p.id === parseInt(modalData.pitchId));
+                        if (selectedPitch && t.required_length && !selectedPitch.supported_lengths.includes(t.required_length)) {
+                          return false;
+                        }
+                      }
+                      return true;
                     })
                     .map(t => (
                       <option key={t.id} value={t.id}>{t.name} {t.is_external ? '(External)' : ''}</option>
@@ -692,6 +816,174 @@ export default function CalendarView({
           </div>
         </div>
       )}
+
+      {/* Edit / Cancel Booking Modal */}
+      {isEditModalOpen && editData && (
+        <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="glass-panel w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden border border-slate-800 max-h-[90vh] flex flex-col">
+            <div className="bg-slate-900 px-6 py-4 border-b border-slate-800 flex justify-between items-center">
+              <div className="flex items-center space-x-3">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                  <Pencil size={16} className="text-slate-950 font-bold" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold font-display text-slate-100">Edit Booking</h2>
+                  <p className="text-xs text-slate-400">Modify or cancel this pitch booking</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsEditModalOpen(false)}
+                className="text-slate-400 hover:text-slate-200 transition"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleEditSubmit} className="p-6 space-y-4 overflow-y-auto">
+              {/* Time Slot */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Time Slot</label>
+                <select
+                  value={editForm.timeSlot}
+                  onChange={(e) => setEditForm({ ...editForm, timeSlot: e.target.value })}
+                  className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 outline-none focus:border-emerald-500"
+                >
+                  <option value="MORNING">Morning Slot</option>
+                  <option value="AFTERNOON">Afternoon Slot</option>
+                  <option value="EVENING">Evening Slot</option>
+                  <option value="ALL_DAY">All Day Slot</option>
+                </select>
+              </div>
+
+              {/* Date & Multi-Day Section */}
+              <div className="bg-slate-800/40 p-4 rounded-xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="editIsMultiDay"
+                      checked={editForm.isMultiDay}
+                      onChange={(e) => setEditForm({ ...editForm, isMultiDay: e.target.checked, endDate: e.target.checked ? editForm.endDate || editForm.date : editForm.date })}
+                      className="rounded text-emerald-500 bg-slate-800 border-slate-700 focus:ring-emerald-500 w-4 h-4"
+                    />
+                    <label htmlFor="editIsMultiDay" className="text-sm font-medium text-slate-200 cursor-pointer">Multi-Day Booking</label>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                      {editForm.isMultiDay ? 'Start Date' : 'Date'}
+                    </label>
+                    <input
+                      type="date"
+                      value={editForm.date}
+                      onChange={(e) => setEditForm({ ...editForm, date: e.target.value })}
+                      className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                  {editForm.isMultiDay && (
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">End Date</label>
+                      <input
+                        type="date"
+                        value={editForm.endDate}
+                        min={editForm.date}
+                        onChange={(e) => setEditForm({ ...editForm, endDate: e.target.value })}
+                        className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Catering Selection */}
+              <div className="flex space-x-6 bg-slate-800/20 p-3.5 rounded-xl border border-slate-800/60 justify-around">
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={editForm.requiresTeas}
+                    onChange={(e) => setEditForm({ ...editForm, requiresTeas: e.target.checked })}
+                    className="rounded text-emerald-500 bg-slate-800 border-slate-700 focus:ring-emerald-500 w-4 h-4"
+                  />
+                  <span className="text-sm text-slate-200">Request Teas</span>
+                </label>
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={editForm.requiresDrinks}
+                    onChange={(e) => setEditForm({ ...editForm, requiresDrinks: e.target.checked })}
+                    className="rounded text-emerald-500 bg-slate-800 border-slate-700 focus:ring-emerald-500 w-4 h-4"
+                  />
+                  <span className="text-sm text-slate-200">Request Drinks</span>
+                </label>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Notes</label>
+                <textarea
+                  value={editForm.notes}
+                  onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                  rows={2}
+                  className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              {/* Action Buttons */}
+              {showDeleteConfirm ? (
+                <div className="space-y-3 pt-2">
+                  <p className="text-sm text-red-400 font-semibold text-center">Are you sure you want to cancel this booking? This cannot be undone.</p>
+                  <div className="flex space-x-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowDeleteConfirm(false)}
+                      className="flex-1 py-3 px-4 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold transition"
+                      disabled={editSaving}
+                    >
+                      Keep Booking
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDeleteBooking}
+                      disabled={editSaving}
+                      className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-bold shadow-lg shadow-red-900/30 transition flex items-center justify-center space-x-2"
+                    >
+                      <Trash2 size={16} />
+                      <span>{editSaving ? 'Cancelling…' : 'Yes, Cancel It'}</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex space-x-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="py-3 px-4 rounded-xl border border-red-800 bg-red-950/30 hover:bg-red-950/60 text-red-400 font-semibold transition flex items-center space-x-2"
+                  >
+                    <Trash2 size={15} />
+                    <span>Cancel Booking</span>
+                  </button>
+                  {/* <button
+                    type="button"
+                    onClick={() => setIsEditModalOpen(false)}
+                    className="flex-1 py-3 px-4 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold transition"
+                  >
+                    Discard
+                  </button> */}
+                  <button
+                    type="submit"
+                    disabled={editSaving}
+                    className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-semibold shadow-lg shadow-emerald-550/20 transition"
+                  >
+                    {editSaving ? 'Saving…' : 'Save Changes'}
+                  </button>
+                </div>
+              )}
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -739,10 +1031,13 @@ function CellContent({ cell, onClick, compact = false, isExternal = false }) {
   const isApproved = cell.status === 'APPROVED';
 
   return (
-    <div className={`w-full ${heightClass} border rounded-xl ${compact ? 'p-1.5' : 'p-2.5'} flex flex-col justify-between overflow-hidden transition-all duration-300 ${isApproved
-      ? 'bg-emerald-950/30 border-emerald-900/80 shadow-sm shadow-emerald-900/10'
-      : 'bg-amber-950/20 border-amber-900/50'
-      }`}>
+    <div
+      onClick={onClick}
+      className={`w-full ${heightClass} cursor-pointer border rounded-xl ${compact ? 'p-1.5' : 'p-2.5'} flex flex-col justify-between overflow-hidden transition-all duration-300 ${isApproved
+        ? 'bg-emerald-950/30 border-emerald-900/80 hover:border-blue-500 shadow-sm shadow-emerald-900/10'
+        : 'bg-amber-950/20 border-amber-900/50 hover:border-blue-500'
+        }`}
+    >
       <div>
         <div className="flex items-center justify-between gap-1 mb-0.5">
           <span className={`text-[9px] px-1.5 py-0.2 rounded font-extrabold uppercase font-display truncate ${isApproved ? 'bg-emerald-900/50 text-emerald-400' : 'bg-amber-900/50 text-amber-400'
