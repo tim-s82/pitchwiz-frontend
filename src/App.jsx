@@ -9,6 +9,9 @@ import UserManagement from './components/UserManagement';
 import VenuesManager from './components/VenuesManager';
 import { LoginScreen, ForcePasswordResetScreen } from './components/AuthScreens';
 import { Calendar, ShieldAlert, Utensils, FormInput, Activity, HelpCircle, Users, LogOut, Shield, MapPin } from 'lucide-react';
+import ChangePasswordModal from './components/ChangePasswordModal';
+import { Lock } from 'lucide-react';
+
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 export default function App() {
@@ -26,6 +29,7 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('access_token'));
   const [isForceReset, setIsForceReset] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
 
   // Fetch all initial data
   const loadData = async () => {
@@ -55,6 +59,25 @@ export default function App() {
     }
   };
 
+  // Safeguard: Automatically redirect to calendar if user lacks permission for the active view
+  useEffect(() => {
+    if (loading || !currentUser) return;
+
+    const restrictedViews = {
+      secretary: hasRole('FIXTURE_SECRETARY'),
+      caterer: hasRole('CATERER'),
+      publicForm: hasRole('EXTERNAL'),
+      teams: hasRole('USER_MANAGER') || hasRole('FIXTURE_SECRETARY'),
+      venues: hasRole('USER_MANAGER') || hasRole('FIXTURE_SECRETARY'),
+      users: hasRole('USER_MANAGER') || hasRole('ADMIN'),
+    };
+
+    // If the active view is restricted and the user doesn't have access, force 'calendar'
+    if (restrictedViews[activeView] === false) {
+      setActiveView('calendar');
+    }
+  }, [activeView, currentUser]);
+
   useEffect(() => {
     const handleUnauthorized = () => {
       localStorage.removeItem('access_token');
@@ -80,6 +103,7 @@ export default function App() {
 
   const handleLoginSuccess = () => {
     setIsAuthenticated(true);
+    setActiveView('calendar');
   };
 
   const handleLogout = () => {
@@ -87,6 +111,7 @@ export default function App() {
     localStorage.removeItem('refresh_token');
     setIsAuthenticated(false);
     setCurrentUser(null);
+    setActiveView('calendar');
   };
 
   // Handler to submit booking request
@@ -139,6 +164,18 @@ export default function App() {
     }
   };
 
+  // Handler to update (edit) a booking's details
+  const handleBookingUpdated = async (id, data) => {
+    await api.updateBooking(id, data);
+    await loadData();
+  };
+
+  // Handler to cancel/delete a booking
+  const handleBookingDeleted = async (id) => {
+    await api.deleteBooking(id);
+    await loadData();
+  };
+
   if (!isAuthenticated) {
     return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
   }
@@ -174,7 +211,7 @@ export default function App() {
               onClick={() => setActiveView('calendar')}
               className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display ${activeView === 'calendar'
                 ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
-                : 'text-slate-450 hover:text-slate-200'
+                : 'text-slate-450 hover:text-emerald-400'
                 }`}
             >
               <Calendar size={14} />
@@ -186,7 +223,7 @@ export default function App() {
                 onClick={() => setActiveView('secretary')}
                 className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display ${activeView === 'secretary'
                   ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
-                  : 'text-slate-450 hover:text-slate-200'
+                  : 'text-slate-450 hover:text-emerald-400'
                   }`}
               >
                 <ShieldAlert size={14} />
@@ -199,7 +236,7 @@ export default function App() {
                 onClick={() => setActiveView('caterer')}
                 className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display ${activeView === 'caterer'
                   ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
-                  : 'text-slate-450 hover:text-slate-200'
+                  : 'text-slate-450 hover:text-emerald-400'
                   }`}
               >
                 <Utensils size={14} />
@@ -207,25 +244,25 @@ export default function App() {
               </button>
             )}
 
-            {(hasRole('TEAM_MANAGER') || hasRole('FIXTURE_SECRETARY') || hasRole('ADMIN')) && (
+            {/* {(hasRole('TEAM_MANAGER') || hasRole('FIXTURE_SECRETARY') || hasRole('ADMIN')) && (
               <button
                 onClick={() => setActiveView('calendar')}
                 className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display ${activeView === 'calendar'
                   ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
-                  : 'text-slate-450 hover:text-slate-200'
+                  : 'text-slate-450 hover:text-emerald-400'
                   }`}
               >
                 <FormInput size={14} />
                 <span>Request Pitch</span>
               </button>
-            )}
+            )} */}
 
             {hasRole('EXTERNAL') && (
               <button
                 onClick={() => setActiveView('publicForm')}
                 className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display ${activeView === 'publicForm'
                   ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
-                  : 'text-slate-450 hover:text-slate-200'
+                  : 'text-slate-450 hover:text-emerald-400'
                   }`}
               >
                 <FormInput size={14} />
@@ -238,7 +275,7 @@ export default function App() {
                 onClick={() => setActiveView('teams')}
                 className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display ${activeView === 'teams'
                   ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
-                  : 'text-slate-450 hover:text-slate-200'
+                  : 'text-slate-450 hover:text-emerald-400'
                   }`}
               >
                 <Users size={14} />
@@ -251,7 +288,7 @@ export default function App() {
                 onClick={() => setActiveView('venues')}
                 className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display ${activeView === 'venues'
                   ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
-                  : 'text-slate-450 hover:text-slate-200'
+                  : 'text-slate-450 hover:text-emerald-400'
                   }`}
               >
                 <MapPin size={14} />
@@ -264,14 +301,21 @@ export default function App() {
                 onClick={() => setActiveView('users')}
                 className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display ${activeView === 'users'
                   ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
-                  : 'text-slate-450 hover:text-slate-200'
+                  : 'text-slate-450 hover:text-emerald-400'
                   }`}
               >
                 <Shield size={14} />
                 <span>Users</span>
               </button>
             )}
+            <button
+              onClick={() => setIsPasswordModalOpen(true)}
 
+              className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display text-slate-450 hover:text-emerald-400`}
+            >
+              <Lock size={14} />
+              <span>Password</span>
+            </button>
             <button
               onClick={handleLogout}
               className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display text-slate-450 hover:text-red-400`}
@@ -301,6 +345,8 @@ export default function App() {
                 bookings={bookings}
                 pitchLengths={pitchLengths}
                 onBookingCreated={handleBookingCreated}
+                onBookingUpdated={handleBookingUpdated}
+                onBookingDeleted={handleBookingDeleted}
                 currentUser={currentUser}
               />
             )}
@@ -313,6 +359,8 @@ export default function App() {
                 bookings={bookings}
                 pitchLengths={pitchLengths}
                 onBookingStatusUpdate={handleBookingStatusUpdate}
+                onBookingUpdated={handleBookingUpdated}
+                onBookingDeleted={handleBookingDeleted}
                 currentUser={currentUser}
               />
             )}
@@ -365,6 +413,12 @@ export default function App() {
           </div>
         </div>
       </footer>
+
+      {/* Password Reset Modal */}
+      <ChangePasswordModal
+        isOpen={isPasswordModalOpen}
+        onClose={() => setIsPasswordModalOpen(false)}
+      />
     </div>
   );
 }
