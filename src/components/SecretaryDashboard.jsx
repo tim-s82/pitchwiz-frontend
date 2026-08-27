@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { api } from '../services/api';
-import { ShieldCheck, UserCheck, Check, X, AlertTriangle, HelpCircle, RefreshCcw, MapPin, Calendar, Clock, Coffee, GitPullRequestArrow } from 'lucide-react';
+import { ShieldCheck, UserCheck, Check, X, AlertTriangle, HelpCircle, RefreshCcw, MapPin, Calendar, Clock, Coffee, GitPullRequestArrow, Pencil, Trash2 } from 'lucide-react';
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 export default function SecretaryDashboard({
@@ -11,6 +11,8 @@ export default function SecretaryDashboard({
   bookings,
   pitchLengths,
   onBookingStatusUpdate,
+  onBookingUpdated,
+  onBookingDeleted,
   currentUser
 }) {
   const [activeTab, setActiveTab] = useState('pending');
@@ -22,6 +24,12 @@ export default function SecretaryDashboard({
   // Change requests state
   const [changeRequests, setChangeRequests] = useState([]);
   const [changeRejectModal, setChangeRejectModal] = useState({ open: false, crId: null, reason: '' });
+
+  // Edit modal state
+  const [editModal, setEditModal] = useState({ open: false, booking: null });
+  const [editForm, setEditForm] = useState({});
+  const [editSaving, setEditSaving] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     fetchChangeRequests();
@@ -84,17 +92,17 @@ export default function SecretaryDashboard({
     }
 
     // Case B: Another pitch blocks this pitch, and the blocking pitch has an approved booking
-    const blockingPitch = pitches.find(p => p.blocks_pitches && p.blocks_pitches.includes(booking.pitch));
-    if (blockingPitch) {
+    const blockingPitches = pitches.filter(p => p.blocks_pitches && p.blocks_pitches.includes(booking.pitch));
+    for (const bp of blockingPitches) {
       const activeBlockingBooking = bookings.find(b =>
         b.id !== booking.id &&
-        b.pitch === blockingPitch.id &&
+        b.pitch === bp.id &&
         b.status === 'APPROVED' &&
         ((booking.start_date <= b.end_date && booking.end_date >= b.start_date)) &&
         (b.time_slot === 'ALL_DAY' || booking.time_slot === 'ALL_DAY' || b.time_slot === booking.time_slot)
       );
       if (activeBlockingBooking) {
-        conflicts.push(`Outfield Overlap: ${blockingPitch.name} is booked, which blocks this outfield pitch.`);
+        conflicts.push(`Outfield Overlap: ${bp.name} is booked, which blocks this outfield pitch.`);
       }
     }
 
@@ -197,6 +205,57 @@ export default function SecretaryDashboard({
       }
     } catch (e) {
       console.error(e);
+    }
+  };
+
+  const handleEditBooking = (booking) => {
+    const fix = booking.fixture ? fixtures.find(f => f.id === booking.fixture) : null;
+    setEditForm({
+      pitchId: booking.pitch.toString(),
+      timeSlot: booking.time_slot,
+      date: booking.start_date,
+      endDate: booking.end_date,
+      isMultiDay: booking.start_date !== booking.end_date,
+      requiresTeas: booking.requires_teas,
+      requiresDrinks: booking.requires_drinks,
+      notes: booking.notes || ''
+    });
+    setShowDeleteConfirm(false);
+    setEditModal({ open: true, booking });
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    setEditSaving(true);
+    try {
+      await onBookingUpdated(editModal.booking.id, {
+        pitch: parseInt(editForm.pitchId),
+        time_slot: editForm.timeSlot,
+        start_date: editForm.date,
+        end_date: editForm.isMultiDay ? editForm.endDate : editForm.date,
+        requires_teas: editForm.requiresTeas,
+        requires_drinks: editForm.requiresDrinks,
+        notes: editForm.notes
+      });
+      setEditModal({ open: false, booking: null });
+    } catch (err) {
+      console.error(err);
+      alert(`Failed to save changes:\n${err.message}`);
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
+  const handleDeleteBooking = async () => {
+    setEditSaving(true);
+    try {
+      await onBookingDeleted(editModal.booking.id);
+      setEditModal({ open: false, booking: null });
+    } catch (err) {
+      console.error(err);
+      alert(`Failed to cancel booking:\n${err.message}`);
+    } finally {
+      setEditSaving(false);
     }
   };
 
@@ -357,6 +416,13 @@ export default function SecretaryDashboard({
                       </button>
                     </div>
 
+                    <button
+                      onClick={() => handleEditBooking(booking)}
+                      className="py-2 px-3.5 rounded-xl border border-blue-800/50 bg-blue-950/20 hover:bg-blue-950/50 text-blue-400 font-semibold text-xs flex items-center justify-center gap-1.5 transition"
+                    >
+                      <Pencil size={13} /> Edit / Cancel Booking
+                    </button>
+
                     {/* Alternative Pitch Selector */}
                     <div className="flex items-center gap-1.5">
                       <select
@@ -399,6 +465,7 @@ export default function SecretaryDashboard({
                   <th className="p-4">Time Slot</th>
                   <th className="p-4">Catering</th>
                   <th className="p-4">Status</th>
+                  <th className="p-4"></th>
                 </tr>
               </thead>
               <tbody className="text-sm divide-y divide-slate-850">
@@ -443,6 +510,14 @@ export default function SecretaryDashboard({
                             }`}>
                             {b.status === 'APPROVED' ? 'Approved' : 'Denied'}
                           </span>
+                        </td>
+                        <td className="p-4">
+                          <button
+                            onClick={() => handleEditBooking(b)}
+                            className="py-1.5 px-3 rounded-lg border border-blue-800/50 bg-blue-950/20 hover:bg-blue-950/50 text-blue-400 text-xs font-semibold flex items-center gap-1.5 transition"
+                          >
+                            <Pencil size={12} /> Edit
+                          </button>
                         </td>
                       </tr>
                     );
@@ -492,6 +567,108 @@ export default function SecretaryDashboard({
           )}
         </div>
       ) : null}
+
+      {/* Edit Booking Modal */}
+      {editModal.open && editModal.booking && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-slate-800 flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-500 to-indigo-500 flex items-center justify-center">
+                  <Pencil size={16} className="text-white" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold font-display text-slate-100">Edit Booking</h2>
+                  <p className="text-xs text-slate-400">Booking #{editModal.booking.id}</p>
+                </div>
+              </div>
+              <button onClick={() => setEditModal({ open: false, booking: null })} className="text-slate-400 hover:text-slate-200 transition p-1">✕</button>
+            </div>
+
+            <form onSubmit={handleEditSubmit} className="p-6 space-y-5">
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Pitch</label>
+                <select
+                  value={editForm.pitchId}
+                  onChange={(e) => setEditForm({ ...editForm, pitchId: e.target.value })}
+                  className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 outline-none focus:border-blue-500"
+                >
+                  {pitches.map(p => (
+                    <option key={p.id} value={p.id}>
+                      {venues.find(v => v.id === p.venue)?.name} – {p.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Time Slot</label>
+                <select
+                  value={editForm.timeSlot}
+                  onChange={(e) => setEditForm({ ...editForm, timeSlot: e.target.value })}
+                  className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 outline-none focus:border-blue-500"
+                >
+                  <option value="MORNING">Morning</option>
+                  <option value="AFTERNOON">Afternoon</option>
+                  <option value="EVENING">Evening</option>
+                  <option value="ALL_DAY">All Day</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Start Date</label>
+                  <input type="date" value={editForm.date} onChange={(e) => setEditForm({ ...editForm, date: e.target.value })} className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 outline-none focus:border-blue-500" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">End Date</label>
+                  <input type="date" value={editForm.isMultiDay ? editForm.endDate : editForm.date} disabled={!editForm.isMultiDay} onChange={(e) => setEditForm({ ...editForm, endDate: e.target.value })} className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 outline-none focus:border-blue-500 disabled:opacity-50" />
+                </div>
+              </div>
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input type="checkbox" checked={editForm.isMultiDay} onChange={(e) => setEditForm({ ...editForm, isMultiDay: e.target.checked })} className="w-4 h-4 accent-blue-500" />
+                <span className="text-sm text-slate-300">Multi-day fixture</span>
+              </label>
+
+              <div className="flex space-x-4">
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input type="checkbox" checked={editForm.requiresTeas} onChange={(e) => setEditForm({ ...editForm, requiresTeas: e.target.checked })} className="w-4 h-4 accent-blue-500" />
+                  <span className="text-sm text-slate-200">Teas</span>
+                </label>
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input type="checkbox" checked={editForm.requiresDrinks} onChange={(e) => setEditForm({ ...editForm, requiresDrinks: e.target.checked })} className="w-4 h-4 accent-blue-500" />
+                  <span className="text-sm text-slate-200">Drinks</span>
+                </label>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Notes</label>
+                <textarea value={editForm.notes} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} rows={2} className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 outline-none focus:border-blue-500" />
+              </div>
+
+              {showDeleteConfirm ? (
+                <div className="space-y-3 pt-2">
+                  <p className="text-sm text-red-400 font-semibold text-center">Are you sure you want to cancel this booking? This cannot be undone.</p>
+                  <div className="flex space-x-3">
+                    <button type="button" onClick={() => setShowDeleteConfirm(false)} disabled={editSaving} className="flex-1 py-3 px-4 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold transition">Keep Booking</button>
+                    <button type="button" onClick={handleDeleteBooking} disabled={editSaving} className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-bold transition flex items-center justify-center space-x-2">
+                      <Trash2 size={16} /><span>{editSaving ? 'Cancelling…' : 'Yes, Cancel It'}</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex space-x-3 pt-2">
+                  <button type="button" onClick={() => setShowDeleteConfirm(true)} className="py-3 px-4 rounded-xl border border-red-800 bg-red-950/30 hover:bg-red-950/60 text-red-400 font-semibold transition flex items-center space-x-2">
+                    <Trash2 size={15} /><span>Cancel Booking</span>
+                  </button>
+                  <button type="button" onClick={() => setEditModal({ open: false, booking: null })} className="flex-1 py-3 px-4 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold transition">Discard</button>
+                  <button type="submit" disabled={editSaving} className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white font-semibold transition">{editSaving ? 'Saving…' : 'Save Changes'}</button>
+                </div>
+              )}
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Rejection Reason Modal */}
       {rejectModal.open && (
