@@ -10,6 +10,7 @@ import VenuesManager from './components/VenuesManager';
 import { LoginScreen, ForcePasswordResetScreen } from './components/AuthScreens';
 import { Calendar, ShieldAlert, Utensils, FormInput, Activity, HelpCircle, Users, LogOut, Shield, MapPin, Menu, X, Lock } from 'lucide-react';
 import ChangePasswordModal from './components/ChangePasswordModal';
+import GroundMaintenanceModal from './components/GroundMaintenanceModal';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -30,6 +31,7 @@ export default function App() {
   const [isForceReset, setIsForceReset] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [isGroundMaintenanceModalOpen, setIsGroundMaintenanceModalOpen] = useState(false);
 
   // Fetch all initial data
   const loadData = async () => {
@@ -64,11 +66,12 @@ export default function App() {
     if (loading || !currentUser) return;
 
     const restrictedViews = {
-      secretary: hasRole('FIXTURE_SECRETARY'),
-      caterer: hasRole('CATERER'),
-      publicForm: hasRole('EXTERNAL'),
-      teams: hasRole('USER_MANAGER') || hasRole('FIXTURE_SECRETARY'),
-      venues: hasRole('USER_MANAGER') || hasRole('FIXTURE_SECRETARY'),
+      secretary: hasRole('FIXTURE_SECRETARY') || hasRole('ADMIN'),
+      caterer: hasRole('CATERER') || hasRole('ADMIN'),
+      groundstaff: hasRole('GROUNDSTAFF') || hasRole('ADMIN'),
+      publicForm: hasRole('EXTERNAL') || hasRole('ADMIN'),
+      teams: hasRole('USER_MANAGER') || hasRole('FIXTURE_SECRETARY') || hasRole('ADMIN'),
+      venues: hasRole('USER_MANAGER') || hasRole('FIXTURE_SECRETARY') || hasRole('ADMIN'),
       users: hasRole('USER_MANAGER') || hasRole('ADMIN'),
     };
 
@@ -271,6 +274,22 @@ export default function App() {
                 </button>
               )}
 
+              {hasRole('GROUNDSTAFF') && (
+                <button
+                  onClick={() => {
+                    setIsGroundMaintenanceModalOpen(true);
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`w-full flex items-center space-x-3 py-3 px-4 rounded-xl text-xs font-semibold tracking-wide transition font-display ${activeView === 'ground_maintenance'
+                    ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
+                    : 'text-slate-400 hover:text-emerald-400 hover:bg-slate-800/50'
+                    }`}
+                >
+                  <Utensils size={16} />
+                  <span>Ground Maintenance</span>
+                </button>
+              )}
+
               {hasRole('CATERER') && (
                 <button
                   onClick={() => handleNavClick('caterer')}
@@ -451,6 +470,15 @@ export default function App() {
       <ChangePasswordModal
         isOpen={isPasswordModalOpen}
         onClose={() => setIsPasswordModalOpen(false)}
+      />
+
+      {/* Ground Maintenance Modal */}
+      <GroundMaintenanceModal
+        isOpen={isGroundMaintenanceModalOpen}
+        onClose={() => setIsGroundMaintenanceModalOpen(false)}
+        venues={venues}
+        pitches={pitches}
+        onMaintenanceCreated={handleBookingCreated}
       />
     </div>
   );
