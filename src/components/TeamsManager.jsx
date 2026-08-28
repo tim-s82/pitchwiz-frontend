@@ -125,6 +125,17 @@ export default function TeamsManager({ teams, pitchLengths, onTeamsChanged }) {
     return pl ? pl.description : '';
   };
 
+  const getManagersLabel = (managerIds) => {
+    if (!managerIds || managerIds.length === 0) return '—';
+    return managerIds
+      .map(id => {
+        const user = availableUsers.find(u => u.id === id);
+        return user ? `${user.first_name} ${user.last_name}`.trim() : null;
+      })
+      .filter(Boolean)
+      .join(', ') || '—';
+  };
+
   const renderTeamRow = (team) => {
     const isDeleting = deleteConfirmId === team.id;
 
@@ -158,6 +169,11 @@ export default function TeamsManager({ teams, pitchLengths, onTeamsChanged }) {
           ) : (
             <span className="text-xs text-slate-600">Not set</span>
           )}
+        </td>
+        <td className="py-3.5 px-4">
+          <span className="text-sm text-slate-300">
+            {getManagersLabel(team.managers)}
+          </span>
         </td>
         <td className="py-3.5 px-4">
           {team.is_external ? (
@@ -404,6 +420,7 @@ export default function TeamsManager({ teams, pitchLengths, onTeamsChanged }) {
                     <tr className="border-b border-slate-800/60">
                       <th className="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500 py-2.5 px-4">Name</th>
                       <th className="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500 py-2.5 px-4">Pitch Length</th>
+                      <th className="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500 py-2.5 px-4">Managers</th>
                       <th className="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500 py-2.5 px-4">Type</th>
                       <th className="text-right text-[11px] font-semibold uppercase tracking-wider text-slate-500 py-2.5 px-4">Actions</th>
                     </tr>
@@ -429,6 +446,7 @@ export default function TeamsManager({ teams, pitchLengths, onTeamsChanged }) {
                     <tr className="border-b border-slate-800/60">
                       <th className="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500 py-2.5 px-4">Name</th>
                       <th className="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500 py-2.5 px-4">Pitch Length</th>
+                      <th className="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500 py-2.5 px-4">Managers</th>
                       <th className="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500 py-2.5 px-4">Type</th>
                       <th className="text-right text-[11px] font-semibold uppercase tracking-wider text-slate-500 py-2.5 px-4">Actions</th>
                     </tr>
