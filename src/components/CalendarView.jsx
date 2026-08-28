@@ -512,12 +512,12 @@ export default function CalendarView({
               </tbody>
             </table>
           ) : (
-            /* STANDARD MODE: Days Across (Columns), Pitches Down (Rows) */
+            /* STANDARD MODE: Days Across (Columns), Pitches Down (Rows Grouped by Pitch) */
             <table className="w-full table-fixed border-collapse text-left min-w-[900px]">
               <thead>
                 <tr className="bg-slate-900/80 border-b border-slate-850">
                   <th className="p-4 text-xs font-semibold uppercase tracking-wider text-slate-400 w-56 font-display border-r border-slate-800 shrink-0">
-                    Venue / Pitch
+                    Session / Pitch
                   </th>
                   {datesList.map(day => (
                     <th key={day.isoStr} className="p-4 text-center border-r border-slate-800 last:border-r-0 truncate">
@@ -538,75 +538,82 @@ export default function CalendarView({
                     const venueName = venues.find(v => v.id === pitch.venue)?.name || '';
                     return (
                       <React.Fragment key={pitch.id}>
+                        {/* Pitch Group Header Row - Matches transposed mode's prominent style */}
+                        <tr className="bg-slate-900/90 border-t-4 border-b-2 border-emerald-500/40">
+                          <td
+                            colSpan={datesList.length + 1}
+                            className="px-4 py-2 font-display bg-slate-900/90"
+                          >
+                            <span className="text-xs text-emerald-400 font-bold tracking-wide mr-2">{venueName}</span>
+                            <span className="text-sm font-bold text-slate-100">{pitch.name}</span>
+                          </td>
+                        </tr>
+
                         {/* Morning Slot Row */}
-                        <tr className="border-b border-slate-850 hover:bg-slate-800/10">
-                          <td className="p-4 border-r border-slate-800 font-medium">
-                            <span className="text-xs text-emerald-400 block font-display tracking-wide">{venueName}</span>
-                            <span className="text-slate-100 font-semibold">{pitch.name}</span>
-                            <span className="text-xxs text-slate-400 block mt-1 bg-slate-800/80 px-2 py-0.5 rounded w-max">
-                              Morning (09:00 - 13:00)
-                            </span>
+                        <tr className="border-b border-slate-800/30 hover:bg-slate-800/10">
+                          <td className="px-3 py-1.5 border-r border-slate-800 font-medium bg-slate-950/40">
+                            <span className="text-xs text-slate-300 font-semibold block">Morning</span>
+                            <span className="text-[10px] text-slate-500 block">09:00 - 13:00</span>
                           </td>
                           {datesList.map(day => {
                             const cell = getCellStatus(pitch.id, day.isoStr, 'MORNING');
                             return (
                               <td
                                 key={day.isoStr}
-                                className="p-2 border-r border-slate-800 last:border-r-0 align-top"
+                                className="p-1 border-r border-slate-800/40 last:border-r-0 align-top"
                               >
                                 <CellContent
                                   cell={cell}
                                   onClick={() => handleCellClick(pitch.id, day.isoStr, 'MORNING', cell)}
+                                  compact={true}
                                   isExternal={isExternalUser}
                                 />
                               </td>
                             );
                           })}
                         </tr>
+
                         {/* Afternoon Slot Row */}
-                        <tr className="border-b border-slate-850 hover:bg-slate-800/10">
-                          <td className="p-4 border-r border-slate-800 font-medium">
-                            <span className="text-xs text-emerald-400 block font-display tracking-wide">{venueName}</span>
-                            <span className="text-slate-100 font-semibold">{pitch.name}</span>
-                            <span className="text-xxs text-slate-400 block mt-1 bg-slate-800/80 px-2 py-0.5 rounded w-max">
-                              Afternoon (13:30 - 18:00)
-                            </span>
+                        <tr className="border-b border-slate-800/30 hover:bg-slate-800/10">
+                          <td className="px-3 py-1.5 border-r border-slate-800 font-medium bg-slate-950/40">
+                            <span className="text-xs text-slate-300 font-semibold block">Afternoon</span>
+                            <span className="text-[10px] text-slate-500 block">13:30 - 18:00</span>
                           </td>
                           {datesList.map(day => {
                             const cell = getCellStatus(pitch.id, day.isoStr, 'AFTERNOON');
                             return (
                               <td
                                 key={day.isoStr}
-                                className="p-2 border-r border-slate-800 last:border-r-0 align-top"
+                                className="p-1 border-r border-slate-800/40 last:border-r-0 align-top"
                               >
                                 <CellContent
                                   cell={cell}
                                   onClick={() => handleCellClick(pitch.id, day.isoStr, 'AFTERNOON', cell)}
+                                  compact={true}
                                   isExternal={isExternalUser}
                                 />
                               </td>
                             );
                           })}
                         </tr>
+
                         {/* Evening Slot Row */}
-                        <tr className="border-b border-slate-850 hover:bg-slate-800/10 last:border-b-0">
-                          <td className="p-4 border-r border-slate-800 font-medium">
-                            <span className="text-xs text-emerald-400 block font-display tracking-wide">{venueName}</span>
-                            <span className="text-slate-100 font-semibold">{pitch.name}</span>
-                            <span className="text-xxs text-slate-400 block mt-1 bg-slate-800/80 px-2 py-0.5 rounded w-max">
-                              Evening (18:00 - 21:00)
-                            </span>
+                        <tr className="border-b-2 border-slate-800 hover:bg-slate-800/10">
+                          <td className="px-3 py-1.5 border-r border-slate-800 font-medium bg-slate-950/40">
+                            <span className="text-xs text-slate-300 font-semibold block">Evening</span>
+                            <span className="text-[10px] text-slate-500 block">18:00 - 21:00</span>
                           </td>
                           {datesList.map(day => {
                             const cell = getCellStatus(pitch.id, day.isoStr, 'EVENING');
                             return (
                               <td
                                 key={day.isoStr}
-                                className="p-2 border-r border-slate-800 last:border-r-0 align-top"
+                                className="p-1 border-r border-slate-800/40 last:border-r-0 align-top"
                               >
                                 <CellContent
                                   cell={cell}
                                   onClick={() => handleCellClick(pitch.id, day.isoStr, 'EVENING', cell)}
+                                  compact={true}
                                   isExternal={isExternalUser}
                                 />
                               </td>

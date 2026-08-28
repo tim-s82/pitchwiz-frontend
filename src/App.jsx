@@ -8,15 +8,15 @@ import TeamsManager from './components/TeamsManager';
 import UserManagement from './components/UserManagement';
 import VenuesManager from './components/VenuesManager';
 import { LoginScreen, ForcePasswordResetScreen } from './components/AuthScreens';
-import { Calendar, ShieldAlert, Utensils, FormInput, Activity, HelpCircle, Users, LogOut, Shield, MapPin } from 'lucide-react';
+import { Calendar, ShieldAlert, Utensils, FormInput, Activity, HelpCircle, Users, LogOut, Shield, MapPin, Menu, X, Lock } from 'lucide-react';
 import ChangePasswordModal from './components/ChangePasswordModal';
-import { Lock } from 'lucide-react';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 export default function App() {
   const [activeView, setActiveView] = useState('calendar');
   const [loading, setLoading] = useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Core app data state
   const [venues, setVenues] = useState([]);
@@ -116,10 +116,8 @@ export default function App() {
 
   // Handler to submit booking request
   const handleBookingCreated = async (payload) => {
-    // If it's a club booking, we also generate a fixture locally or in mock
     let fixId = null;
     if (payload.fixture_team) {
-      // Internal booking - create fixture on backend
       const newFixtureData = {
         team: payload.fixture_team,
         opponent: payload.fixture_opponent,
@@ -130,7 +128,6 @@ export default function App() {
       fixId = createdFixture.id;
     }
 
-    // Determine initial booking status: auto-approve if requested by Fixture Secretary or Admin
     const isAutoApproved = currentUser?.roles?.includes('ADMIN') || currentUser?.roles?.includes('FIXTURE_SECRETARY');
     const initialStatus = isAutoApproved ? 'APPROVED' : 'PENDING';
 
@@ -150,9 +147,7 @@ export default function App() {
     };
 
     const newBooking = await api.createBooking(bookingData);
-    // Add to list and sync
     setBookings(prev => [...prev, newBooking]);
-    // Force refetch to sync all states
     await loadData();
   };
 
@@ -186,11 +181,16 @@ export default function App() {
 
   const hasRole = (role) => currentUser?.roles?.includes(role) || currentUser?.roles?.includes('ADMIN');
 
+  const handleNavClick = (view) => {
+    setActiveView(view);
+    setIsMobileMenuOpen(false);
+  };
+
   return (
-    <div className="flex flex-col min-h-screen bg-slate-950 text-slate-100 selection:bg-emerald-500 selection:text-slate-950">
-      {/* Premium Header/Navigation */}
+    <div className="flex flex-col min-h-screen bg-slate-950 text-slate-100 selection:bg-emerald-500 selection:text-slate-950 relative">
+      {/* Compact Top Header with Hamburger Toggle */}
       <header className="sticky top-0 z-40 bg-slate-950/80 backdrop-blur-md border-b border-slate-900 px-6 py-4">
-        <div className="max-w-[1600px] mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="max-w-[1600px] mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/20 font-bold font-display text-lg text-slate-950">
               PW
@@ -206,126 +206,163 @@ export default function App() {
             </div>
           </div>
 
-          <nav className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={() => setActiveView('calendar')}
-              className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display ${activeView === 'calendar'
-                ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
-                : 'text-slate-450 hover:text-emerald-400'
-                }`}
-            >
-              <Calendar size={14} />
-              <span>Availability</span>
-            </button>
-
-            {hasRole('FIXTURE_SECRETARY') && (
-              <button
-                onClick={() => setActiveView('secretary')}
-                className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display ${activeView === 'secretary'
-                  ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
-                  : 'text-slate-450 hover:text-emerald-400'
-                  }`}
-              >
-                <ShieldAlert size={14} />
-                <span>Secretary Panel</span>
-              </button>
-            )}
-
-            {hasRole('CATERER') && (
-              <button
-                onClick={() => setActiveView('caterer')}
-                className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display ${activeView === 'caterer'
-                  ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
-                  : 'text-slate-450 hover:text-emerald-400'
-                  }`}
-              >
-                <Utensils size={14} />
-                <span>Caterer Dashboard</span>
-              </button>
-            )}
-
-            {/* {(hasRole('TEAM_MANAGER') || hasRole('FIXTURE_SECRETARY') || hasRole('ADMIN')) && (
-              <button
-                onClick={() => setActiveView('calendar')}
-                className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display ${activeView === 'calendar'
-                  ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
-                  : 'text-slate-450 hover:text-emerald-400'
-                  }`}
-              >
-                <FormInput size={14} />
-                <span>Request Pitch</span>
-              </button>
-            )} */}
-
-            {hasRole('EXTERNAL') && (
-              <button
-                onClick={() => setActiveView('publicForm')}
-                className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display ${activeView === 'publicForm'
-                  ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
-                  : 'text-slate-450 hover:text-emerald-400'
-                  }`}
-              >
-                <FormInput size={14} />
-                <span>External Pitch Request</span>
-              </button>
-            )}
-
-            {(hasRole('USER_MANAGER') || hasRole('FIXTURE_SECRETARY')) && (
-              <button
-                onClick={() => setActiveView('teams')}
-                className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display ${activeView === 'teams'
-                  ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
-                  : 'text-slate-450 hover:text-emerald-400'
-                  }`}
-              >
-                <Users size={14} />
-                <span>Teams</span>
-              </button>
-            )}
-
-            {(hasRole('USER_MANAGER') || hasRole('FIXTURE_SECRETARY')) && (
-              <button
-                onClick={() => setActiveView('venues')}
-                className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display ${activeView === 'venues'
-                  ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
-                  : 'text-slate-450 hover:text-emerald-400'
-                  }`}
-              >
-                <MapPin size={14} />
-                <span>Venues & Pitches</span>
-              </button>
-            )}
-
-            {(hasRole('USER_MANAGER') || hasRole('ADMIN')) && (
-              <button
-                onClick={() => setActiveView('users')}
-                className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display ${activeView === 'users'
-                  ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
-                  : 'text-slate-450 hover:text-emerald-400'
-                  }`}
-              >
-                <Shield size={14} />
-                <span>Users</span>
-              </button>
-            )}
-            <button
-              onClick={() => setIsPasswordModalOpen(true)}
-
-              className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display text-slate-450 hover:text-emerald-400`}
-            >
-              <Lock size={14} />
-              <span>Password</span>
-            </button>
-            <button
-              onClick={handleLogout}
-              className={`flex items-center space-x-2 py-2 px-3.5 rounded-lg text-xs font-semibold tracking-wide transition font-display text-slate-450 hover:text-red-400`}
-            >
-              <LogOut size={14} />
-              <span>Sign Out</span>
-            </button>
-          </nav>
+          {/* Hamburger Menu Trigger Button */}
+          <button
+            onClick={() => setIsMobileMenuOpen(true)}
+            className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-emerald-400 hover:border-slate-700 transition flex items-center space-x-2"
+            aria-label="Open Menu"
+          >
+            <Menu size={20} />
+            <span className="text-xs font-semibold font-display hidden sm:inline">Menu</span>
+          </button>
         </div>
       </header>
+
+      {/* Slide-out Navigation Drawer & Backdrop */}
+      <div className={`fixed inset-0 z-50 overflow-hidden transition-all duration-300 ${isMobileMenuOpen ? 'pointer-events-auto' : 'pointer-events-none'}`}>
+        {/* Backdrop overlay */}
+        <div
+          className={`absolute inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity duration-300 ease-out ${isMobileMenuOpen ? 'opacity-100' : 'opacity-0'}`}
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+
+        {/* Drawer Panel sliding smoothly from the right */}
+        <div className="absolute inset-y-0 right-0 pl-10 max-w-full flex">
+          <div className={`w-80 bg-slate-900 border-l border-slate-800 shadow-2xl flex flex-col h-full z-10 overflow-y-auto transform transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+            {/* Drawer Header */}
+            <div className="p-6 border-b border-slate-800 flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-emerald-500 to-teal-500 flex items-center justify-center font-bold font-display text-sm text-slate-950">
+                  PW
+                </div>
+                <h2 className="font-bold font-display text-slate-100">Navigation</h2>
+              </div>
+              <button
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="p-2 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Navigation Links List */}
+            <nav className="p-4 space-y-1.5 flex-grow">
+              <button
+                onClick={() => handleNavClick('calendar')}
+                className={`w-full flex items-center space-x-3 py-3 px-4 rounded-xl text-xs font-semibold tracking-wide transition font-display ${activeView === 'calendar'
+                  ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
+                  : 'text-slate-400 hover:text-emerald-400 hover:bg-slate-800/50'
+                  }`}
+              >
+                <Calendar size={16} />
+                <span>Availability</span>
+              </button>
+
+              {hasRole('FIXTURE_SECRETARY') && (
+                <button
+                  onClick={() => handleNavClick('secretary')}
+                  className={`w-full flex items-center space-x-3 py-3 px-4 rounded-xl text-xs font-semibold tracking-wide transition font-display ${activeView === 'secretary'
+                    ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
+                    : 'text-slate-400 hover:text-emerald-400 hover:bg-slate-800/50'
+                    }`}
+                >
+                  <ShieldAlert size={16} />
+                  <span>Secretary Panel</span>
+                </button>
+              )}
+
+              {hasRole('CATERER') && (
+                <button
+                  onClick={() => handleNavClick('caterer')}
+                  className={`w-full flex items-center space-x-3 py-3 px-4 rounded-xl text-xs font-semibold tracking-wide transition font-display ${activeView === 'caterer'
+                    ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
+                    : 'text-slate-400 hover:text-emerald-400 hover:bg-slate-800/50'
+                    }`}
+                >
+                  <Utensils size={16} />
+                  <span>Caterer Dashboard</span>
+                </button>
+              )}
+
+              {hasRole('EXTERNAL') && (
+                <button
+                  onClick={() => handleNavClick('publicForm')}
+                  className={`w-full flex items-center space-x-3 py-3 px-4 rounded-xl text-xs font-semibold tracking-wide transition font-display ${activeView === 'publicForm'
+                    ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
+                    : 'text-slate-400 hover:text-emerald-400 hover:bg-slate-800/50'
+                    }`}
+                >
+                  <FormInput size={16} />
+                  <span>External Pitch Request</span>
+                </button>
+              )}
+
+              {(hasRole('USER_MANAGER') || hasRole('FIXTURE_SECRETARY')) && (
+                <button
+                  onClick={() => handleNavClick('teams')}
+                  className={`w-full flex items-center space-x-3 py-3 px-4 rounded-xl text-xs font-semibold tracking-wide transition font-display ${activeView === 'teams'
+                    ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
+                    : 'text-slate-400 hover:text-emerald-400 hover:bg-slate-800/50'
+                    }`}
+                >
+                  <Users size={16} />
+                  <span>Teams</span>
+                </button>
+              )}
+
+              {(hasRole('USER_MANAGER') || hasRole('FIXTURE_SECRETARY')) && (
+                <button
+                  onClick={() => handleNavClick('venues')}
+                  className={`w-full flex items-center space-x-3 py-3 px-4 rounded-xl text-xs font-semibold tracking-wide transition font-display ${activeView === 'venues'
+                    ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
+                    : 'text-slate-400 hover:text-emerald-400 hover:bg-slate-800/50'
+                    }`}
+                >
+                  <MapPin size={16} />
+                  <span>Venues & Pitches</span>
+                </button>
+              )}
+
+              {(hasRole('USER_MANAGER') || hasRole('ADMIN')) && (
+                <button
+                  onClick={() => handleNavClick('users')}
+                  className={`w-full flex items-center space-x-3 py-3 px-4 rounded-xl text-xs font-semibold tracking-wide transition font-display ${activeView === 'users'
+                    ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
+                    : 'text-slate-400 hover:text-emerald-400 hover:bg-slate-800/50'
+                    }`}
+                >
+                  <Shield size={16} />
+                  <span>Users</span>
+                </button>
+              )}
+            </nav>
+
+            {/* Drawer Footer Actions (Password & Logout) */}
+            <div className="p-4 border-t border-slate-800 space-y-1.5 bg-slate-950/40">
+              <button
+                onClick={() => {
+                  setIsPasswordModalOpen(true);
+                  setIsMobileMenuOpen(false);
+                }}
+                className="w-full flex items-center space-x-3 py-3 px-4 rounded-xl text-xs font-semibold tracking-wide transition font-display text-slate-400 hover:text-emerald-400 hover:bg-slate-800/50"
+              >
+                <Lock size={16} />
+                <span>Password</span>
+              </button>
+              <button
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  handleLogout();
+                }}
+                className="w-full flex items-center space-x-3 py-3 px-4 rounded-xl text-xs font-semibold tracking-wide transition font-display text-slate-400 hover:text-red-400 hover:bg-red-950/20"
+              >
+                <LogOut size={16} />
+                <span>Sign Out</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Main View Port */}
       <main className="flex-grow max-w-[1600px] w-full mx-auto px-6 py-8">
@@ -407,10 +444,6 @@ export default function App() {
       <footer className="border-t border-slate-900 bg-slate-950 py-6 px-6 text-center text-xs text-slate-500">
         <div className="max-w-[1600px] mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
           <span>&copy; 2026 PitchWiz. Designed for cricket club match efficiency.</span>
-          <div className="flex space-x-4">
-            <a href="file:///c:/Users/timsh/github/pitchwiz-backend/GEMINI.md" className="hover:text-emerald-400 transition">Backend Docs</a>
-            <a href="file:///c:/Users/timsh/github/pitchwiz-frontend/GEMINI.md" className="hover:text-emerald-400 transition">Frontend Docs</a>
-          </div>
         </div>
       </footer>
 
