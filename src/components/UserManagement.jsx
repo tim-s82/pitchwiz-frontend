@@ -21,6 +21,7 @@ const AVAILABLE_ROLES = [
   { id: "FIXTURE_SECRETARY", label: "Fixture Secretary" },
   { id: "CATERER", label: "Caterer" },
   { id: "EXTERNAL", label: "External User" },
+  { id: "GROUNDSTAFF", label: "Ground Staff" },
 ];
 
 export default function UserManagement() {
@@ -259,11 +260,10 @@ export default function UserManagement() {
       {/* Toast Notification */}
       {toast && (
         <div
-          className={`fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-xl flex items-center space-x-2 text-sm font-semibold animate-in fade-in slide-in-from-bottom-3 ${
-            toast.type === "error"
+          className={`fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-xl flex items-center space-x-2 text-sm font-semibold animate-in fade-in slide-in-from-bottom-3 ${toast.type === "error"
               ? "bg-rose-500 text-white shadow-rose-500/20"
               : "bg-emerald-500 text-slate-950 shadow-emerald-500/20"
-          }`}
+            }`}
         >
           {toast.type === "error" ? (
             <AlertCircle size={18} />
@@ -535,16 +535,15 @@ export default function UserManagement() {
                       <label
                         key={r.id}
                         onClick={() => toggleRole(r.id)}
-                        className={`flex items-center space-x-2.5 p-2 rounded-lg cursor-pointer border transition text-xs select-none ${
-                          isChecked
+                        className={`flex items-center space-x-2.5 p-2 rounded-lg cursor-pointer border transition text-xs select-none ${isChecked
                             ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-400"
                             : "bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700"
-                        }`}
+                          }`}
                       >
                         <input
                           type="checkbox"
                           checked={isChecked}
-                          onChange={() => {}} // Handled by label click
+                          onChange={() => { }} // Handled by label click
                           className="rounded text-emerald-500 bg-slate-950 border-slate-700 focus:ring-emerald-500"
                         />
                         <span className="font-semibold">{r.label}</span>

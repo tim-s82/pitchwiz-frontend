@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { api } from "../services/api";
+import GroundMaintenanceModal from "./GroundMaintenanceModal";
 import {
   Calendar,
   Filter,
@@ -51,7 +52,7 @@ export default function CalendarView({
     return monday.toISOString().split("T")[0];
   });
 
-  // Modal State (create)
+  // Modal State (create fixture booking)
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalData, setModalData] = useState({
     pitchId: "",
@@ -61,6 +62,17 @@ export default function CalendarView({
     opponent: "",
     requiresTeas: false,
     requiresDrinks: false,
+    notes: "",
+    isMultiDay: false,
+    endDate: "",
+  });
+
+  // Ground Maintenance Modal State
+  const [isMaintenanceModalOpen, setIsMaintenanceModalOpen] = useState(false);
+  const [maintenanceData, setMaintenanceData] = useState({
+    pitchId: "",
+    date: "",
+    timeSlot: "ALL_DAY",
     notes: "",
     isMultiDay: false,
     endDate: "",
@@ -79,7 +91,7 @@ export default function CalendarView({
     }
   }, [venues, selectedVenueId]);
 
-  // Find compatible pitch lengths for the filtered team
+  // Find compatible pitch lengths for the filtered team (Must be declared BEFORE filteredPitches)
   const filteredTeam = useMemo(() => {
     if (selectedTeamId === "all") return null;
     return teams.find((t) => t.id === parseInt(selectedTeamId));
@@ -279,6 +291,17 @@ export default function CalendarView({
     return currentUser?.roles?.includes("EXTERNAL");
   }, [currentUser]);
 
+  // Check role conditions for Groundstaff vs Fixture booking
+  const isOnlyGroundstaff = useMemo(() => {
+    if (!currentUser || !currentUser.roles) return false;
+    const hasGroundstaff = currentUser.roles.includes("GROUNDSTAFF");
+    const hasAdminOrSecOrMgr =
+      currentUser.roles.includes("ADMIN") ||
+      currentUser.roles.includes("FIXTURE_SECRETARY") ||
+      currentUser.roles.includes("USER_MANAGER");
+    return hasGroundstaff && !hasAdminOrSecOrMgr;
+  }, [currentUser]);
+
   const canEditBooking = (booking) => {
     if (!currentUser || isExternalUser) return false;
     if (
@@ -301,13 +324,13 @@ export default function CalendarView({
   };
 
   const handleCellClick = (pitchId, dateStr, timeSlot, existingCell) => {
-    // If you want external users to be able to view details without editing, remove this guard or handle separately:
-    // if (isExternalUser) return; 
-
     // 1. Existing Booking / Blocked Slot clicked
     if (existingCell) {
       if (existingCell.type === "BLOCKED") {
-        alert(existingCell.reason || "This slot is blocked due to an outfield overlap.");
+        alert(
+          existingCell.reason ||
+          "This slot is blocked due to an outfield overlap.",
+        );
         return;
       }
 
@@ -333,18 +356,35 @@ export default function CalendarView({
           setIsEditModalOpen(true);
         } else {
           // Fallback info alert for bookings they can't edit
-          alert(`Booking Details:\nStatus: ${b.status}\nNotes: ${b.notes || "None"}`);
+          alert(
+            `Booking Details:\nStatus: ${b.status}\nNotes: ${b.notes || "None"}`,
+          );
         }
         return;
       }
     }
 
-    // 2. Empty slot clicked -> open create modal (restricted if external)
+    // 2. Empty slot clicked -> Restricted if external
     if (isExternalUser) {
       alert("External users cannot create bookings directly.");
       return;
     }
 
+    // 3. Groundstaff-only role triggers Maintenance Modal
+    if (isOnlyGroundstaff) {
+      setMaintenanceData({
+        pitchId: pitchId.toString(),
+        date: dateStr,
+        timeSlot,
+        notes: "",
+        isMultiDay: false,
+        endDate: dateStr,
+      });
+      setIsMaintenanceModalOpen(true);
+      return;
+    }
+
+    // Otherwise, open standard fixture booking modal
     setModalData({
       pitchId: pitchId.toString(),
       date: dateStr,
@@ -398,7 +438,7 @@ export default function CalendarView({
     setEditSaving(true);
     try {
       await onBookingUpdated(editData.id, {
-        pitch: parseInt(editForm.pitchId),
+        pitch: parseInt(editForm.pitchId || editData.pitch),
         time_slot: editForm.timeSlot,
         start_date: editForm.date,
         end_date: editForm.isMultiDay ? editForm.endDate : editForm.date,
@@ -465,8 +505,8 @@ export default function CalendarView({
             <button
               onClick={() => setMobileLayoutMode("singleDay")}
               className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition ${mobileLayoutMode === "singleDay"
-                ? "bg-emerald-500 text-slate-950 font-bold"
-                : "text-slate-400"
+                  ? "bg-emerald-500 text-slate-950 font-bold"
+                  : "text-slate-400"
                 }`}
             >
               Single Day View
@@ -474,8 +514,8 @@ export default function CalendarView({
             <button
               onClick={() => setMobileLayoutMode("singlePitch")}
               className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition ${mobileLayoutMode === "singlePitch"
-                ? "bg-emerald-500 text-slate-950 font-bold"
-                : "text-slate-400"
+                  ? "bg-emerald-500 text-slate-950 font-bold"
+                  : "text-slate-400"
                 }`}
             >
               Single Pitch View
@@ -490,8 +530,8 @@ export default function CalendarView({
             <button
               onClick={() => setViewMode("transposed")}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold font-display transition ${viewMode === "transposed"
-                ? "bg-emerald-500 text-slate-950 font-bold"
-                : "text-slate-400 hover:text-slate-200"
+                  ? "bg-emerald-500 text-slate-950 font-bold"
+                  : "text-slate-400 hover:text-slate-200"
                 }`}
               title="Pitches across (columns), Days & Sessions down (rows)"
             >
@@ -500,8 +540,8 @@ export default function CalendarView({
             <button
               onClick={() => setViewMode("standard")}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold font-display transition ${viewMode === "standard"
-                ? "bg-emerald-500 text-slate-950 font-bold"
-                : "text-slate-400 hover:text-slate-200"
+                  ? "bg-emerald-500 text-slate-950 font-bold"
+                  : "text-slate-400 hover:text-slate-200"
                 }`}
               title="Days across (columns), Pitches down (rows)"
             >
@@ -698,7 +738,11 @@ export default function CalendarView({
                 <span>Prev Week</span>
               </button>
               <div className="text-xs font-bold text-slate-100 font-display">
-                Week of {new Date(startDateStr).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                Week of{" "}
+                {new Date(startDateStr).toLocaleDateString("en-GB", {
+                  day: "numeric",
+                  month: "short",
+                })}
               </div>
               <button
                 onClick={() => shiftWeek(1)}
@@ -1100,16 +1144,505 @@ export default function CalendarView({
         </div>
       </div>
 
-      {/* Booking Modal & Edit Modals remain identical */}
-      {/* ... [Modals stay same] ... */}
+      {/* Booking Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="glass-panel w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden border border-slate-800">
+            <div className="bg-slate-900 px-6 py-4 border-b border-slate-800 flex justify-between items-center">
+              <h3 className="text-lg font-bold font-display text-slate-100">
+                Request Pitch Booking
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="text-slate-400 hover:text-slate-200 transition"
+              >
+                ✕
+              </button>
+            </div>
+            <form onSubmit={handleFormSubmit} className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                    Pitch
+                  </label>
+                  <select
+                    value={modalData.pitchId}
+                    onChange={(e) => {
+                      const newPitchId = e.target.value;
+                      let updatedTeamId = modalData.teamId;
+                      if (newPitchId && modalData.teamId) {
+                        const newPitch = pitches.find(
+                          (p) => p.id === parseInt(newPitchId),
+                        );
+                        const currentTeam = teams.find(
+                          (t) => t.id === parseInt(modalData.teamId),
+                        );
+                        if (
+                          newPitch &&
+                          currentTeam &&
+                          currentTeam.required_length &&
+                          !newPitch.supported_lengths.includes(
+                            currentTeam.required_length,
+                          )
+                        ) {
+                          updatedTeamId = "";
+                        }
+                      }
+                      setModalData({
+                        ...modalData,
+                        pitchId: newPitchId,
+                        teamId: updatedTeamId,
+                      });
+                    }}
+                    className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 outline-none focus:border-emerald-500"
+                    required
+                  >
+                    <option value="">Select Pitch</option>
+                    {pitches.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {venues.find((v) => v.id === p.venue)?.name} - {p.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                    Time Slot
+                  </label>
+                  <select
+                    value={modalData.timeSlot}
+                    onChange={(e) =>
+                      setModalData({ ...modalData, timeSlot: e.target.value })
+                    }
+                    className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 outline-none focus:border-emerald-500"
+                  >
+                    <option value="MORNING">Morning Slot</option>
+                    <option value="AFTERNOON">Afternoon Slot</option>
+                    <option value="EVENING">Evening Slot</option>
+                    <option value="ALL_DAY">All Day Slot</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                  Team (Requesting)
+                </label>
+                <select
+                  value={modalData.teamId}
+                  onChange={(e) =>
+                    setModalData({ ...modalData, teamId: e.target.value })
+                  }
+                  className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 outline-none focus:border-emerald-500"
+                  required
+                >
+                  <option value="">Select Team</option>
+                  {allowedTeams
+                    .filter((t) => {
+                      const hasAdminOrSec =
+                        currentUser?.roles?.includes("ADMIN") ||
+                        currentUser?.roles?.includes("FIXTURE_SECRETARY");
+                      if (!hasAdminOrSec && t.is_external) return false;
+
+                      if (modalData.pitchId) {
+                        const selectedPitch = pitches.find(
+                          (p) => p.id === parseInt(modalData.pitchId),
+                        );
+                        if (
+                          selectedPitch &&
+                          t.required_length &&
+                          !selectedPitch.supported_lengths.includes(
+                            t.required_length,
+                          )
+                        ) {
+                          return false;
+                        }
+                      }
+                      return true;
+                    })
+                    .map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name} {t.is_external ? "(External)" : ""}
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                  Opponent
+                </label>
+                <input
+                  type="text"
+                  value={modalData.opponent}
+                  onChange={(e) =>
+                    setModalData({ ...modalData, opponent: e.target.value })
+                  }
+                  placeholder="e.g. Broadstone CC"
+                  className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 outline-none focus:border-emerald-500"
+                  required
+                />
+              </div>
+
+              <div className="bg-slate-800/40 p-4 rounded-xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="isMultiDay"
+                      checked={modalData.isMultiDay}
+                      onChange={(e) =>
+                        setModalData({
+                          ...modalData,
+                          isMultiDay: e.target.checked,
+                        })
+                      }
+                      className="rounded text-emerald-500 bg-slate-800 border-slate-700 focus:ring-emerald-500"
+                    />
+                    <label
+                      htmlFor="isMultiDay"
+                      className="text-sm font-medium text-slate-200"
+                    >
+                      Multi-Day Booking
+                    </label>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                      {modalData.isMultiDay ? "Start Date" : "Date"}
+                    </label>
+                    <input
+                      type="date"
+                      value={modalData.date}
+                      onChange={(e) =>
+                        setModalData({
+                          ...modalData,
+                          date: e.target.value,
+                          endDate: modalData.isMultiDay
+                            ? modalData.endDate
+                            : e.target.value,
+                        })
+                      }
+                      className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 outline-none focus:border-emerald-500"
+                      required
+                    />
+                  </div>
+                  {modalData.isMultiDay && (
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                        End Date
+                      </label>
+                      <input
+                        type="date"
+                        value={modalData.endDate}
+                        onChange={(e) =>
+                          setModalData({
+                            ...modalData,
+                            endDate: e.target.value,
+                          })
+                        }
+                        min={modalData.date}
+                        className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 outline-none focus:border-emerald-500"
+                        required
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex space-x-6 bg-slate-800/20 p-3.5 rounded-xl border border-slate-800/60 justify-around">
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={modalData.requiresTeas}
+                    onChange={(e) =>
+                      setModalData({
+                        ...modalData,
+                        requiresTeas: e.target.checked,
+                      })
+                    }
+                    className="rounded text-emerald-500 bg-slate-800 border-slate-700 focus:ring-emerald-500"
+                  />
+                  <span className="text-sm text-slate-200">Request Teas</span>
+                </label>
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={modalData.requiresDrinks}
+                    onChange={(e) =>
+                      setModalData({
+                        ...modalData,
+                        requiresDrinks: e.target.checked,
+                      })
+                    }
+                    className="rounded text-emerald-500 bg-slate-800 border-slate-700 focus:ring-emerald-500"
+                  />
+                  <span className="text-sm text-slate-200">Request Drinks</span>
+                </label>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                  Notes for Secretary
+                </label>
+                <textarea
+                  value={modalData.notes}
+                  onChange={(e) =>
+                    setModalData({ ...modalData, notes: e.target.value })
+                  }
+                  placeholder="Any special ground prep, cup rules, etc."
+                  rows={2}
+                  className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div className="flex space-x-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="flex-1 py-3 px-4 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-semibold shadow-lg shadow-emerald-550/20 transition"
+                >
+                  Submit Request
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Ground Maintenance Modal Component */}
+      <GroundMaintenanceModal
+        isOpen={isMaintenanceModalOpen}
+        onClose={() => setIsMaintenanceModalOpen(false)}
+        initialData={maintenanceData}
+        pitches={pitches}
+        venues={venues}
+        onSuccess={onBookingCreated}
+      />
+
+      {/* Edit / Cancel Booking Modal */}
+      {isEditModalOpen && editData && (
+        <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="glass-panel w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden border border-slate-800 max-h-[90vh] flex flex-col">
+            <div className="bg-slate-900 px-6 py-4 border-b border-slate-800 flex justify-between items-center">
+              <div className="flex items-center space-x-3">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                  <Pencil size={16} className="text-slate-950 font-bold" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold font-display text-slate-100">
+                    Edit Booking
+                  </h2>
+                  <p className="text-xs text-slate-400">
+                    Modify or cancel this pitch booking
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsEditModalOpen(false)}
+                className="text-slate-400 hover:text-slate-200 transition"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form
+              onSubmit={handleEditSubmit}
+              className="p-6 space-y-4 overflow-y-auto"
+            >
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                  Time Slot
+                </label>
+                <select
+                  value={editForm.timeSlot}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, timeSlot: e.target.value })
+                  }
+                  className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 outline-none focus:border-emerald-500"
+                >
+                  <option value="MORNING">Morning Slot</option>
+                  <option value="AFTERNOON">Afternoon Slot</option>
+                  <option value="EVENING">Evening Slot</option>
+                  <option value="ALL_DAY">All Day Slot</option>
+                </select>
+              </div>
+
+              <div className="bg-slate-800/40 p-4 rounded-xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="editIsMultiDay"
+                      checked={editForm.isMultiDay}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          isMultiDay: e.target.checked,
+                          endDate: e.target.checked
+                            ? editForm.endDate || editForm.date
+                            : editForm.date,
+                        })
+                      }
+                      className="rounded text-emerald-500 bg-slate-800 border-slate-700 focus:ring-emerald-500 w-4 h-4"
+                    />
+                    <label
+                      htmlFor="editIsMultiDay"
+                      className="text-sm font-medium text-slate-200 cursor-pointer"
+                    >
+                      Multi-Day Booking
+                    </label>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                      {editForm.isMultiDay ? "Start Date" : "Date"}
+                    </label>
+                    <input
+                      type="date"
+                      value={editForm.date}
+                      onChange={(e) =>
+                        setEditForm({ ...editForm, date: e.target.value })
+                      }
+                      className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                  {editForm.isMultiDay && (
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                        End Date
+                      </label>
+                      <input
+                        type="date"
+                        value={editForm.endDate}
+                        min={editForm.date}
+                        onChange={(e) =>
+                          setEditForm({ ...editForm, endDate: e.target.value })
+                        }
+                        className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex space-x-6 bg-slate-800/20 p-3.5 rounded-xl border border-slate-800/60 justify-around">
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={editForm.requiresTeas}
+                    onChange={(e) =>
+                      setEditForm({
+                        ...editForm,
+                        requiresTeas: e.target.checked,
+                      })
+                    }
+                    className="rounded text-emerald-500 bg-slate-800 border-slate-700 focus:ring-emerald-500 w-4 h-4"
+                  />
+                  <span className="text-sm text-slate-200">Request Teas</span>
+                </label>
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={editForm.requiresDrinks}
+                    onChange={(e) =>
+                      setEditForm({
+                        ...editForm,
+                        requiresDrinks: e.target.checked,
+                      })
+                    }
+                    className="rounded text-emerald-500 bg-slate-800 border-slate-700 focus:ring-emerald-500 w-4 h-4"
+                  />
+                  <span className="text-sm text-slate-200">Request Drinks</span>
+                </label>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                  Notes
+                </label>
+                <textarea
+                  value={editForm.notes}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, notes: e.target.value })
+                  }
+                  rows={2}
+                  className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              {showDeleteConfirm ? (
+                <div className="space-y-3 pt-2">
+                  <p className="text-sm text-red-400 font-semibold text-center">
+                    Are you sure you want to cancel this booking? This cannot be
+                    undone.
+                  </p>
+                  <div className="flex space-x-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowDeleteConfirm(false)}
+                      className="flex-1 py-3 px-4 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold transition"
+                      disabled={editSaving}
+                    >
+                      Keep Booking
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDeleteBooking}
+                      disabled={editSaving}
+                      className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-bold shadow-lg shadow-red-900/30 transition flex items-center justify-center space-x-2"
+                    >
+                      <Trash2 size={16} />
+                      <span>
+                        {editSaving ? "Cancelling…" : "Yes, Cancel It"}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex space-x-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="py-3 px-4 rounded-xl border border-red-800 bg-red-950/30 hover:bg-red-950/60 text-red-400 font-semibold transition flex items-center space-x-2"
+                  >
+                    <Trash2 size={15} />
+                    <span>Cancel Booking</span>
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={editSaving}
+                    className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-semibold shadow-lg shadow-emerald-550/20 transition"
+                  >
+                    {editSaving ? "Saving…" : "Save Changes"}
+                  </button>
+                </div>
+              )}
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-// Inner helper component for cell mapping
+// Inner helper component for cell mapping with robust interactive buttons
 function CellContent({ cell, onClick, compact = false, isExternal = false }) {
   const heightClass = compact ? "h-16" : "h-24";
 
+  // 1. Empty / Available Slot
   if (!cell) {
     if (isExternal) {
       return (
@@ -1124,64 +1657,69 @@ function CellContent({ cell, onClick, compact = false, isExternal = false }) {
     }
     return (
       <button
+        type="button"
         onClick={onClick}
         className={`w-full ${heightClass} flex items-center justify-center border border-dashed border-slate-800 rounded-xl hover:border-emerald-500/50 hover:bg-emerald-950/25 group transition cursor-pointer overflow-hidden`}
       >
         <Plus
           size={14}
-          className="text-slate-650 group-hover:text-emerald-400 group-hover:scale-110 transition duration-300"
+          className="text-slate-500 group-hover:text-emerald-400 group-hover:scale-110 transition duration-300 pointer-events-none"
         />
       </button>
     );
   }
 
+  // 2. Blocked Slot
   if (cell.type === "BLOCKED") {
     return (
-      <div
-        className={`w-full ${heightClass} bg-slate-900/60 border border-slate-800 rounded-xl ${compact ? "p-1.5" : "p-2.5"} flex flex-col justify-between overflow-hidden`}
+      <button
+        type="button"
+        onClick={onClick}
+        className={`w-full ${heightClass} text-left bg-slate-900/60 border border-slate-800 rounded-xl ${compact ? "p-1.5" : "p-2.5"} flex flex-col justify-between overflow-hidden cursor-pointer hover:border-slate-700 transition`}
         title={isExternal ? "Unavailable" : cell.reason}
       >
-        <div className="flex items-start space-x-1 text-slate-500">
+        <div className="flex items-start space-x-1 text-slate-500 pointer-events-none">
           <ShieldAlert size={12} className="shrink-0 text-amber-600 mt-0.5" />
           <span className="text-[10px] font-bold uppercase tracking-wider font-display line-clamp-2">
             {isExternal ? "Unavailable" : cell.label}
           </span>
         </div>
         {!compact && !isExternal && (
-          <span className="text-[10px] text-slate-500 leading-snug line-clamp-1">
+          <span className="text-[10px] text-slate-500 leading-snug line-clamp-1 pointer-events-none">
             Outfield Overlap
           </span>
         )}
-      </div>
+      </button>
     );
   }
 
-  // BOOKED cell
+  // 3. Booked Slot
   const isApproved = cell.status === "APPROVED";
   const isMaintenance = cell.isMaintenance;
 
   return (
-    <div
+    <button
+      type="button"
       onClick={onClick}
-      className={`w-full ${heightClass} cursor-pointer border rounded-xl ${compact ? "p-1.5" : "p-2.5"} flex flex-col justify-between overflow-hidden transition-all duration-300 ${isMaintenance
-        ? "bg-amber-950/40 border-amber-800/80 hover:border-amber-500 shadow-sm shadow-amber-900/10"
-        : isApproved
-          ? "bg-emerald-950/30 border-emerald-900/80 hover:border-blue-500 shadow-sm shadow-emerald-900/10"
-          : "bg-amber-950/20 border-amber-900/50 hover:border-blue-500"
+      className={`w-full ${heightClass} text-left cursor-pointer border rounded-xl ${compact ? "p-1.5" : "p-2.5"} flex flex-col justify-between overflow-hidden transition-all duration-300 ${isMaintenance
+          ? "bg-amber-950/40 border-amber-800/80 hover:border-amber-500 shadow-sm shadow-amber-900/10"
+          : isApproved
+            ? "bg-emerald-950/30 border-emerald-900/80 hover:border-blue-500 shadow-sm shadow-emerald-900/10"
+            : "bg-amber-950/20 border-amber-900/50 hover:border-blue-500"
         }`}
     >
-      <div>
+      <div className="pointer-events-none w-full">
         <div className="flex items-center justify-between gap-1 mb-0.5">
           {isMaintenance ? (
             <span className="text-[9px] px-1.5 py-0.2 rounded font-extrabold uppercase font-display truncate bg-amber-900/60 text-amber-300 flex items-center gap-1">
               <Shovel size={10} />
-              Ground Maintenance
+              Maintenance
             </span>
           ) : (
             <span
               className={`text-[9px] px-1.5 py-0.2 rounded font-extrabold uppercase font-display truncate ${isApproved
-                ? "bg-emerald-900/50 text-emerald-400"
-                : "bg-amber-900/50 text-amber-400"
+                  ? "bg-emerald-900/50 text-emerald-400"
+                  : "bg-amber-900/50 text-amber-400"
                 }`}
             >
               {isApproved ? "Booked" : "Pending"}
@@ -1194,10 +1732,10 @@ function CellContent({ cell, onClick, compact = false, isExternal = false }) {
       </div>
 
       {!compact && !isExternal && cell.booking.notes && !isMaintenance && (
-        <span className="text-[10px] text-slate-450 line-clamp-1 italic">
+        <span className="text-[10px] text-slate-450 line-clamp-1 italic pointer-events-none">
           "{cell.booking.notes}"
         </span>
       )}
-    </div>
+    </button>
   );
 }
