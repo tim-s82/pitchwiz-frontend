@@ -1,30 +1,45 @@
-import React, { useState } from 'react';
-import { api } from '../services/api';
+import React, { useState, useEffect } from "react";
+import { api } from "../services/api";
 import {
-  MapPin, Plus, Pencil, Trash2, Check, X,
-  Ruler, AlertTriangle, Layers, Grid
-} from 'lucide-react';
+  MapPin,
+  Plus,
+  Pencil,
+  Trash2,
+  Check,
+  AlertTriangle,
+} from "lucide-react";
 
 export default function VenuesManager({
   venues,
   pitches,
   pitchLengths,
-  onDataChanged
+  onDataChanged,
 }) {
-  const [activeSubTab, setActiveSubTab] = useState('venues'); // 'venues', 'pitches', 'lengths'
+  // Persist active tab across data re-fetches using sessionStorage
+  const [activeSubTab, setActiveSubTab] = useState(() => {
+    return sessionStorage.getItem("venues_manager_active_tab") || "venues";
+  });
+
+  const handleTabChange = (tabName) => {
+    setActiveSubTab(tabName);
+    sessionStorage.setItem("venues_manager_active_tab", tabName);
+  };
+
   const [toast, setToast] = useState(null);
 
   // --- VENUE FORM STATE ---
   const [showVenueForm, setShowVenueForm] = useState(false);
   const [editingVenue, setEditingVenue] = useState(null);
-  const [venueName, setVenueName] = useState('');
+  const [venueName, setVenueName] = useState("");
 
   // --- PITCH FORM STATE ---
+  const [selectedPitchVenueFilter, setSelectedPitchVenueFilter] = useState("");
   const [showPitchForm, setShowPitchForm] = useState(false);
   const [editingPitch, setEditingPitch] = useState(null);
-  const [pitchVenueId, setPitchVenueId] = useState('');
-  const [pitchName, setPitchName] = useState('');
-  const [pitchType, setPitchType] = useState('GRASS');
+  const [pitchVenueId, setPitchVenueId] = useState("");
+  const [pitchName, setPitchName] = useState("");
+  const [pitchType, setPitchType] = useState("GRASS");
+  const [entityType, setEntityType] = useState("MAIN");
   const [pitchSupportedLengths, setPitchSupportedLengths] = useState([]);
   const [pitchBlocksPitches, setPitchBlocksPitches] = useState([]);
   const [pitchIsActive, setPitchIsActive] = useState(true);
@@ -32,20 +47,27 @@ export default function VenuesManager({
   // --- PITCH LENGTH FORM STATE ---
   const [showLengthForm, setShowLengthForm] = useState(false);
   const [editingLength, setEditingLength] = useState(null);
-  const [lengthYards, setLengthYards] = useState('');
-  const [lengthDescription, setLengthDescription] = useState('');
+  const [lengthYards, setLengthYards] = useState("");
+  const [lengthDescription, setLengthDescription] = useState("");
 
   // Delete Confirm Modal State
   const [deleteTarget, setDeleteTarget] = useState(null); // { type: 'venue'|'pitch'|'length', id, name }
 
-  const showToast = (message, type = 'success') => {
+  // Set default filter to the first venue when venues load
+  useEffect(() => {
+    if (venues.length > 0 && !selectedPitchVenueFilter) {
+      setSelectedPitchVenueFilter(String(venues[0].id));
+    }
+  }, [venues, selectedPitchVenueFilter]);
+
+  const showToast = (message, type = "success") => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
   };
 
   // ------------------ VENUE HANDLERS ------------------
   const resetVenueForm = () => {
-    setVenueName('');
+    setVenueName("");
     setEditingVenue(null);
     setShowVenueForm(false);
   };
@@ -65,15 +87,16 @@ export default function VenuesManager({
       resetVenueForm();
       onDataChanged();
     } catch (err) {
-      showToast('Failed to save venue', 'error');
+      showToast("Failed to save venue", "error");
     }
   };
 
   // ------------------ PITCH HANDLERS ------------------
   const resetPitchForm = () => {
-    setPitchVenueId(venues[0]?.id ? String(venues[0].id) : '');
-    setPitchName('');
-    setPitchType('GRASS');
+    setPitchVenueId(selectedPitchVenueFilter || (venues[0]?.id ? String(venues[0].id) : ""));
+    setPitchName("");
+    setPitchType("GRASS");
+    setEntityType("MAIN");
     setPitchSupportedLengths([]);
     setPitchBlocksPitches([]);
     setPitchIsActive(true);
@@ -83,8 +106,9 @@ export default function VenuesManager({
 
   const openAddPitch = () => {
     resetPitchForm();
-    if (venues.length > 0) setPitchVenueId(String(venues[0].id));
+    if (selectedPitchVenueFilter) setPitchVenueId(selectedPitchVenueFilter);
     setShowPitchForm(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const openEditPitch = (pitch) => {
@@ -92,10 +116,12 @@ export default function VenuesManager({
     setPitchVenueId(String(pitch.venue));
     setPitchName(pitch.name);
     setPitchType(pitch.pitch_type);
+    setEntityType(pitch.entity_type || "MAIN");
     setPitchSupportedLengths(pitch.supported_lengths || []);
     setPitchBlocksPitches(pitch.blocks_pitches || []);
     setPitchIsActive(pitch.is_active);
     setShowPitchForm(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handlePitchSubmit = async (e) => {
@@ -106,9 +132,10 @@ export default function VenuesManager({
       venue: parseInt(pitchVenueId, 10),
       name: pitchName.trim(),
       pitch_type: pitchType,
+      entity_type: entityType,
       supported_lengths: pitchSupportedLengths,
       blocks_pitches: pitchBlocksPitches,
-      is_active: pitchIsActive
+      is_active: pitchIsActive,
     };
 
     try {
@@ -122,14 +149,14 @@ export default function VenuesManager({
       resetPitchForm();
       onDataChanged();
     } catch (err) {
-      showToast('Failed to save pitch', 'error');
+      showToast("Failed to save pitch", "error");
     }
   };
 
   // ------------------ PITCH LENGTH HANDLERS ------------------
   const resetLengthForm = () => {
-    setLengthYards('');
-    setLengthDescription('');
+    setLengthYards("");
+    setLengthDescription("");
     setEditingLength(null);
     setShowLengthForm(false);
   };
@@ -140,7 +167,7 @@ export default function VenuesManager({
 
     const payload = {
       length_yards: parseInt(lengthYards, 10),
-      description: lengthDescription.trim()
+      description: lengthDescription.trim(),
     };
 
     try {
@@ -154,7 +181,7 @@ export default function VenuesManager({
       resetLengthForm();
       onDataChanged();
     } catch (err) {
-      showToast('Failed to save pitch length', 'error');
+      showToast("Failed to save pitch length", "error");
     }
   };
 
@@ -164,33 +191,48 @@ export default function VenuesManager({
     const { type, id, name } = deleteTarget;
 
     try {
-      if (type === 'venue') {
+      if (type === "venue") {
         await api.deleteVenue(id);
         showToast(`Venue "${name}" deleted`);
-      } else if (type === 'pitch') {
+      } else if (type === "pitch") {
         await api.deletePitch(id);
         showToast(`Pitch "${name}" deleted`);
-      } else if (type === 'length') {
+      } else if (type === "length") {
         await api.deletePitchLength(id);
         showToast(`Pitch length "${name}" deleted`);
       }
       setDeleteTarget(null);
       onDataChanged();
     } catch (err) {
-      showToast(`Failed to delete ${type}`, 'error');
+      showToast(`Failed to delete ${type}`, "error");
     }
   };
+
+  // Filtered and alphabetically sorted pitches
+  const displayedPitches = React.useMemo(() => {
+    const filtered = pitches.filter((p) => {
+      if (selectedPitchVenueFilter && p.venue !== parseInt(selectedPitchVenueFilter, 10)) {
+        return false;
+      }
+      return true;
+    });
+
+    return [...filtered].sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, { sensitivity: "base", numeric: true })
+    );
+  }, [pitches, selectedPitchVenueFilter]);
 
   return (
     <div className="space-y-6">
       {/* Toast Notification */}
       {toast && (
-        <div className={`fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-xl flex items-center space-x-2 text-sm font-semibold animate-in fade-in slide-in-from-bottom-3 ${
-          toast.type === 'error'
-            ? 'bg-rose-500 text-white shadow-rose-500/20'
-            : 'bg-emerald-500 text-slate-950 shadow-emerald-500/20'
-        }`}>
-          {toast.type === 'error' ? <AlertTriangle size={18} /> : <Check size={18} />}
+        <div
+          className={`fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-xl flex items-center space-x-2 text-sm font-semibold animate-in fade-in slide-in-from-bottom-3 ${toast.type === "error"
+              ? "bg-rose-500 text-white shadow-rose-500/20"
+              : "bg-emerald-500 text-slate-950 shadow-emerald-500/20"
+            }`}
+        >
+          {toast.type === "error" ? <AlertTriangle size={18} /> : <Check size={18} />}
           <span>{toast.message}</span>
         </div>
       )}
@@ -202,34 +244,41 @@ export default function VenuesManager({
             <MapPin size={28} />
           </div>
           <div>
-            <h2 className="text-xl font-bold font-display text-slate-100">Venues & Pitch Management</h2>
-            <p className="text-sm text-slate-400">Manage ground venues, pitches, outfield overlaps, and pitch lengths.</p>
+            <h2 className="text-xl font-bold font-display text-slate-100">
+              Venues & Pitch Management
+            </h2>
+            <p className="text-sm text-slate-400">
+              Manage ground venues, pitches, outfield overlaps, and pitch lengths.
+            </p>
           </div>
         </div>
 
         {/* Sub-Tab Navigation */}
         <div className="flex bg-slate-900/80 p-1 rounded-xl border border-slate-800">
           <button
-            onClick={() => setActiveSubTab('venues')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold font-display transition ${
-              activeSubTab === 'venues' ? 'bg-emerald-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'
-            }`}
+            onClick={() => handleTabChange("venues")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold font-display transition ${activeSubTab === "venues"
+                ? "bg-emerald-500 text-slate-950 font-bold"
+                : "text-slate-400 hover:text-slate-200"
+              }`}
           >
             Venues ({venues.length})
           </button>
           <button
-            onClick={() => setActiveSubTab('pitches')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold font-display transition ${
-              activeSubTab === 'pitches' ? 'bg-emerald-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'
-            }`}
+            onClick={() => handleTabChange("pitches")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold font-display transition ${activeSubTab === "pitches"
+                ? "bg-emerald-500 text-slate-950 font-bold"
+                : "text-slate-400 hover:text-slate-200"
+              }`}
           >
             Pitches ({pitches.length})
           </button>
           <button
-            onClick={() => setActiveSubTab('lengths')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold font-display transition ${
-              activeSubTab === 'lengths' ? 'bg-emerald-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-slate-200'
-            }`}
+            onClick={() => handleTabChange("lengths")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold font-display transition ${activeSubTab === "lengths"
+                ? "bg-emerald-500 text-slate-950 font-bold"
+                : "text-slate-400 hover:text-slate-200"
+              }`}
           >
             Pitch Lengths ({pitchLengths.length})
           </button>
@@ -237,13 +286,18 @@ export default function VenuesManager({
       </div>
 
       {/* ================= TAB 1: VENUES ================= */}
-      {activeSubTab === 'venues' && (
+      {activeSubTab === "venues" && (
         <div className="space-y-4">
           <div className="flex justify-between items-center">
-            <h3 className="text-base font-bold font-display text-slate-200">Ground Venues</h3>
+            <h3 className="text-base font-bold font-display text-slate-200">
+              Ground Venues
+            </h3>
             {!showVenueForm && (
               <button
-                onClick={() => { resetVenueForm(); setShowVenueForm(true); }}
+                onClick={() => {
+                  resetVenueForm();
+                  setShowVenueForm(true);
+                }}
                 className="py-2 px-3.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs flex items-center space-x-1.5 transition shadow-lg shadow-emerald-500/10"
               >
                 <Plus size={16} />
@@ -252,11 +306,13 @@ export default function VenuesManager({
             )}
           </div>
 
-          {/* Add/Edit Form */}
           {showVenueForm && (
-            <form onSubmit={handleVenueSubmit} className="glass-panel p-5 rounded-2xl border border-emerald-500/30 space-y-4">
+            <form
+              onSubmit={handleVenueSubmit}
+              className="glass-panel p-5 rounded-2xl border border-emerald-500/30 space-y-4"
+            >
               <h4 className="text-sm font-bold text-slate-200 font-display">
-                {editingVenue ? 'Edit Venue' : 'New Ground Venue'}
+                {editingVenue ? "Edit Venue" : "New Ground Venue"}
               </h4>
               <div className="flex gap-4">
                 <input
@@ -267,34 +323,55 @@ export default function VenuesManager({
                   onChange={(e) => setVenueName(e.target.value)}
                   className="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-200 placeholder-slate-500 outline-none focus:border-emerald-500"
                 />
-                <button type="submit" className="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs transition">
-                  {editingVenue ? 'Update' : 'Save'}
+                <button
+                  type="submit"
+                  className="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs transition"
+                >
+                  {editingVenue ? "Update" : "Save"}
                 </button>
-                <button type="button" onClick={resetVenueForm} className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl text-xs transition">
+                <button
+                  type="button"
+                  onClick={resetVenueForm}
+                  className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl text-xs transition"
+                >
                   Cancel
                 </button>
               </div>
             </form>
           )}
 
-          {/* Venues Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {venues.map(v => {
-              const venuePitches = pitches.filter(p => p.venue === v.id);
+            {venues.map((v) => {
+              const venuePitches = pitches.filter((p) => p.venue === v.id);
               return (
-                <div key={v.id} className="glass-panel p-5 rounded-2xl border border-slate-800 flex flex-col justify-between space-y-3">
+                <div
+                  key={v.id}
+                  className="glass-panel p-5 rounded-2xl border border-slate-800 flex flex-col justify-between space-y-3"
+                >
                   <div>
                     <div className="flex justify-between items-start">
-                      <h4 className="font-bold text-slate-100 font-display text-base">{v.name}</h4>
+                      <h4 className="font-bold text-slate-100 font-display text-base">
+                        {v.name}
+                      </h4>
                       <div className="flex space-x-1">
                         <button
-                          onClick={() => { setEditingVenue(v); setVenueName(v.name); setShowVenueForm(true); }}
+                          onClick={() => {
+                            setEditingVenue(v);
+                            setVenueName(v.name);
+                            setShowVenueForm(true);
+                          }}
                           className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-400 hover:bg-slate-800 transition"
                         >
                           <Pencil size={14} />
                         </button>
                         <button
-                          onClick={() => setDeleteTarget({ type: 'venue', id: v.id, name: v.name })}
+                          onClick={() =>
+                            setDeleteTarget({
+                              type: "venue",
+                              id: v.id,
+                              name: v.name,
+                            })
+                          }
                           className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition"
                         >
                           <Trash2 size={14} />
@@ -302,12 +379,16 @@ export default function VenuesManager({
                       </div>
                     </div>
                     <p className="text-xs text-slate-400 mt-1">
-                      {venuePitches.length} Pitch{venuePitches.length !== 1 ? 'es' : ''} Allocated
+                      {venuePitches.length} Pitch
+                      {venuePitches.length !== 1 ? "es" : ""} Allocated
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-1.5 pt-2 border-t border-slate-850">
-                    {venuePitches.map(p => (
-                      <span key={p.id} className="text-[11px] px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700/60">
+                    {venuePitches.map((p) => (
+                      <span
+                        key={p.id}
+                        className="text-[11px] px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700/60"
+                      >
                         {p.name}
                       </span>
                     ))}
@@ -320,14 +401,29 @@ export default function VenuesManager({
       )}
 
       {/* ================= TAB 2: PITCHES ================= */}
-      {activeSubTab === 'pitches' && (
+      {activeSubTab === "pitches" && (
         <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h3 className="text-base font-bold font-display text-slate-200">Pitches & Outfield Rules</h3>
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+            <div className="flex items-center space-x-3 w-full md:w-auto">
+              <h3 className="text-base font-bold font-display text-slate-200 shrink-0">
+                Pitches & Outfield Rules
+              </h3>
+              <select
+                value={selectedPitchVenueFilter}
+                onChange={(e) => setSelectedPitchVenueFilter(e.target.value)}
+                className="bg-slate-900 text-slate-200 text-xs rounded-xl py-1.5 px-3 outline-none border border-slate-700 focus:border-emerald-500"
+              >
+                {venues.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.name}
+                  </option>
+                ))}
+              </select>
+            </div>
             {!showPitchForm && (
               <button
                 onClick={openAddPitch}
-                className="py-2 px-3.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs flex items-center space-x-1.5 transition shadow-lg shadow-emerald-500/10"
+                className="py-2 px-3.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs flex items-center space-x-1.5 transition shadow-lg shadow-emerald-500/10 shrink-0"
               >
                 <Plus size={16} />
                 <span>Add Pitch</span>
@@ -335,30 +431,38 @@ export default function VenuesManager({
             )}
           </div>
 
-          {/* Add/Edit Pitch Form */}
           {showPitchForm && (
-            <form onSubmit={handlePitchSubmit} className="glass-panel p-6 rounded-2xl border border-emerald-500/30 space-y-4">
+            <form
+              onSubmit={handlePitchSubmit}
+              className="glass-panel p-6 rounded-2xl border border-emerald-500/30 space-y-4"
+            >
               <h4 className="text-sm font-bold text-slate-200 font-display">
-                {editingPitch ? 'Edit Pitch' : 'New Pitch Configuration'}
+                {editingPitch ? "Edit Pitch" : "New Pitch Configuration"}
               </h4>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Venue *</label>
+                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                    Venue *
+                  </label>
                   <select
                     value={pitchVenueId}
                     onChange={(e) => setPitchVenueId(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-700 text-slate-200 text-sm rounded-xl p-2.5 outline-none focus:border-emerald-500"
                     required
                   >
-                    {venues.map(v => (
-                      <option key={v.id} value={v.id}>{v.name}</option>
+                    {venues.map((v) => (
+                      <option key={v.id} value={v.id}>
+                        {v.name}
+                      </option>
                     ))}
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Pitch Name *</label>
+                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                    Pitch Name *
+                  </label>
                   <input
                     type="text"
                     required
@@ -370,7 +474,9 @@ export default function VenuesManager({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Surface Type</label>
+                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                    Surface Type
+                  </label>
                   <select
                     value={pitchType}
                     onChange={(e) => setPitchType(e.target.value)}
@@ -382,26 +488,47 @@ export default function VenuesManager({
                 </div>
               </div>
 
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                    Entity Type
+                  </label>
+                  <select
+                    value={entityType}
+                    onChange={(e) => setEntityType(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 text-slate-200 text-sm rounded-xl p-2.5 outline-none focus:border-emerald-500"
+                  >
+                    <option value="MAIN">Main Pitch</option>
+                    <option value="YOUTH">Youth Pitch</option>
+                    <option value="OUTFIELD">Outfield</option>
+                    <option value="NET">Net</option>
+                  </select>
+                </div>
+              </div>
+
               {/* Supported Lengths Selection */}
               <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Supported Pitch Lengths</label>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                  Supported Pitch Lengths
+                </label>
                 <div className="flex flex-wrap gap-3">
-                  {pitchLengths.map(l => {
+                  {pitchLengths.map((l) => {
                     const isSelected = pitchSupportedLengths.includes(l.id);
                     return (
                       <button
                         type="button"
                         key={l.id}
                         onClick={() => {
-                          setPitchSupportedLengths(prev =>
-                            isSelected ? prev.filter(id => id !== l.id) : [...prev, l.id]
+                          setPitchSupportedLengths((prev) =>
+                            isSelected
+                              ? prev.filter((id) => id !== l.id)
+                              : [...prev, l.id]
                           );
                         }}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition ${
-                          isSelected
-                            ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50'
-                            : 'bg-slate-950 text-slate-400 border-slate-800 hover:border-slate-700'
-                        }`}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition ${isSelected
+                            ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/50"
+                            : "bg-slate-950 text-slate-400 border-slate-800 hover:border-slate-700"
+                          }`}
                       >
                         {l.length_yards} Yards ({l.description})
                       </button>
@@ -410,39 +537,43 @@ export default function VenuesManager({
                 </div>
               </div>
 
-              {/* Outfield Overlap - Blocks Pitches */}
+              {/* Overlap Rules */}
               <div>
                 <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
-                  Outfield Overlap Rules (Pitch Blocks Others)
+                  Overlap Rules (Pitch Blocks Others)
                 </label>
-                <p className="text-xs text-slate-500 mb-2">Select pitches at this venue that become unavailable when THIS pitch is booked.</p>
+                <p className="text-xs text-slate-500 mb-2">
+                  Select pitches at this venue that become unavailable when THIS pitch is booked.
+                </p>
                 <div className="flex flex-wrap gap-2">
                   {pitches
-                    .filter(p => p.venue === parseInt(pitchVenueId, 10) && (!editingPitch || p.id !== editingPitch.id))
-                    .map(p => {
+                    .filter(
+                      (p) =>
+                        p.venue === parseInt(pitchVenueId, 10) &&
+                        (!editingPitch || p.id !== editingPitch.id)
+                    )
+                    .map((p) => {
                       const isBlocked = pitchBlocksPitches.includes(p.id);
                       return (
                         <button
                           type="button"
                           key={p.id}
                           onClick={() => {
-                            setPitchBlocksPitches(prev =>
-                              isBlocked ? prev.filter(id => id !== p.id) : [...prev, p.id]
+                            setPitchBlocksPitches((prev) =>
+                              isBlocked
+                                ? prev.filter((id) => id !== p.id)
+                                : [...prev, p.id]
                             );
                           }}
-                          className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition ${
-                            isBlocked
-                              ? 'bg-rose-500/20 text-rose-400 border-rose-500/50'
-                              : 'bg-slate-950 text-slate-400 border-slate-800 hover:border-slate-700'
-                          }`}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition ${isBlocked
+                              ? "bg-rose-500/20 text-rose-400 border-rose-500/50"
+                              : "bg-slate-950 text-slate-400 border-slate-800 hover:border-slate-700"
+                            }`}
                         >
                           Blocks: {p.name}
                         </button>
                       );
                     })}
-                  {pitches.filter(p => p.venue === parseInt(pitchVenueId, 10) && (!editingPitch || p.id !== editingPitch.id)).length === 0 && (
-                    <span className="text-xs text-slate-500 italic">No other pitches available at this venue to block.</span>
-                  )}
                 </div>
               </div>
 
@@ -454,97 +585,152 @@ export default function VenuesManager({
                   onChange={(e) => setPitchIsActive(e.target.checked)}
                   className="rounded text-emerald-500 bg-slate-950 border-slate-700 focus:ring-emerald-500"
                 />
-                <label htmlFor="pitchIsActive" className="text-xs font-semibold text-slate-300">Pitch Active / Available for Bookings</label>
+                <label
+                  htmlFor="pitchIsActive"
+                  className="text-xs font-semibold text-slate-300"
+                >
+                  Pitch Active / Available for Bookings
+                </label>
               </div>
 
               <div className="flex justify-end space-x-3 pt-2">
-                <button type="button" onClick={resetPitchForm} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl text-xs transition">
+                <button
+                  type="button"
+                  onClick={resetPitchForm}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl text-xs transition"
+                >
                   Cancel
                 </button>
-                <button type="submit" className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs transition">
-                  {editingPitch ? 'Update Pitch' : 'Save Pitch'}
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs transition"
+                >
+                  {editingPitch ? "Update Pitch" : "Save Pitch"}
                 </button>
               </div>
             </form>
           )}
 
-          {/* Pitches List */}
+          {/* Pitches List (Alphabetically Sorted) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {pitches.map(p => {
-              const venueObj = venues.find(v => v.id === p.venue);
-              const blockedPitchNames = (p.blocks_pitches || [])
-                .map(id => pitches.find(target => target.id === id)?.name)
-                .filter(Boolean);
+            {displayedPitches.length === 0 ? (
+              <div className="col-span-2 p-8 text-center text-slate-500 text-xs italic glass-panel rounded-2xl">
+                No pitches found for the selected venue.
+              </div>
+            ) : (
+              displayedPitches.map((p) => {
+                const venueObj = venues.find((v) => v.id === p.venue);
+                const blockedPitchNames = (p.blocks_pitches || [])
+                  .map((id) => pitches.find((target) => target.id === id)?.name)
+                  .filter(Boolean);
 
-              return (
-                <div key={p.id} className="glass-panel p-5 rounded-2xl border border-slate-800 flex flex-col justify-between space-y-3">
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <span className="text-xxs uppercase tracking-wider font-bold text-emerald-400 font-display">
-                          {venueObj?.name}
-                        </span>
-                        <h4 className="font-bold text-slate-100 font-display text-base">{p.name}</h4>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded ${
-                          p.is_active ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-900/50' : 'bg-rose-950/60 text-rose-400 border border-rose-900/50'
-                        }`}>
-                          {p.is_active ? 'Active' : 'Inactive'}
-                        </span>
-                        <button onClick={() => openEditPitch(p)} className="p-1.5 text-slate-400 hover:text-emerald-400 hover:bg-slate-800 rounded-lg transition">
-                          <Pencil size={14} />
-                        </button>
-                        <button onClick={() => setDeleteTarget({ type: 'pitch', id: p.id, name: p.name })} className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition">
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="text-xs text-slate-400 flex items-center space-x-2">
-                      <span className="px-2 py-0.5 rounded bg-slate-900 text-slate-300 font-semibold border border-slate-800">
-                        {p.pitch_type}
-                      </span>
-                    </div>
-
-                    {/* Supported lengths */}
-                    <div className="text-xs space-y-1">
-                      <span className="text-slate-500 font-semibold block text-xxs uppercase tracking-wider">Supported Lengths:</span>
-                      <div className="flex flex-wrap gap-1">
-                        {(p.supported_lengths || []).map(lenId => {
-                          const lObj = pitchLengths.find(l => l.id === lenId);
-                          return (
-                            <span key={lenId} className="text-xxs px-2 py-0.5 rounded bg-slate-900/80 text-emerald-300 border border-slate-800">
-                              {lObj ? `${lObj.length_yards} Yards` : `ID ${lenId}`}
+                return (
+                  <div
+                    key={p.id}
+                    className="glass-panel p-5 rounded-2xl border border-slate-800 flex flex-col justify-between space-y-3"
+                  >
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <span className="text-xxs uppercase tracking-wider font-bold text-emerald-400 font-display">
+                            {venueObj?.name}
+                          </span>
+                          <h4 className="font-bold text-slate-100 font-display text-base flex items-center gap-2">
+                            {p.name}
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-normal">
+                              {p.entity_type || "MAIN"}
                             </span>
-                          );
-                        })}
+                          </h4>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <span
+                            className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded ${p.is_active
+                                ? "bg-emerald-950/60 text-emerald-400 border border-emerald-900/50"
+                                : "bg-rose-950/60 text-rose-400 border border-rose-900/50"
+                              }`}
+                          >
+                            {p.is_active ? "Active" : "Inactive"}
+                          </span>
+                          <button
+                            onClick={() => openEditPitch(p)}
+                            className="p-1.5 text-slate-400 hover:text-emerald-400 hover:bg-slate-800 rounded-lg transition"
+                          >
+                            <Pencil size={14} />
+                          </button>
+                          <button
+                            onClick={() =>
+                              setDeleteTarget({
+                                type: "pitch",
+                                id: p.id,
+                                name: p.name,
+                              })
+                            }
+                            className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
                       </div>
-                    </div>
 
-                    {/* Outfield Overlaps */}
-                    {blockedPitchNames.length > 0 && (
-                      <div className="bg-amber-950/20 border border-amber-900/40 p-2 rounded-xl text-xs text-amber-300 space-y-0.5">
-                        <span className="font-bold text-xxs block uppercase tracking-wider">Outfield Overlap Rules:</span>
-                        <p className="text-xxs">Booking this pitch automatically blocks: {blockedPitchNames.join(', ')}</p>
+                      <div className="text-xs text-slate-400 flex items-center space-x-2">
+                        <span className="px-2 py-0.5 rounded bg-slate-900 text-slate-300 font-semibold border border-slate-800">
+                          {p.pitch_type}
+                        </span>
                       </div>
-                    )}
+
+                      {/* Supported lengths */}
+                      <div className="text-xs space-y-1">
+                        <span className="text-slate-500 font-semibold block text-xxs uppercase tracking-wider">
+                          Supported Lengths:
+                        </span>
+                        <div className="flex flex-wrap gap-1">
+                          {(p.supported_lengths || []).map((lenId) => {
+                            const lObj = pitchLengths.find((l) => l.id === lenId);
+                            return (
+                              <span
+                                key={lenId}
+                                className="text-xxs px-2 py-0.5 rounded bg-slate-900/80 text-emerald-300 border border-slate-800"
+                              >
+                                {lObj ? `${lObj.length_yards} Yards` : `ID ${lenId}`}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Overlaps */}
+                      {blockedPitchNames.length > 0 && (
+                        <div className="bg-amber-950/20 border border-amber-900/40 p-2 rounded-xl text-xs text-amber-300 space-y-0.5">
+                          <span className="font-bold text-xxs block uppercase tracking-wider">
+                            Overlap Rules:
+                          </span>
+                          <p className="text-xxs">
+                            Booking this pitch automatically blocks: {blockedPitchNames.join(", ")}
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
         </div>
       )}
 
       {/* ================= TAB 3: PITCH LENGTHS ================= */}
-      {activeSubTab === 'lengths' && (
+      {activeSubTab === "lengths" && (
         <div className="space-y-4">
           <div className="flex justify-between items-center">
-            <h3 className="text-base font-bold font-display text-slate-200">Pitch Length Standards</h3>
+            <h3 className="text-base font-bold font-display text-slate-200">
+              Pitch Length Standards
+            </h3>
             {!showLengthForm && (
               <button
-                onClick={() => { resetLengthForm(); setShowLengthForm(true); }}
+                onClick={() => {
+                  resetLengthForm();
+                  setShowLengthForm(true);
+                }}
                 className="py-2 px-3.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs flex items-center space-x-1.5 transition shadow-lg shadow-emerald-500/10"
               >
                 <Plus size={16} />
@@ -553,11 +739,13 @@ export default function VenuesManager({
             )}
           </div>
 
-          {/* Add/Edit Length Form */}
           {showLengthForm && (
-            <form onSubmit={handleLengthSubmit} className="glass-panel p-5 rounded-2xl border border-emerald-500/30 space-y-4">
+            <form
+              onSubmit={handleLengthSubmit}
+              className="glass-panel p-5 rounded-2xl border border-emerald-500/30 space-y-4"
+            >
               <h4 className="text-sm font-bold text-slate-200 font-display">
-                {editingLength ? 'Edit Pitch Length' : 'New Pitch Length Standard'}
+                {editingLength ? "Edit Pitch Length" : "New Pitch Length Standard"}
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <input
@@ -577,10 +765,17 @@ export default function VenuesManager({
                   className="bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-200 placeholder-slate-500 outline-none focus:border-emerald-500"
                 />
                 <div className="flex space-x-2">
-                  <button type="submit" className="flex-1 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs transition">
-                    {editingLength ? 'Update' : 'Save'}
+                  <button
+                    type="submit"
+                    className="flex-1 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs transition"
+                  >
+                    {editingLength ? "Update" : "Save"}
                   </button>
-                  <button type="button" onClick={resetLengthForm} className="px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl text-xs transition">
+                  <button
+                    type="button"
+                    onClick={resetLengthForm}
+                    className="px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl text-xs transition"
+                  >
                     Cancel
                   </button>
                 </div>
@@ -588,7 +783,6 @@ export default function VenuesManager({
             </form>
           )}
 
-          {/* Pitch Lengths Table */}
           <div className="glass-panel rounded-2xl overflow-hidden border border-slate-800">
             <table className="w-full text-left text-sm text-slate-300">
               <thead className="bg-slate-950 border-b border-slate-800 text-slate-400 font-semibold">
@@ -599,7 +793,7 @@ export default function VenuesManager({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-850">
-                {pitchLengths.map(l => (
+                {pitchLengths.map((l) => (
                   <tr key={l.id} className="hover:bg-slate-800/20 transition">
                     <td className="px-6 py-4 font-bold text-emerald-400 font-display text-base">
                       {l.length_yards} Yards
@@ -608,13 +802,24 @@ export default function VenuesManager({
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end space-x-2">
                         <button
-                          onClick={() => { setEditingLength(l); setLengthYards(String(l.length_yards)); setLengthDescription(l.description); setShowLengthForm(true); }}
+                          onClick={() => {
+                            setEditingLength(l);
+                            setLengthYards(String(l.length_yards));
+                            setLengthDescription(l.description);
+                            setShowLengthForm(true);
+                          }}
                           className="p-1.5 text-slate-400 hover:text-emerald-400 hover:bg-slate-800 rounded-lg transition"
                         >
                           <Pencil size={15} />
                         </button>
                         <button
-                          onClick={() => setDeleteTarget({ type: 'length', id: l.id, name: `${l.length_yards} Yards` })}
+                          onClick={() =>
+                            setDeleteTarget({
+                              type: "length",
+                              id: l.id,
+                              name: `${l.length_yards} Yards`,
+                            })
+                          }
                           className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition"
                         >
                           <Trash2 size={15} />
@@ -638,10 +843,16 @@ export default function VenuesManager({
               Are you sure you want to delete <span className="font-bold text-emerald-400">{deleteTarget.name}</span>? This action cannot be undone.
             </p>
             <div className="flex justify-end space-x-3 pt-2">
-              <button onClick={() => setDeleteTarget(null)} className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 text-xs font-semibold transition">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 text-xs font-semibold transition"
+              >
                 Cancel
               </button>
-              <button onClick={executeDelete} className="px-4 py-2 rounded-xl bg-rose-500 hover:bg-rose-400 text-white text-xs font-bold transition">
+              <button
+                onClick={executeDelete}
+                className="px-4 py-2 rounded-xl bg-rose-500 hover:bg-rose-400 text-white text-xs font-bold transition"
+              >
                 Delete
               </button>
             </div>
