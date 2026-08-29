@@ -1,21 +1,39 @@
-import React, { useState, useEffect } from 'react';
-import { api } from './services/api';
-import CalendarView from './components/CalendarView';
-import SecretaryDashboard from './components/SecretaryDashboard';
-import CatererDashboard from './components/CatererDashboard';
-import PublicBookingForm from './components/PublicBookingForm';
-import TeamsManager from './components/TeamsManager';
-import UserManagement from './components/UserManagement';
-import VenuesManager from './components/VenuesManager';
-import { LoginScreen, ForcePasswordResetScreen } from './components/AuthScreens';
-import { Calendar, ShieldAlert, Utensils, FormInput, Activity, HelpCircle, Users, LogOut, Shield, MapPin, Menu, X, Lock } from 'lucide-react';
-import ChangePasswordModal from './components/ChangePasswordModal';
-import GroundMaintenanceModal from './components/GroundMaintenanceModal';
+import React, { useState, useEffect } from "react";
+import { api } from "./services/api";
+import CalendarView from "./components/CalendarView";
+import SecretaryDashboard from "./components/SecretaryDashboard";
+import CatererDashboard from "./components/CatererDashboard";
+import PublicBookingForm from "./components/PublicBookingForm";
+import TeamsManager from "./components/TeamsManager";
+import UserManagement from "./components/UserManagement";
+import VenuesManager from "./components/VenuesManager";
+import {
+  LoginScreen,
+  ForcePasswordResetScreen,
+} from "./components/AuthScreens";
+import {
+  Calendar,
+  ShieldAlert,
+  Utensils,
+  FormInput,
+  Activity,
+  HelpCircle,
+  Users,
+  LogOut,
+  Shield,
+  MapPin,
+  Menu,
+  X,
+  Lock,
+  Shovel,
+} from "lucide-react";
+import ChangePasswordModal from "./components/ChangePasswordModal";
+import GroundMaintenanceModal from "./components/GroundMaintenanceModal";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 export default function App() {
-  const [activeView, setActiveView] = useState('calendar');
+  const [activeView, setActiveView] = useState("calendar");
   const [loading, setLoading] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -27,11 +45,14 @@ export default function App() {
   const [bookings, setBookings] = useState([]);
   const [pitchLengths, setPitchLengths] = useState([]);
 
-  const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('access_token'));
+  const [isAuthenticated, setIsAuthenticated] = useState(
+    !!localStorage.getItem("access_token"),
+  );
   const [isForceReset, setIsForceReset] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
-  const [isGroundMaintenanceModalOpen, setIsGroundMaintenanceModalOpen] = useState(false);
+  const [isGroundMaintenanceModalOpen, setIsGroundMaintenanceModalOpen] =
+    useState(false);
 
   // Fetch all initial data
   const loadData = async () => {
@@ -45,7 +66,13 @@ export default function App() {
         api.getFixtures(),
         api.getBookings(),
         api.getPitchLengths(),
-        api.getMe ? api.getMe() : fetch(`${API_BASE_URL}/api/users/me/`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` } }).then(res => res.json())
+        api.getMe
+          ? api.getMe()
+          : fetch(`${API_BASE_URL}/api/users/me/`, {
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+              },
+            }).then((res) => res.json()),
       ]);
       setVenues(v);
       setPitches(p);
@@ -66,31 +93,37 @@ export default function App() {
     if (loading || !currentUser) return;
 
     const restrictedViews = {
-      secretary: hasRole('FIXTURE_SECRETARY') || hasRole('ADMIN'),
-      caterer: hasRole('CATERER') || hasRole('ADMIN'),
-      groundstaff: hasRole('GROUNDSTAFF') || hasRole('ADMIN'),
-      publicForm: hasRole('EXTERNAL') || hasRole('ADMIN'),
-      teams: hasRole('USER_MANAGER') || hasRole('FIXTURE_SECRETARY') || hasRole('ADMIN'),
-      venues: hasRole('USER_MANAGER') || hasRole('FIXTURE_SECRETARY') || hasRole('ADMIN'),
-      users: hasRole('USER_MANAGER') || hasRole('ADMIN'),
+      secretary: hasRole("FIXTURE_SECRETARY") || hasRole("ADMIN"),
+      caterer: hasRole("CATERER") || hasRole("ADMIN"),
+      groundstaff: hasRole("GROUNDSTAFF") || hasRole("ADMIN"),
+      publicForm: hasRole("EXTERNAL") || hasRole("ADMIN"),
+      teams:
+        hasRole("USER_MANAGER") ||
+        hasRole("FIXTURE_SECRETARY") ||
+        hasRole("ADMIN"),
+      venues:
+        hasRole("USER_MANAGER") ||
+        hasRole("FIXTURE_SECRETARY") ||
+        hasRole("ADMIN"),
+      users: hasRole("USER_MANAGER") || hasRole("ADMIN"),
     };
 
     // If the active view is restricted and the user doesn't have access, force 'calendar'
     if (restrictedViews[activeView] === false) {
-      setActiveView('calendar');
+      setActiveView("calendar");
     }
   }, [activeView, currentUser]);
 
   useEffect(() => {
     const handleUnauthorized = () => {
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("refresh_token");
       setIsAuthenticated(false);
     };
     const handleForceReset = () => setIsForceReset(true);
 
-    window.addEventListener('auth-unauthorized', handleUnauthorized);
-    window.addEventListener('auth-force-reset', handleForceReset);
+    window.addEventListener("auth-unauthorized", handleUnauthorized);
+    window.addEventListener("auth-force-reset", handleForceReset);
 
     if (isAuthenticated) {
       loadData();
@@ -99,22 +132,22 @@ export default function App() {
     }
 
     return () => {
-      window.removeEventListener('auth-unauthorized', handleUnauthorized);
-      window.removeEventListener('auth-force-reset', handleForceReset);
+      window.removeEventListener("auth-unauthorized", handleUnauthorized);
+      window.removeEventListener("auth-force-reset", handleForceReset);
     };
   }, [isAuthenticated]);
 
   const handleLoginSuccess = () => {
     setIsAuthenticated(true);
-    setActiveView('calendar');
+    setActiveView("calendar");
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
     setIsAuthenticated(false);
     setCurrentUser(null);
-    setActiveView('calendar');
+    setActiveView("calendar");
   };
 
   // Handler to submit booking request
@@ -131,8 +164,10 @@ export default function App() {
       fixId = createdFixture.id;
     }
 
-    const isAutoApproved = currentUser?.roles?.includes('ADMIN') || currentUser?.roles?.includes('FIXTURE_SECRETARY');
-    const initialStatus = isAutoApproved ? 'APPROVED' : 'PENDING';
+    const isAutoApproved =
+      currentUser?.roles?.includes("ADMIN") ||
+      currentUser?.roles?.includes("FIXTURE_SECRETARY");
+    const initialStatus = isAutoApproved ? "APPROVED" : "PENDING";
 
     const bookingData = {
       fixture: fixId,
@@ -143,14 +178,14 @@ export default function App() {
       requires_teas: payload.requires_teas,
       requires_drinks: payload.requires_drinks,
       requested_by: currentUser ? currentUser.id : null,
-      external_contact_name: payload.external_contact_name || '',
-      external_contact_email: payload.external_contact_email || '',
+      external_contact_name: payload.external_contact_name || "",
+      external_contact_email: payload.external_contact_email || "",
       status: initialStatus,
-      notes: payload.notes || ''
+      notes: payload.notes || "",
     };
 
     const newBooking = await api.createBooking(bookingData);
-    setBookings(prev => [...prev, newBooking]);
+    setBookings((prev) => [...prev, newBooking]);
     await loadData();
   };
 
@@ -174,15 +209,27 @@ export default function App() {
     await loadData();
   };
 
+  const handleMaintenanceCreated = async (payload) => {
+    // Pass the payload directly so booking_type: 'GROUND_MAINTENANCE' and pitches are preserved
+    await api.createBooking(payload);
+    await loadData();
+  };
+
   if (!isAuthenticated) {
     return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
   }
 
   if (isForceReset) {
-    return <ForcePasswordResetScreen onResetSuccess={() => setIsForceReset(false)} onCancel={handleLogout} />;
+    return (
+      <ForcePasswordResetScreen
+        onResetSuccess={() => setIsForceReset(false)}
+        onCancel={handleLogout}
+      />
+    );
   }
 
-  const hasRole = (role) => currentUser?.roles?.includes(role) || currentUser?.roles?.includes('ADMIN');
+  const hasRole = (role) =>
+    currentUser?.roles?.includes(role) || currentUser?.roles?.includes("ADMIN");
 
   const handleNavClick = (view) => {
     setActiveView(view);
@@ -205,7 +252,9 @@ export default function App() {
                   v1.0
                 </span>
               </h1>
-              <p className="text-xs text-slate-400">Cricket Club Pitch Booking System</p>
+              <p className="text-xs text-slate-400">
+                Cricket Club Pitch Booking System
+              </p>
             </div>
           </div>
 
@@ -216,29 +265,37 @@ export default function App() {
             aria-label="Open Menu"
           >
             <Menu size={20} />
-            <span className="text-xs font-semibold font-display hidden sm:inline">Menu</span>
+            <span className="text-xs font-semibold font-display hidden sm:inline">
+              Menu
+            </span>
           </button>
         </div>
       </header>
 
       {/* Slide-out Navigation Drawer & Backdrop */}
-      <div className={`fixed inset-0 z-50 overflow-hidden transition-all duration-300 ${isMobileMenuOpen ? 'pointer-events-auto' : 'pointer-events-none'}`}>
+      <div
+        className={`fixed inset-0 z-50 overflow-hidden transition-all duration-300 ${isMobileMenuOpen ? "pointer-events-auto" : "pointer-events-none"}`}
+      >
         {/* Backdrop overlay */}
         <div
-          className={`absolute inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity duration-300 ease-out ${isMobileMenuOpen ? 'opacity-100' : 'opacity-0'}`}
+          className={`absolute inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity duration-300 ease-out ${isMobileMenuOpen ? "opacity-100" : "opacity-0"}`}
           onClick={() => setIsMobileMenuOpen(false)}
         />
 
         {/* Drawer Panel sliding smoothly from the right */}
         <div className="absolute inset-y-0 right-0 pl-10 max-w-full flex">
-          <div className={`w-80 bg-slate-900 border-l border-slate-800 shadow-2xl flex flex-col h-full z-10 overflow-y-auto transform transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+          <div
+            className={`w-80 bg-slate-900 border-l border-slate-800 shadow-2xl flex flex-col h-full z-10 overflow-y-auto transform transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? "translate-x-0" : "translate-x-full"}`}
+          >
             {/* Drawer Header */}
             <div className="p-6 border-b border-slate-800 flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-emerald-500 to-teal-500 flex items-center justify-center font-bold font-display text-sm text-slate-950">
                   PW
                 </div>
-                <h2 className="font-bold font-display text-slate-100">Navigation</h2>
+                <h2 className="font-bold font-display text-slate-100">
+                  Navigation
+                </h2>
               </div>
               <button
                 onClick={() => setIsMobileMenuOpen(false)}
@@ -251,104 +308,112 @@ export default function App() {
             {/* Navigation Links List */}
             <nav className="p-4 space-y-1.5 flex-grow">
               <button
-                onClick={() => handleNavClick('calendar')}
-                className={`w-full flex items-center space-x-3 py-3 px-4 rounded-xl text-xs font-semibold tracking-wide transition font-display ${activeView === 'calendar'
-                  ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
-                  : 'text-slate-400 hover:text-emerald-400 hover:bg-slate-800/50'
-                  }`}
+                onClick={() => handleNavClick("calendar")}
+                className={`w-full flex items-center space-x-3 py-3 px-4 rounded-xl text-xs font-semibold tracking-wide transition font-display ${
+                  activeView === "calendar"
+                    ? "bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60"
+                    : "text-slate-400 hover:text-emerald-400 hover:bg-slate-800/50"
+                }`}
               >
                 <Calendar size={16} />
                 <span>Availability</span>
               </button>
 
-              {hasRole('FIXTURE_SECRETARY') && (
+              {hasRole("FIXTURE_SECRETARY") && (
                 <button
-                  onClick={() => handleNavClick('secretary')}
-                  className={`w-full flex items-center space-x-3 py-3 px-4 rounded-xl text-xs font-semibold tracking-wide transition font-display ${activeView === 'secretary'
-                    ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
-                    : 'text-slate-400 hover:text-emerald-400 hover:bg-slate-800/50'
-                    }`}
+                  onClick={() => handleNavClick("secretary")}
+                  className={`w-full flex items-center space-x-3 py-3 px-4 rounded-xl text-xs font-semibold tracking-wide transition font-display ${
+                    activeView === "secretary"
+                      ? "bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60"
+                      : "text-slate-400 hover:text-emerald-400 hover:bg-slate-800/50"
+                  }`}
                 >
                   <ShieldAlert size={16} />
                   <span>Secretary Panel</span>
                 </button>
               )}
 
-              {hasRole('GROUNDSTAFF') && (
+              {hasRole("GROUNDSTAFF") && (
                 <button
                   onClick={() => {
                     setIsGroundMaintenanceModalOpen(true);
                     setIsMobileMenuOpen(false);
                   }}
-                  className={`w-full flex items-center space-x-3 py-3 px-4 rounded-xl text-xs font-semibold tracking-wide transition font-display ${activeView === 'ground_maintenance'
-                    ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
-                    : 'text-slate-400 hover:text-emerald-400 hover:bg-slate-800/50'
-                    }`}
+                  className={`w-full flex items-center space-x-3 py-3 px-4 rounded-xl text-xs font-semibold tracking-wide transition font-display ${
+                    activeView === "ground_maintenance"
+                      ? "bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60"
+                      : "text-slate-400 hover:text-emerald-400 hover:bg-slate-800/50"
+                  }`}
                 >
-                  <Utensils size={16} />
+                  <Shovel size={16} />
                   <span>Ground Maintenance</span>
                 </button>
               )}
 
-              {hasRole('CATERER') && (
+              {hasRole("CATERER") && (
                 <button
-                  onClick={() => handleNavClick('caterer')}
-                  className={`w-full flex items-center space-x-3 py-3 px-4 rounded-xl text-xs font-semibold tracking-wide transition font-display ${activeView === 'caterer'
-                    ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
-                    : 'text-slate-400 hover:text-emerald-400 hover:bg-slate-800/50'
-                    }`}
+                  onClick={() => handleNavClick("caterer")}
+                  className={`w-full flex items-center space-x-3 py-3 px-4 rounded-xl text-xs font-semibold tracking-wide transition font-display ${
+                    activeView === "caterer"
+                      ? "bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60"
+                      : "text-slate-400 hover:text-emerald-400 hover:bg-slate-800/50"
+                  }`}
                 >
                   <Utensils size={16} />
                   <span>Caterer Dashboard</span>
                 </button>
               )}
 
-              {hasRole('EXTERNAL') && (
+              {hasRole("EXTERNAL") && (
                 <button
-                  onClick={() => handleNavClick('publicForm')}
-                  className={`w-full flex items-center space-x-3 py-3 px-4 rounded-xl text-xs font-semibold tracking-wide transition font-display ${activeView === 'publicForm'
-                    ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
-                    : 'text-slate-400 hover:text-emerald-400 hover:bg-slate-800/50'
-                    }`}
+                  onClick={() => handleNavClick("publicForm")}
+                  className={`w-full flex items-center space-x-3 py-3 px-4 rounded-xl text-xs font-semibold tracking-wide transition font-display ${
+                    activeView === "publicForm"
+                      ? "bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60"
+                      : "text-slate-400 hover:text-emerald-400 hover:bg-slate-800/50"
+                  }`}
                 >
                   <FormInput size={16} />
                   <span>External Pitch Request</span>
                 </button>
               )}
 
-              {(hasRole('USER_MANAGER') || hasRole('FIXTURE_SECRETARY')) && (
+              {(hasRole("USER_MANAGER") || hasRole("FIXTURE_SECRETARY")) && (
                 <button
-                  onClick={() => handleNavClick('teams')}
-                  className={`w-full flex items-center space-x-3 py-3 px-4 rounded-xl text-xs font-semibold tracking-wide transition font-display ${activeView === 'teams'
-                    ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
-                    : 'text-slate-400 hover:text-emerald-400 hover:bg-slate-800/50'
-                    }`}
+                  onClick={() => handleNavClick("teams")}
+                  className={`w-full flex items-center space-x-3 py-3 px-4 rounded-xl text-xs font-semibold tracking-wide transition font-display ${
+                    activeView === "teams"
+                      ? "bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60"
+                      : "text-slate-400 hover:text-emerald-400 hover:bg-slate-800/50"
+                  }`}
                 >
                   <Users size={16} />
                   <span>Teams</span>
                 </button>
               )}
 
-              {(hasRole('USER_MANAGER') || hasRole('FIXTURE_SECRETARY')) && (
+              {(hasRole("USER_MANAGER") || hasRole("FIXTURE_SECRETARY")) && (
                 <button
-                  onClick={() => handleNavClick('venues')}
-                  className={`w-full flex items-center space-x-3 py-3 px-4 rounded-xl text-xs font-semibold tracking-wide transition font-display ${activeView === 'venues'
-                    ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
-                    : 'text-slate-400 hover:text-emerald-400 hover:bg-slate-800/50'
-                    }`}
+                  onClick={() => handleNavClick("venues")}
+                  className={`w-full flex items-center space-x-3 py-3 px-4 rounded-xl text-xs font-semibold tracking-wide transition font-display ${
+                    activeView === "venues"
+                      ? "bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60"
+                      : "text-slate-400 hover:text-emerald-400 hover:bg-slate-800/50"
+                  }`}
                 >
                   <MapPin size={16} />
                   <span>Venues & Pitches</span>
                 </button>
               )}
 
-              {(hasRole('USER_MANAGER') || hasRole('ADMIN')) && (
+              {(hasRole("USER_MANAGER") || hasRole("ADMIN")) && (
                 <button
-                  onClick={() => handleNavClick('users')}
-                  className={`w-full flex items-center space-x-3 py-3 px-4 rounded-xl text-xs font-semibold tracking-wide transition font-display ${activeView === 'users'
-                    ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
-                    : 'text-slate-400 hover:text-emerald-400 hover:bg-slate-800/50'
-                    }`}
+                  onClick={() => handleNavClick("users")}
+                  className={`w-full flex items-center space-x-3 py-3 px-4 rounded-xl text-xs font-semibold tracking-wide transition font-display ${
+                    activeView === "users"
+                      ? "bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60"
+                      : "text-slate-400 hover:text-emerald-400 hover:bg-slate-800/50"
+                  }`}
                 >
                   <Shield size={16} />
                   <span>Users</span>
@@ -388,11 +453,13 @@ export default function App() {
         {loading ? (
           <div className="flex flex-col items-center justify-center py-32 space-y-4">
             <Activity className="animate-spin text-emerald-400" size={36} />
-            <p className="text-sm text-slate-405 font-display font-medium">Fetching PitchWiz live data...</p>
+            <p className="text-sm text-slate-405 font-display font-medium">
+              Fetching PitchWiz live data...
+            </p>
           </div>
         ) : (
           <div className="transition-all duration-300">
-            {activeView === 'calendar' && (
+            {activeView === "calendar" && (
               <CalendarView
                 venues={venues}
                 pitches={pitches}
@@ -406,7 +473,7 @@ export default function App() {
                 currentUser={currentUser}
               />
             )}
-            {activeView === 'secretary' && (
+            {activeView === "secretary" && (
               <SecretaryDashboard
                 venues={venues}
                 pitches={pitches}
@@ -420,7 +487,7 @@ export default function App() {
                 currentUser={currentUser}
               />
             )}
-            {activeView === 'caterer' && (
+            {activeView === "caterer" && (
               <CatererDashboard
                 venues={venues}
                 pitches={pitches}
@@ -430,21 +497,21 @@ export default function App() {
                 currentUser={currentUser}
               />
             )}
-            {activeView === 'publicForm' && (
+            {activeView === "publicForm" && (
               <PublicBookingForm
                 venues={venues}
                 pitches={pitches}
                 onBookingCreated={handleBookingCreated}
               />
             )}
-            {activeView === 'teams' && (
+            {activeView === "teams" && (
               <TeamsManager
                 teams={teams}
                 pitchLengths={pitchLengths}
                 onTeamsChanged={loadData}
               />
             )}
-            {activeView === 'venues' && (
+            {activeView === "venues" && (
               <VenuesManager
                 venues={venues}
                 pitches={pitches}
@@ -452,9 +519,7 @@ export default function App() {
                 onDataChanged={loadData}
               />
             )}
-            {activeView === 'users' && (
-              <UserManagement />
-            )}
+            {activeView === "users" && <UserManagement />}
           </div>
         )}
       </main>
@@ -462,7 +527,9 @@ export default function App() {
       {/* Premium Footer */}
       <footer className="border-t border-slate-900 bg-slate-950 py-6 px-6 text-center text-xs text-slate-500">
         <div className="max-w-[1600px] mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
-          <span>&copy; 2026 PitchWiz. Designed for cricket club match efficiency.</span>
+          <span>
+            &copy; 2026 PitchWiz. Designed for cricket club match efficiency.
+          </span>
         </div>
       </footer>
 
@@ -478,7 +545,7 @@ export default function App() {
         onClose={() => setIsGroundMaintenanceModalOpen(false)}
         venues={venues}
         pitches={pitches}
-        onMaintenanceCreated={handleBookingCreated}
+        onMaintenanceCreated={handleMaintenanceCreated}
       />
     </div>
   );

@@ -1,23 +1,32 @@
-import React, { useState } from 'react';
-import { Mail, User, Info, Calendar, Clock, HelpCircle, Send, CheckCircle2 } from 'lucide-react';
+import React, { useState } from "react";
+import {
+  Mail,
+  User,
+  Info,
+  Calendar,
+  Clock,
+  HelpCircle,
+  Send,
+  CheckCircle2,
+} from "lucide-react";
 
 export default function PublicBookingForm({
   venues,
   pitches,
-  onBookingCreated
+  onBookingCreated,
 }) {
   const [form, setForm] = useState({
-    external_contact_name: '',
-    external_contact_email: '',
-    pitch: '',
-    start_date: '',
-    end_date: '',
+    external_contact_name: "",
+    external_contact_email: "",
+    pitch: "",
+    start_date: "",
+    end_date: "",
     isMultiDay: false,
-    time_slot: 'ALL_DAY',
+    time_slot: "ALL_DAY",
     requires_teas: false,
     requires_drinks: false,
-    notes: '',
-    opponent: 'External Match / Event' // Default placeholder for external booking
+    notes: "",
+    opponent: "External Match / Event", // Default placeholder for external booking
   });
 
   const [submitted, setSubmitted] = useState(false);
@@ -25,7 +34,12 @@ export default function PublicBookingForm({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.external_contact_name || !form.external_contact_email || !form.pitch || !form.start_date) {
+    if (
+      !form.external_contact_name ||
+      !form.external_contact_email ||
+      !form.pitch ||
+      !form.start_date
+    ) {
       alert("Please fill in all required fields.");
       return;
     }
@@ -42,7 +56,7 @@ export default function PublicBookingForm({
       external_contact_name: form.external_contact_name,
       external_contact_email: form.external_contact_email,
       fixture_team: null, // Null indicates external booking
-      fixture_opponent: form.opponent
+      fixture_opponent: form.opponent,
     };
 
     try {
@@ -58,17 +72,17 @@ export default function PublicBookingForm({
 
   const handleReset = () => {
     setForm({
-      external_contact_name: '',
-      external_contact_email: '',
-      pitch: '',
-      start_date: '',
-      end_date: '',
+      external_contact_name: "",
+      external_contact_email: "",
+      pitch: "",
+      start_date: "",
+      end_date: "",
       isMultiDay: false,
-      time_slot: 'ALL_DAY',
+      time_slot: "ALL_DAY",
       requires_teas: false,
       requires_drinks: false,
-      notes: '',
-      opponent: 'External Match / Event'
+      notes: "",
+      opponent: "External Match / Event",
     });
     setSubmitted(false);
   };
@@ -80,10 +94,16 @@ export default function PublicBookingForm({
           <CheckCircle2 size={32} />
         </div>
         <div className="space-y-2">
-          <h2 className="text-xl font-bold font-display text-slate-100">Pitch Request Submitted!</h2>
+          <h2 className="text-xl font-bold font-display text-slate-100">
+            Pitch Request Submitted!
+          </h2>
           <p className="text-sm text-slate-400 leading-relaxed">
-            Your booking request has been sent to the Fixture Secretary for approval. 
-            We will contact you at <strong className="text-slate-200">{form.external_contact_email}</strong> once a decision is made.
+            Your booking request has been sent to the Fixture Secretary for
+            approval. We will contact you at{" "}
+            <strong className="text-slate-200">
+              {form.external_contact_email}
+            </strong>{" "}
+            once a decision is made.
           </p>
         </div>
         <button
@@ -99,9 +119,12 @@ export default function PublicBookingForm({
   return (
     <div className="glass-panel p-8 rounded-2xl max-w-xl mx-auto border border-slate-800">
       <div className="mb-6 space-y-2">
-        <h2 className="text-xl font-bold font-display text-slate-100">External Pitch Booking Request</h2>
+        <h2 className="text-xl font-bold font-display text-slate-100">
+          External Pitch Booking Request
+        </h2>
         <p className="text-sm text-slate-400 leading-relaxed">
-          Non-club teams and regional boards (e.g. Dorset Cricket) can use this form to request access to club pitches.
+          Non-club teams and regional boards (e.g. Dorset Cricket) can use this
+          form to request access to club pitches.
         </p>
       </div>
 
@@ -115,7 +138,9 @@ export default function PublicBookingForm({
             <input
               type="text"
               value={form.external_contact_name}
-              onChange={(e) => setForm({ ...form, external_contact_name: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, external_contact_name: e.target.value })
+              }
               placeholder="e.g. Sarah Miller"
               className="w-full bg-slate-900 border border-slate-850 text-slate-200 text-sm rounded-xl p-2.5 outline-none focus:border-emerald-500"
               required
@@ -128,7 +153,9 @@ export default function PublicBookingForm({
             <input
               type="email"
               value={form.external_contact_email}
-              onChange={(e) => setForm({ ...form, external_contact_email: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, external_contact_email: e.target.value })
+              }
               placeholder="e.g. sarah@dorsetcricket.org"
               className="w-full bg-slate-900 border border-slate-850 text-slate-200 text-sm rounded-xl p-2.5 outline-none focus:border-emerald-500"
               required
@@ -149,9 +176,9 @@ export default function PublicBookingForm({
               required
             >
               <option value="">Select Pitch</option>
-              {pitches.map(p => (
+              {pitches.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {venues.find(v => v.id === p.venue)?.name} - {p.name}
+                  {venues.find((v) => v.id === p.venue)?.name} - {p.name}
                 </option>
               ))}
             </select>
@@ -195,10 +222,15 @@ export default function PublicBookingForm({
               type="checkbox"
               id="publicMultiDay"
               checked={form.isMultiDay}
-              onChange={(e) => setForm({ ...form, isMultiDay: e.target.checked })}
+              onChange={(e) =>
+                setForm({ ...form, isMultiDay: e.target.checked })
+              }
               className="rounded text-emerald-500 bg-slate-800 border-slate-700 focus:ring-emerald-500"
             />
-            <label htmlFor="publicMultiDay" className="text-sm font-medium text-slate-200">
+            <label
+              htmlFor="publicMultiDay"
+              className="text-sm font-medium text-slate-200"
+            >
               This match spans multiple days (Multi-day event)
             </label>
           </div>
@@ -206,12 +238,18 @@ export default function PublicBookingForm({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                <Calendar size={12} /> {form.isMultiDay ? 'Start Date' : 'Date'}
+                <Calendar size={12} /> {form.isMultiDay ? "Start Date" : "Date"}
               </label>
               <input
                 type="date"
                 value={form.start_date}
-                onChange={(e) => setForm({ ...form, start_date: e.target.value, end_date: form.isMultiDay ? form.end_date : e.target.value })}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    start_date: e.target.value,
+                    end_date: form.isMultiDay ? form.end_date : e.target.value,
+                  })
+                }
                 className="w-full bg-slate-900 border border-slate-850 text-slate-200 text-sm rounded-xl p-2.5 outline-none focus:border-emerald-500"
                 required
               />
@@ -224,7 +262,9 @@ export default function PublicBookingForm({
                 <input
                   type="date"
                   value={form.end_date}
-                  onChange={(e) => setForm({ ...form, end_date: e.target.value })}
+                  onChange={(e) =>
+                    setForm({ ...form, end_date: e.target.value })
+                  }
                   min={form.start_date}
                   className="w-full bg-slate-900 border border-slate-850 text-slate-200 text-sm rounded-xl p-2.5 outline-none focus:border-emerald-500"
                   required
@@ -240,16 +280,22 @@ export default function PublicBookingForm({
             <input
               type="checkbox"
               checked={form.requires_teas}
-              onChange={(e) => setForm({ ...form, requires_teas: e.target.checked })}
+              onChange={(e) =>
+                setForm({ ...form, requires_teas: e.target.checked })
+              }
               className="rounded text-emerald-500 bg-slate-800 border-slate-700 focus:ring-emerald-500"
             />
-            <span className="text-sm text-slate-350">We request Teas for this fixture</span>
+            <span className="text-sm text-slate-350">
+              We request Teas for this fixture
+            </span>
           </label>
           <label className="flex items-center space-x-2 cursor-pointer select-none">
             <input
               type="checkbox"
               checked={form.requires_drinks}
-              onChange={(e) => setForm({ ...form, requires_drinks: e.target.checked })}
+              onChange={(e) =>
+                setForm({ ...form, requires_drinks: e.target.checked })
+              }
               className="rounded text-emerald-500 bg-slate-800 border-slate-700 focus:ring-emerald-500"
             />
             <span className="text-sm text-slate-350">We request Drinks</span>
@@ -274,7 +320,8 @@ export default function PublicBookingForm({
         <div className="flex items-start space-x-2 bg-slate-900/30 border border-slate-850 p-3.5 rounded-xl text-slate-450 text-xs">
           <Info size={14} className="mt-0.5 shrink-0 text-slate-400" />
           <p className="leading-normal">
-            All public requests undergo verification for outfield overlap rules and availability against primary club teams.
+            All public requests undergo verification for outfield overlap rules
+            and availability against primary club teams.
           </p>
         </div>
 
@@ -284,7 +331,7 @@ export default function PublicBookingForm({
           className="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 disabled:from-slate-700 disabled:to-slate-700 text-slate-950 font-bold text-sm shadow-xl shadow-emerald-500/10 flex items-center justify-center gap-2 transition"
         >
           <Send size={15} />
-          {loading ? 'Submitting...' : 'Send Booking Request'}
+          {loading ? "Submitting..." : "Send Booking Request"}
         </button>
       </form>
     </div>
