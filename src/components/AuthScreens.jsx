@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
-import { Lock, Mail, KeyRound, AlertCircle, RefreshCw } from 'lucide-react';
-import { api } from '../services/api';
+import React, { useState } from "react";
+import { Lock, Mail, KeyRound, AlertCircle, RefreshCw } from "lucide-react";
+import { api } from "../services/api";
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 export function LoginScreen({ onLoginSuccess }) {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -15,16 +15,16 @@ export function LoginScreen({ onLoginSuccess }) {
     setError(null);
     try {
       const response = await fetch(`${API_BASE_URL}/api/token/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
       });
       if (!response.ok) {
-        throw new Error('Invalid username or password');
+        throw new Error("Invalid username or password");
       }
       const data = await response.json();
-      localStorage.setItem('access_token', data.access);
-      localStorage.setItem('refresh_token', data.refresh);
+      localStorage.setItem("access_token", data.access);
+      localStorage.setItem("refresh_token", data.refresh);
       onLoginSuccess(data.access);
     } catch (err) {
       setError(err.message);
@@ -43,10 +43,16 @@ export function LoginScreen({ onLoginSuccess }) {
         <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-3xl shadow-2xl p-8 transform transition-all hover:scale-[1.01] duration-500">
           <div className="text-center mb-8">
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-500 flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/20 mb-4 transform -rotate-6 hover:rotate-0 transition-transform duration-300">
-              <span className="font-bold font-display text-3xl text-slate-950 tracking-tighter">PW</span>
+              <span className="font-bold font-display text-3xl text-slate-950 tracking-tighter">
+                PW
+              </span>
             </div>
-            <h1 className="text-2xl font-bold text-white font-display tracking-tight">Welcome to PitchWiz</h1>
-            <p className="text-sm text-slate-400 mt-2">Sign in to manage your club's pitches.</p>
+            <h1 className="text-2xl font-bold text-white font-display tracking-tight">
+              Welcome to PitchWiz
+            </h1>
+            <p className="text-sm text-slate-400 mt-2">
+              Sign in to manage your club's pitches.
+            </p>
           </div>
 
           {error && (
@@ -58,7 +64,9 @@ export function LoginScreen({ onLoginSuccess }) {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider ml-1">Username</label>
+              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider ml-1">
+                Username
+              </label>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500 group-focus-within:text-emerald-400 transition-colors">
                   <Mail size={18} />
@@ -76,7 +84,9 @@ export function LoginScreen({ onLoginSuccess }) {
 
             <div className="space-y-1.5">
               <div className="flex justify-between items-center ml-1">
-                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Password</label>
+                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                  Password
+                </label>
               </div>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500 group-focus-within:text-emerald-400 transition-colors">
@@ -115,8 +125,8 @@ export function LoginScreen({ onLoginSuccess }) {
 }
 
 export function ForcePasswordResetScreen({ onResetSuccess, onCancel }) {
-  const [oldPassword, setOldPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
+  const [oldPassword, setOldPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -125,17 +135,27 @@ export function ForcePasswordResetScreen({ onResetSuccess, onCancel }) {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/users/change_password/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      const response = await fetch(
+        `${API_BASE_URL}/api/users/change_password/`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+          },
+          body: JSON.stringify({
+            old_password: oldPassword,
+            new_password: newPassword,
+          }),
         },
-        body: JSON.stringify({ old_password: oldPassword, new_password: newPassword })
-      });
+      );
       if (!response.ok) {
         const errData = await response.json();
-        throw new Error(errData.old_password?.[0] || errData.new_password?.[0] || 'Failed to update password');
+        throw new Error(
+          errData.old_password?.[0] ||
+            errData.new_password?.[0] ||
+            "Failed to update password",
+        );
       }
       onResetSuccess();
     } catch (err) {
@@ -153,8 +173,13 @@ export function ForcePasswordResetScreen({ onResetSuccess, onCancel }) {
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-rose-500 to-orange-500 flex items-center justify-center mx-auto shadow-lg shadow-rose-500/20 mb-4">
               <KeyRound className="text-slate-950" size={32} />
             </div>
-            <h1 className="text-2xl font-bold text-white font-display tracking-tight">Password Reset Required</h1>
-            <p className="text-sm text-slate-400 mt-2">Your password has expired or an administrator has requested a reset.</p>
+            <h1 className="text-2xl font-bold text-white font-display tracking-tight">
+              Password Reset Required
+            </h1>
+            <p className="text-sm text-slate-400 mt-2">
+              Your password has expired or an administrator has requested a
+              reset.
+            </p>
           </div>
 
           {error && (
@@ -166,7 +191,9 @@ export function ForcePasswordResetScreen({ onResetSuccess, onCancel }) {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider ml-1">Current Password</label>
+              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider ml-1">
+                Current Password
+              </label>
               <input
                 type="password"
                 required
@@ -176,7 +203,9 @@ export function ForcePasswordResetScreen({ onResetSuccess, onCancel }) {
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider ml-1">New Password</label>
+              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider ml-1">
+                New Password
+              </label>
               <input
                 type="password"
                 required
@@ -184,7 +213,10 @@ export function ForcePasswordResetScreen({ onResetSuccess, onCancel }) {
                 onChange={(e) => setNewPassword(e.target.value)}
                 className="w-full px-4 py-3 bg-slate-950/50 border border-slate-700 rounded-xl text-slate-200 focus:ring-2 focus:ring-rose-500 focus:border-rose-500 transition-all shadow-inner"
               />
-              <p className="text-xs text-slate-500 pl-1">Must contain 1 uppercase, 1 lowercase, 1 number, and 1 special character.</p>
+              <p className="text-xs text-slate-500 pl-1">
+                Must contain 1 uppercase, 1 lowercase, 1 number, and 1 special
+                character.
+              </p>
             </div>
 
             <div className="flex space-x-3 pt-2">
@@ -200,7 +232,7 @@ export function ForcePasswordResetScreen({ onResetSuccess, onCancel }) {
                 disabled={loading}
                 className="flex-1 py-3.5 px-4 bg-gradient-to-r from-rose-500 to-orange-500 hover:from-rose-400 hover:to-orange-400 text-slate-950 font-bold rounded-xl shadow-lg transition-all"
               >
-                {loading ? 'Updating...' : 'Update'}
+                {loading ? "Updating..." : "Update"}
               </button>
             </div>
           </form>
