@@ -208,7 +208,7 @@ export default function VenuesManager({
     }
   };
 
-  // Filtered and alphabetically sorted pitches
+  // Filtered and entity-type prioritized sorted pitches
   const displayedPitches = React.useMemo(() => {
     const filtered = pitches.filter((p) => {
       if (selectedPitchVenueFilter && p.venue !== parseInt(selectedPitchVenueFilter, 10)) {
@@ -217,9 +217,23 @@ export default function VenuesManager({
       return true;
     });
 
-    return [...filtered].sort((a, b) =>
-      a.name.localeCompare(b.name, undefined, { sensitivity: "base", numeric: true })
-    );
+    const typeRank = {
+      main: 1,
+      youth: 2,
+      outfield: 3,
+      net: 4,
+    };
+
+    return [...filtered].sort((a, b) => {
+      const rankA = typeRank[(a.entity_type || "").toLowerCase()] || 99;
+      const rankB = typeRank[(b.entity_type || "").toLowerCase()] || 99;
+
+      if (rankA !== rankB) {
+        return rankA - rankB;
+      }
+
+      return a.name.localeCompare(b.name, undefined, { sensitivity: "base", numeric: true });
+    });
   }, [pitches, selectedPitchVenueFilter]);
 
   return (
@@ -611,7 +625,7 @@ export default function VenuesManager({
             </form>
           )}
 
-          {/* Pitches List (Alphabetically Sorted) */}
+          {/* Pitches List (Sorted by Entity Type & Alphabetically) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {displayedPitches.length === 0 ? (
               <div className="col-span-2 p-8 text-center text-slate-500 text-xs italic glass-panel rounded-2xl">
