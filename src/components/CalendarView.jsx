@@ -97,7 +97,7 @@ export default function CalendarView({
     return teams.find((t) => t.id === parseInt(selectedTeamId));
   }, [selectedTeamId, teams]);
 
-  // Filter Pitches based on venue and selected team compatibility
+  // Filter & Sort Pitches based on venue, team compatibility, and entity type hierarchy
   const filteredPitches = useMemo(() => {
     const filtered = pitches.filter((pitch) => {
       // 1. Venue Filter
@@ -116,8 +116,23 @@ export default function CalendarView({
       return true;
     });
 
-    // Sort alphabetically by Venue Name, then by Pitch Name
+    // Entity Type Priority Rank mapping
+    const typeRank = {
+      main: 1,
+      youth: 2,
+      outfield: 3,
+      net: 4,
+    };
+
+    // Sort by entity_type hierarchy first, then Venue Name, then Pitch Name alphabetically
     return [...filtered].sort((a, b) => {
+      const rankA = typeRank[(a.entity_type || "").toLowerCase()] || 99;
+      const rankB = typeRank[(b.entity_type || "").toLowerCase()] || 99;
+
+      if (rankA !== rankB) {
+        return rankA - rankB;
+      }
+
       const venueA = venues.find((v) => v.id === a.venue)?.name || "";
       const venueB = venues.find((v) => v.id === b.venue)?.name || "";
       const venueCompare = venueA.localeCompare(venueB, undefined, {
@@ -125,6 +140,7 @@ export default function CalendarView({
         numeric: true,
       });
       if (venueCompare !== 0) return venueCompare;
+
       return a.name.localeCompare(b.name, undefined, {
         sensitivity: "base",
         numeric: true,
