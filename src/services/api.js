@@ -247,4 +247,12 @@ export const api = {
     apiRequest(`/api/pitchbookings/${id}/`, {
       method: "DELETE",
     }),
+
+  // Fixture Import
+  importFixtures: (data) =>
+    apiRequest("/api/fixtures/import/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    }),
 };
