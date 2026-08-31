@@ -17,7 +17,6 @@ import {
   Utensils,
   FormInput,
   Activity,
-  HelpCircle,
   Users,
   LogOut,
   Shield,
@@ -26,9 +25,11 @@ import {
   X,
   Lock,
   Shovel,
+  FileSpreadsheet,
 } from "lucide-react";
 import ChangePasswordModal from "./components/ChangePasswordModal";
 import GroundMaintenanceModal from "./components/GroundMaintenanceModal";
+import FixtureImportManager from "./components/FixtureImportManager";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -69,10 +70,10 @@ export default function App() {
         api.getMe
           ? api.getMe()
           : fetch(`${API_BASE_URL}/api/users/me/`, {
-              headers: {
-                Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-              },
-            }).then((res) => res.json()),
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+            },
+          }).then((res) => res.json()),
       ]);
       setVenues(v);
       setPitches(p);
@@ -309,11 +310,10 @@ export default function App() {
             <nav className="p-4 space-y-1.5 flex-grow">
               <button
                 onClick={() => handleNavClick("calendar")}
-                className={`w-full flex items-center space-x-3 py-3 px-4 rounded-xl text-xs font-semibold tracking-wide transition font-display ${
-                  activeView === "calendar"
-                    ? "bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60"
-                    : "text-slate-400 hover:text-emerald-400 hover:bg-slate-800/50"
-                }`}
+                className={`w-full flex items-center space-x-3 py-3 px-4 rounded-xl text-xs font-semibold tracking-wide transition font-display ${activeView === "calendar"
+                  ? "bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60"
+                  : "text-slate-400 hover:text-emerald-400 hover:bg-slate-800/50"
+                  }`}
               >
                 <Calendar size={16} />
                 <span>Availability</span>
@@ -322,14 +322,26 @@ export default function App() {
               {hasRole("FIXTURE_SECRETARY") && (
                 <button
                   onClick={() => handleNavClick("secretary")}
-                  className={`w-full flex items-center space-x-3 py-3 px-4 rounded-xl text-xs font-semibold tracking-wide transition font-display ${
-                    activeView === "secretary"
-                      ? "bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60"
-                      : "text-slate-400 hover:text-emerald-400 hover:bg-slate-800/50"
-                  }`}
+                  className={`w-full flex items-center space-x-3 py-3 px-4 rounded-xl text-xs font-semibold tracking-wide transition font-display ${activeView === "secretary"
+                    ? "bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60"
+                    : "text-slate-400 hover:text-emerald-400 hover:bg-slate-800/50"
+                    }`}
                 >
                   <ShieldAlert size={16} />
                   <span>Secretary Panel</span>
+                </button>
+              )}
+
+              {hasRole("FIXTURE_SECRETARY") && (
+                <button
+                  onClick={() => handleNavClick("fixtureImport")}
+                  className={`w-full flex items-center space-x-3 py-3 px-4 rounded-xl text-xs font-semibold tracking-wide transition font-display ${activeView === "fixtureImport"
+                    ? "bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60"
+                    : "text-slate-400 hover:text-emerald-400 hover:bg-slate-800/50"
+                    }`}
+                >
+                  <FileSpreadsheet size={16} />
+                  <span>Import Fixtures</span>
                 </button>
               )}
 
@@ -339,11 +351,10 @@ export default function App() {
                     setIsGroundMaintenanceModalOpen(true);
                     setIsMobileMenuOpen(false);
                   }}
-                  className={`w-full flex items-center space-x-3 py-3 px-4 rounded-xl text-xs font-semibold tracking-wide transition font-display ${
-                    activeView === "ground_maintenance"
-                      ? "bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60"
-                      : "text-slate-400 hover:text-emerald-400 hover:bg-slate-800/50"
-                  }`}
+                  className={`w-full flex items-center space-x-3 py-3 px-4 rounded-xl text-xs font-semibold tracking-wide transition font-display ${activeView === "ground_maintenance"
+                    ? "bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60"
+                    : "text-slate-400 hover:text-emerald-400 hover:bg-slate-800/50"
+                    }`}
                 >
                   <Shovel size={16} />
                   <span>Ground Maintenance</span>
@@ -353,11 +364,10 @@ export default function App() {
               {hasRole("CATERER") && (
                 <button
                   onClick={() => handleNavClick("caterer")}
-                  className={`w-full flex items-center space-x-3 py-3 px-4 rounded-xl text-xs font-semibold tracking-wide transition font-display ${
-                    activeView === "caterer"
-                      ? "bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60"
-                      : "text-slate-400 hover:text-emerald-400 hover:bg-slate-800/50"
-                  }`}
+                  className={`w-full flex items-center space-x-3 py-3 px-4 rounded-xl text-xs font-semibold tracking-wide transition font-display ${activeView === "caterer"
+                    ? "bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60"
+                    : "text-slate-400 hover:text-emerald-400 hover:bg-slate-800/50"
+                    }`}
                 >
                   <Utensils size={16} />
                   <span>Caterer Dashboard</span>
@@ -367,11 +377,10 @@ export default function App() {
               {hasRole("EXTERNAL") && (
                 <button
                   onClick={() => handleNavClick("publicForm")}
-                  className={`w-full flex items-center space-x-3 py-3 px-4 rounded-xl text-xs font-semibold tracking-wide transition font-display ${
-                    activeView === "publicForm"
-                      ? "bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60"
-                      : "text-slate-400 hover:text-emerald-400 hover:bg-slate-800/50"
-                  }`}
+                  className={`w-full flex items-center space-x-3 py-3 px-4 rounded-xl text-xs font-semibold tracking-wide transition font-display ${activeView === "publicForm"
+                    ? "bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60"
+                    : "text-slate-400 hover:text-emerald-400 hover:bg-slate-800/50"
+                    }`}
                 >
                   <FormInput size={16} />
                   <span>External Pitch Request</span>
@@ -381,11 +390,10 @@ export default function App() {
               {(hasRole("USER_MANAGER") || hasRole("FIXTURE_SECRETARY")) && (
                 <button
                   onClick={() => handleNavClick("teams")}
-                  className={`w-full flex items-center space-x-3 py-3 px-4 rounded-xl text-xs font-semibold tracking-wide transition font-display ${
-                    activeView === "teams"
-                      ? "bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60"
-                      : "text-slate-400 hover:text-emerald-400 hover:bg-slate-800/50"
-                  }`}
+                  className={`w-full flex items-center space-x-3 py-3 px-4 rounded-xl text-xs font-semibold tracking-wide transition font-display ${activeView === "teams"
+                    ? "bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60"
+                    : "text-slate-400 hover:text-emerald-400 hover:bg-slate-800/50"
+                    }`}
                 >
                   <Users size={16} />
                   <span>Teams</span>
@@ -395,11 +403,10 @@ export default function App() {
               {(hasRole("USER_MANAGER") || hasRole("FIXTURE_SECRETARY")) && (
                 <button
                   onClick={() => handleNavClick("venues")}
-                  className={`w-full flex items-center space-x-3 py-3 px-4 rounded-xl text-xs font-semibold tracking-wide transition font-display ${
-                    activeView === "venues"
-                      ? "bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60"
-                      : "text-slate-400 hover:text-emerald-400 hover:bg-slate-800/50"
-                  }`}
+                  className={`w-full flex items-center space-x-3 py-3 px-4 rounded-xl text-xs font-semibold tracking-wide transition font-display ${activeView === "venues"
+                    ? "bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60"
+                    : "text-slate-400 hover:text-emerald-400 hover:bg-slate-800/50"
+                    }`}
                 >
                   <MapPin size={16} />
                   <span>Venues & Pitches</span>
@@ -409,11 +416,10 @@ export default function App() {
               {(hasRole("USER_MANAGER") || hasRole("ADMIN")) && (
                 <button
                   onClick={() => handleNavClick("users")}
-                  className={`w-full flex items-center space-x-3 py-3 px-4 rounded-xl text-xs font-semibold tracking-wide transition font-display ${
-                    activeView === "users"
-                      ? "bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60"
-                      : "text-slate-400 hover:text-emerald-400 hover:bg-slate-800/50"
-                  }`}
+                  className={`w-full flex items-center space-x-3 py-3 px-4 rounded-xl text-xs font-semibold tracking-wide transition font-display ${activeView === "users"
+                    ? "bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60"
+                    : "text-slate-400 hover:text-emerald-400 hover:bg-slate-800/50"
+                    }`}
                 >
                   <Shield size={16} />
                   <span>Users</span>
@@ -485,6 +491,14 @@ export default function App() {
                 onBookingUpdated={handleBookingUpdated}
                 onBookingDeleted={handleBookingDeleted}
                 currentUser={currentUser}
+              />
+            )}
+            {activeView === "fixtureImport" && (
+              <FixtureImportManager
+                teams={teams}
+                pitches={pitches}
+                venues={venues}
+                onImportComplete={loadData}
               />
             )}
             {activeView === "caterer" && (
