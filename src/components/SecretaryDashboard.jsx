@@ -40,6 +40,14 @@ export default function SecretaryDashboard({
     reason: "",
   });
 
+  // Confirm Approve modal state (shown when competing pending bookings exist)
+  const [confirmApproveModal, setConfirmApproveModal] = useState({
+    open: false,
+    booking: null,
+    competingBookings: [],
+    isSubmitting: false,
+  });
+
   // Change requests state
   const [changeRequests, setChangeRequests] = useState([]);
   const [changeRejectModal, setChangeRejectModal] = useState({
@@ -81,11 +89,55 @@ export default function SecretaryDashboard({
     );
   }, [bookings]);
 
+  // Detect OTHER competing PENDING bookings for the same slot as this booking
+  const detectCompetingPending = (booking) => {
+    const overlaps = [];
+    const currentPitch = pitches.find((p) => p.id === booking.pitch);
+
+    // All pitches in the "conflict zone" for this booking: the booking's own pitch
+    // plus any pitches it blocks (outfield) and pitches that block it.
+    const relatedPitchIds = new Set([booking.pitch]);
+    if (currentPitch?.blocks_pitches) {
+      currentPitch.blocks_pitches.forEach((id) => relatedPitchIds.add(id));
+    }
+    pitches
+      .filter((p) => p.blocks_pitches?.includes(booking.pitch))
+      .forEach((p) => relatedPitchIds.add(p.id));
+
+    bookings.forEach((b) => {
+      if (
+        b.id === booking.id ||
+        b.status !== "PENDING" ||
+        !relatedPitchIds.has(b.pitch)
+      )
+        return;
+
+      // Date range intersection
+      if (
+        booking.start_date > b.end_date ||
+        booking.end_date < b.start_date
+      )
+        return;
+
+      // Time slot overlap
+      if (
+        b.time_slot !== "ALL_DAY" &&
+        booking.time_slot !== "ALL_DAY" &&
+        b.time_slot !== booking.time_slot
+      )
+        return;
+
+      overlaps.push(b);
+    });
+
+    return overlaps;
+  };
+
   // Conflict Detection Logic for a pending booking
   const detectConflicts = (booking) => {
     const conflicts = [];
 
-    // 1. Direct overlap
+    // 1. Direct overlap with APPROVED bookings
     const directOverlap = bookings.find(
       (b) =>
         b.id !== booking.id &&
@@ -159,7 +211,15 @@ export default function SecretaryDashboard({
       }
     }
 
-    // 3. Length support
+    // 3. Competing PENDING requests for the same slot
+    const competingPending = detectCompetingPending(booking);
+    if (competingPending.length > 0) {
+      conflicts.push(
+        `${competingPending.length} competing pending request${competingPending.length > 1 ? "s" : ""} for this slot — approving will auto-reject them.`,
+      );
+    }
+
+    // 4. Length support
     if (booking.fixture) {
       const fix = fixtures.find((f) => f.id === booking.fixture);
       const team = fix ? teams.find((t) => t.id === fix.team) : null;
@@ -178,8 +238,49 @@ export default function SecretaryDashboard({
     return conflicts;
   };
 
-  const handleApprove = async (id) => {
-    await onBookingStatusUpdate(id, "APPROVED");
+  const handleApprove = (id) => {
+    const booking = bookings.find((b) => b.id === id);
+    if (!booking) return;
+    const competing = detectCompetingPending(booking);
+    if (competing.length > 0) {
+      setConfirmApproveModal({
+        open: true,
+        booking,
+        competingBookings: competing,
+        isSubmitting: false,
+      });
+    } else {
+      onBookingStatusUpdate(id, "APPROVED");
+    }
+  };
+
+  const confirmApproval = async () => {
+    const { booking, competingBookings } = confirmApproveModal;
+    setConfirmApproveModal((prev) => ({ ...prev, isSubmitting: true }));
+    try {
+      // 1. Approve the chosen booking
+      await onBookingStatusUpdate(booking.id, "APPROVED");
+
+      // 2. Auto-reject all competing pending bookings
+      await Promise.all(
+        competingBookings.map((cb) =>
+          onBookingStatusUpdate(
+            cb.id,
+            "DENIED",
+            "Auto-rejected: a competing request for this slot was approved by the Fixture Secretary.",
+          ),
+        ),
+      );
+    } catch (e) {
+      console.error("Error during approval/auto-rejection:", e);
+    } finally {
+      setConfirmApproveModal({
+        open: false,
+        booking: null,
+        competingBookings: [],
+        isSubmitting: false,
+      });
+    }
   };
 
   const handleDeny = (id) => {
@@ -192,22 +293,12 @@ export default function SecretaryDashboard({
       return;
     }
     try {
-      await fetch(
-        `${API_BASE_URL}/api/pitchbookings/${rejectModal.bookingId}/`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-          },
-          body: JSON.stringify({
-            status: "DENIED",
-            rejection_reason: rejectModal.reason,
-          }),
-        },
+      await onBookingStatusUpdate(
+        rejectModal.bookingId,
+        "DENIED",
+        rejectModal.reason,
       );
       setRejectModal({ open: false, bookingId: null, reason: "" });
-      await onBookingStatusUpdate(rejectModal.bookingId, "DENIED");
     } catch (e) {
       console.error(e);
     }
@@ -1005,6 +1096,74 @@ export default function SecretaryDashboard({
                 className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-bold transition"
               >
                 Deny Booking
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Approve Modal — shown when competing pending bookings exist */}
+      {confirmApproveModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-amber-800/60 rounded-2xl shadow-2xl p-6 w-full max-w-lg space-y-5">
+            <div className="flex items-start gap-3">
+              <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 shrink-0">
+                <AlertTriangle size={22} />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-white font-display">
+                  Competing Requests Exist
+                </h3>
+                <p className="text-sm text-slate-400 mt-1">
+                  Approving this booking will automatically <span className="text-red-400 font-semibold">deny</span> the following conflicting pending request{confirmApproveModal.competingBookings.length > 1 ? "s" : ""}:
+                </p>
+              </div>
+            </div>
+
+            <ul className="space-y-2">
+              {confirmApproveModal.competingBookings.map((cb) => {
+                const fix = cb.fixture ? fixtures.find((f) => f.id === cb.fixture) : null;
+                const team = fix ? teams.find((t) => t.id === fix.team) : null;
+                const cbPitch = pitches.find((p) => p.id === cb.pitch);
+                const cbVenue = cbPitch ? venues.find((v) => v.id === cbPitch.venue) : null;
+                const cbLabel = team
+                  ? `${team.name} vs ${fix.opponent}`
+                  : cb.external_contact_name || "External Booking";
+                return (
+                  <li key={cb.id} className="flex items-start gap-2.5 bg-red-950/30 border border-red-900/50 rounded-xl p-3">
+                    <X size={14} className="text-red-400 mt-0.5 shrink-0" />
+                    <div className="text-xs">
+                      <p className="font-semibold text-slate-200">{cbLabel}</p>
+                      <p className="text-slate-400 mt-0.5">
+                        {cbVenue?.name} · {cbPitch?.name} · {cb.start_date}{cb.start_date !== cb.end_date ? ` → ${cb.end_date}` : ""} · {cb.time_slot.toLowerCase().replace("_", " ")}
+                      </p>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+
+            <p className="text-xs text-slate-500">
+              This action cannot be undone. The denied parties will see their requests marked as rejected.
+            </p>
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() =>
+                  setConfirmApproveModal({ open: false, booking: null, competingBookings: [], isSubmitting: false })
+                }
+                disabled={confirmApproveModal.isSubmitting}
+                className="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 text-sm font-semibold transition disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmApproval}
+                disabled={confirmApproveModal.isSubmitting}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-slate-950 text-sm font-bold transition flex items-center gap-2 disabled:opacity-50"
+              >
+                <Check size={15} />
+                {confirmApproveModal.isSubmitting ? "Processing…" : "Approve & Auto-Reject Conflicts"}
               </button>
             </div>
           </div>

@@ -191,8 +191,8 @@ export default function App() {
   };
 
   // Handler to approve/deny booking request
-  const handleBookingStatusUpdate = async (id, status) => {
-    const updated = await api.updateBookingStatus(id, status);
+  const handleBookingStatusUpdate = async (id, status, rejectionReason = "") => {
+    const updated = await api.updateBookingStatus(id, status, rejectionReason);
     if (updated) {
       await loadData();
     }

@@ -202,8 +202,8 @@ export default function CalendarView({
 
   // Build booking grid cell mapping: returns booking info if occupied or blocked
   const getCellStatus = (pitchId, dateStr, timeSlot) => {
-    // 1. Check direct bookings on this pitch
-    const directBooking = bookings.find(
+    // Find all bookings matching this pitch + date + timeslot
+    const matchingBookings = bookings.filter(
       (b) =>
         b.pitch == pitchId &&
         isDateInBooking(dateStr, b) &&
@@ -212,25 +212,30 @@ export default function CalendarView({
           b.time_slot === timeSlot),
     );
 
-    if (directBooking) {
-      if (selectedStatus !== "all" && directBooking.status !== selectedStatus) {
+    // 1. Check for an approved/maintenance booking first — these are definitive locks
+    const approvedBooking = matchingBookings.find(
+      (b) => b.status === "APPROVED" || b.status === "GROUND_MAINTENANCE",
+    );
+
+    if (approvedBooking) {
+      if (selectedStatus !== "all" && approvedBooking.status !== selectedStatus) {
         return null;
       }
 
-      // Check if it's ground maintenance
-      if (directBooking.booking_type === "GROUND_MAINTENANCE") {
+      // Ground maintenance
+      if (approvedBooking.booking_type === "GROUND_MAINTENANCE") {
         return {
           type: "BOOKED",
-          booking: directBooking,
-          label: directBooking.notes || "Ground Maintenance",
-          status: directBooking.status,
+          booking: approvedBooking,
+          label: approvedBooking.notes || "Ground Maintenance",
+          status: approvedBooking.status,
           isMaintenance: true,
         };
       }
 
-      // Check if it's an automatic system lock
-      if (directBooking.notes?.startsWith("AUTO_LOCK:")) {
-        const parts = directBooking.notes.split(":");
+      // Auto-lock notes
+      if (approvedBooking.notes?.startsWith("AUTO_LOCK:")) {
+        const parts = approvedBooking.notes.split(":");
         const pitchName = parts[2] || "Pitch";
         return {
           type: "BLOCKED",
@@ -238,10 +243,8 @@ export default function CalendarView({
           reason: `Outfield overlap due to booking on ${pitchName}`,
         };
       }
-
-      // Check if it's an automatic outfield lock from a main match
-      if (directBooking.notes?.startsWith("AUTO_OUTFIELD_LOCK:")) {
-        const parts = directBooking.notes.split(":");
+      if (approvedBooking.notes?.startsWith("AUTO_OUTFIELD_LOCK:")) {
+        const parts = approvedBooking.notes.split(":");
         const pitchName = parts[2] || "Main Pitch";
         return {
           type: "BLOCKED",
@@ -250,25 +253,52 @@ export default function CalendarView({
         };
       }
 
-      const fixtureObj = fixtures.find((f) => f.id === directBooking.fixture);
+      const fixtureObj = fixtures.find((f) => f.id === approvedBooking.fixture);
       const teamObj = fixtureObj
         ? teams.find((t) => t.id === fixtureObj.team)
         : null;
       const label = teamObj
         ? `${teamObj.name} vs ${fixtureObj.opponent}`
-        : directBooking.external_contact_name || "External Booking";
+        : approvedBooking.external_contact_name || "External Booking";
 
       return {
         type: "BOOKED",
-        booking: directBooking,
+        booking: approvedBooking,
         label,
-        status: directBooking.status,
+        status: approvedBooking.status,
         isMaintenance: false,
         isOutfieldLock: false,
       };
     }
 
-    // 2. Overlap Blocking Logic (Evaluated Dynamically)
+    // 2. Check for pending bookings (slot not yet confirmed)
+    const pendingBookings = matchingBookings.filter(
+      (b) => b.status === "PENDING",
+    );
+
+    if (pendingBookings.length > 0) {
+      // Filter by selectedStatus if needed
+      if (selectedStatus !== "all" && selectedStatus !== "PENDING") {
+        return null;
+      }
+
+      // Build label list for each pending booking
+      const pendingItems = pendingBookings.map((b) => {
+        const fixtureObj = b.fixture ? fixtures.find((f) => f.id === b.fixture) : null;
+        const teamObj = fixtureObj ? teams.find((t) => t.id === fixtureObj.team) : null;
+        const label = teamObj
+          ? `${teamObj.name} vs ${fixtureObj.opponent}`
+          : b.external_contact_name || "External Request";
+        return { booking: b, label };
+      });
+
+      return {
+        type: "PENDING_MULTI",
+        pendingItems,
+      };
+    }
+
+    // 3. Overlap Blocking Logic (Evaluated Dynamically)
     const blockingPitches = pitches.filter((p) =>
       p.blocks_pitches.includes(pitchId),
     );
@@ -376,6 +406,42 @@ export default function CalendarView({
             `Booking Details:\nStatus: ${b.status}\nNotes: ${b.notes || "None"}`,
           );
         }
+        return;
+      }
+
+      // PENDING_MULTI: slot has pending requests — allow requesting it regardless
+      if (existingCell.type === "PENDING_MULTI") {
+        if (isExternalUser) {
+          alert("This slot has pending requests. External users cannot create bookings directly.");
+          return;
+        }
+        if (isOnlyGroundstaff) {
+          // Groundstaff can do maintenance even on pending slots
+          setMaintenanceData({
+            pitchId: pitchId.toString(),
+            date: dateStr,
+            timeSlot,
+            notes: "",
+            isMultiDay: false,
+            endDate: dateStr,
+          });
+          setIsMaintenanceModalOpen(true);
+          return;
+        }
+        // Open booking modal — allow requesting even if pending requests exist
+        setModalData({
+          pitchId: pitchId.toString(),
+          date: dateStr,
+          timeSlot,
+          teamId: selectedTeamId !== "all" ? selectedTeamId : "",
+          opponent: "",
+          requiresTeas: false,
+          requiresDrinks: false,
+          notes: "",
+          isMultiDay: false,
+          endDate: dateStr,
+        });
+        setIsModalOpen(true);
         return;
       }
     }
@@ -1709,7 +1775,45 @@ function CellContent({ cell, onClick, compact = false, isExternal = false }) {
     );
   }
 
-  // 3. Booked Slot
+  // 3. Multiple Pending Requests (PENDING_MULTI)
+  if (cell.type === "PENDING_MULTI") {
+    const count = cell.pendingItems.length;
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className={`w-full ${heightClass} text-left cursor-pointer border rounded-xl ${compact ? "p-1.5" : "p-2"} flex flex-col justify-between overflow-hidden transition-all duration-300 bg-violet-950/25 border-violet-900/60 hover:border-violet-500/70 hover:bg-violet-950/40 group`}
+        title={isExternal ? `${count} pending request${count > 1 ? "s" : ""}` : `${count} pending request${count > 1 ? "s" : ""} — click to add your own`}
+      >
+        <div className="pointer-events-none w-full space-y-0.5 overflow-hidden">
+          {/* Header badge */}
+          <div className="flex items-center justify-between gap-1 mb-1">
+            <span className="text-[9px] px-1.5 py-0.5 rounded font-extrabold uppercase font-display bg-violet-900/50 text-violet-300 flex items-center gap-1 truncate">
+              {count} Pending
+            </span>
+            {!isExternal && (
+              <span className="text-[9px] text-emerald-400/70 group-hover:text-emerald-400 font-semibold transition shrink-0">
+                + Request
+              </span>
+            )}
+          </div>
+          {/* List first 1–2 pending items */}
+          {cell.pendingItems.slice(0, compact ? 1 : 2).map(({ booking, label }) => (
+            <p key={booking.id} className="text-[10px] text-slate-400 truncate leading-tight">
+              {isExternal ? "Pending" : label}
+            </p>
+          ))}
+          {count > (compact ? 1 : 2) && (
+            <p className="text-[10px] text-slate-500 leading-tight">
+              +{count - (compact ? 1 : 2)} more…
+            </p>
+          )}
+        </div>
+      </button>
+    );
+  }
+
+  // 4. Single Booked Slot (APPROVED or maintenance)
   const isApproved = cell.status === "APPROVED";
   const isMaintenance = cell.isMaintenance;
 

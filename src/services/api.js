@@ -230,12 +230,15 @@ export const api = {
       method: "DELETE",
     }),
 
-  // Local-only update for mock data (to show live feedback in dashboards)
-  updateBookingStatus: (id, status) =>
-    apiRequest(`/api/pitchbookings/${id}/`, {
+  // Fixture secretary status update via dedicated action endpoint
+  updateBookingStatus: (id, status, rejectionReason = "") =>
+    apiRequest(`/api/pitchbookings/${id}/update-status/`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({
+        status,
+        ...(rejectionReason ? { rejection_reason: rejectionReason } : {}),
+      }),
     }),
   updateBooking: (id, data) =>
     apiRequest(`/api/pitchbookings/${id}/`, {
