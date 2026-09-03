@@ -7,6 +7,8 @@ import PublicBookingForm from "./components/PublicBookingForm";
 import TeamsManager from "./components/TeamsManager";
 import UserManagement from "./components/UserManagement";
 import VenuesManager from "./components/VenuesManager";
+import PlayCricketSyncManager from "./components/PlayCricketSyncManager";
+import { CloudDownload } from "lucide-react";
 import {
   LoginScreen,
   ForcePasswordResetScreen,
@@ -345,6 +347,19 @@ export default function App() {
                 </button>
               )}
 
+              {hasRole("FIXTURE_SECRETARY") && (
+                <button
+                  onClick={() => handleNavClick("playCricketSync")}
+                  className={`w-full flex items-center space-x-3 py-3 px-4 rounded-xl text-xs font-semibold tracking-wide transition font-display ${activeView === "playCricketSync"
+                      ? "bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60"
+                      : "text-slate-400 hover:text-emerald-400 hover:bg-slate-800/50"
+                    }`}
+                >
+                  <CloudDownload size={16} />
+                  <span>Play-Cricket Sync</span>
+                </button>
+              )}
+
               {hasRole("GROUNDSTAFF") && (
                 <button
                   onClick={() => {
@@ -534,6 +549,9 @@ export default function App() {
               />
             )}
             {activeView === "users" && <UserManagement />}
+            {activeView === "playCricketSync" && (
+              <PlayCricketSyncManager onSyncComplete={loadData} />
+            )}
           </div>
         )}
       </main>

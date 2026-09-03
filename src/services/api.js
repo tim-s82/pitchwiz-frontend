@@ -258,4 +258,12 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     }),
+
+  // Sync Play-Cricket Fixtures
+  syncPlayCricketFixtures: (season) =>
+    apiRequest("/api/fixtures/sync-play-cricket/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ season }),
+    }),
 };
