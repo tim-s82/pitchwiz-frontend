@@ -28,20 +28,25 @@ export default function FixtureImportManager({
         setTimeout(() => setToast(null), 3000);
     };
 
-    // Helper: Derive time slot from absolute time
-    const deriveTimeSlot = (timeStr) => {
-        if (!timeStr) return "AFTERNOON";
-        const hour = parseInt(timeStr.split(":")[0], 10);
-        if (isNaN(hour)) return "AFTERNOON";
-        if (hour < 12) return "MORNING";
-        if (hour >= 17) return "EVENING";
-        return "AFTERNOON";
+    // Dynamically load SheetJS parser library for robust .xlsx and .csv support
+    const loadXLSXLibrary = () => {
+        return new Promise((resolve, reject) => {
+            if (window.XLSX) {
+                resolve(window.XLSX);
+                return;
+            }
+            const script = document.createElement("script");
+            script.src = "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js";
+            script.onload = () => resolve(window.XLSX);
+            script.onerror = reject;
+            document.head.appendChild(script);
+        });
     };
 
-    // Normalizer for smart matching (handles ordinal words, punctuation, casing)
+    // Normalizer for smart matching
     const normalizeText = (str) => {
         if (!str) return "";
-        return str
+        return String(str)
             .toLowerCase()
             .replace(/\bfirst\b/g, "1st")
             .replace(/\bsecond\b/g, "2nd")
@@ -129,80 +134,129 @@ export default function FixtureImportManager({
         return bestPitchId || pitchesList[0]?.id || null;
     };
 
-    const parseCSV = (text) => {
-        const lines = text.split(/\r\n|\n/).filter((l) => l.trim().length > 0);
-        if (lines.length < 2) return [];
-
-        const headers = lines[0].split(",").map((h) => h.trim().toLowerCase().replace(/['"]+/g, ""));
-        const results = [];
-
-        for (let i = 1; i < lines.length; i++) {
-            const currentLine = lines[i].split(",").map((val) => val.trim().replace(/['"]+/g, ""));
-            const rowObj = {};
-            headers.forEach((h, index) => {
-                rowObj[h] = currentLine[index] || "";
-            });
-            results.push(rowObj);
+    // Parse date value safely (handles JS Date objects, Excel serial numbers, or strings)
+    const parseDateValue = (dateVal) => {
+        if (!dateVal) return "";
+        if (dateVal instanceof Date) {
+            const year = dateVal.getFullYear();
+            const month = String(dateVal.getMonth() + 1).padStart(2, "0");
+            const day = String(dateVal.getDate()).padStart(2, "0");
+            return `${year}-${month}-${day}`;
         }
-        return results;
+        if (typeof dateVal === "number") {
+            const utcDays = Math.floor(dateVal - 25569);
+            const dateInfo = new Date(utcDays * 86400 * 1000);
+            const year = dateInfo.getUTCFullYear();
+            const month = String(dateInfo.getUTCMonth() + 1).padStart(2, "0");
+            const day = String(dateInfo.getUTCDate()).padStart(2, "0");
+            return `${year}-${month}-${day}`;
+        }
+        return String(dateVal).trim();
     };
 
-    const handleFileUpload = (e) => {
+    // Parse time value safely (handles Date objects, decimals, or strings)
+    const parseTimeValue = (timeVal) => {
+        if (!timeVal) return "14:00";
+        if (timeVal instanceof Date) {
+            const hours = String(timeVal.getHours()).padStart(2, "0");
+            const minutes = String(timeVal.getMinutes()).padStart(2, "0");
+            return `${hours}:${minutes}`;
+        }
+        if (typeof timeVal === "number") {
+            // Excel decimal fraction of a day
+            const totalSeconds = Math.round(timeVal * 86400);
+            const hours = String(Math.floor(totalSeconds / 3600) % 24).padStart(2, "0");
+            const minutes = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, "0");
+            return `${hours}:${minutes}`;
+        }
+        const cleanStr = String(timeVal).trim();
+        return cleanStr || "14:00";
+    };
+
+    // Helper: Derive time slot from absolute time string
+    const deriveTimeSlot = (timeStr) => {
+        if (!timeStr) return "AFTERNOON";
+        const hour = parseInt(timeStr.split(":")[0], 10);
+        if (isNaN(hour)) return "AFTERNOON";
+        if (hour < 12) return "MORNING";
+        if (hour >= 17) return "EVENING";
+        return "AFTERNOON";
+    };
+
+    const handleFileUpload = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
 
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            try {
-                const text = event.target.result;
-                const rawData = parseCSV(text);
+        try {
+            const XLSX = await loadXLSXLibrary();
+            const reader = new FileReader();
 
-                if (rawData.length === 0) {
-                    showToast("The uploaded file appears empty or invalid.", "error");
-                    return;
+            reader.onload = (event) => {
+                try {
+                    const data = new Uint8Array(event.target.result);
+                    const workbook = XLSX.read(data, { type: "array", cellDates: true });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+
+                    const rawData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+
+                    if (rawData.length === 0) {
+                        showToast("The uploaded file appears empty.", "error");
+                        return;
+                    }
+
+                    const processed = rawData.map((row, index) => {
+                        const normRow = {};
+                        Object.keys(row).forEach((k) => {
+                            const cleanKey = k.trim().toLowerCase().replace(/[\s_-]+/g, "_");
+                            normRow[cleanKey] = row[k];
+                        });
+
+                        const teamNameRaw = String(normRow.team || normRow.club_team || normRow.club || "").trim();
+                        const opponent = String(normRow.opponent || normRow.opposition || "").trim();
+                        const date = parseDateValue(normRow.date || normRow.match_date || normRow.day);
+                        const time = parseTimeValue(normRow.time || normRow.start_time || normRow.match_time);
+                        const pitchPref = String(normRow.pitch_preference || normRow.pitch || normRow.venue || "").trim();
+
+                        const teamMatch = findBestTeamMatch(teamNameRaw, teams);
+                        const matchedPitchId = findBestPitchMatch(pitchPref, pitches, venues);
+                        const timeSlot = deriveTimeSlot(time);
+
+                        let clashReason = null;
+                        if (!teamNameRaw) clashReason = "Missing team name";
+                        else if (!opponent) clashReason = "Missing opponent name";
+                        else if (!date) clashReason = "Missing match date";
+
+                        return {
+                            id: index,
+                            teamNameRaw,
+                            teamId: teamMatch.defaultId,
+                            teamAmbiguous: teamMatch.ambiguous,
+                            opponent,
+                            date,
+                            time,
+                            timeSlot,
+                            pitchPref,
+                            pitchId: matchedPitchId,
+                            clashReason,
+                            selected: !clashReason,
+                        };
+                    });
+
+                    setParsedRows(processed);
+                    setStep(2);
+                    showToast(`Successfully parsed ${processed.length} fixture rows.`);
+                } catch (parseErr) {
+                    console.error("Workbook parse error:", parseErr);
+                    showToast("Failed to read spreadsheet structure.", "error");
                 }
+            };
 
-                const processed = rawData.map((row, index) => {
-                    const teamNameRaw = row.team || row.club_team || "";
-                    const opponent = row.opponent || row.opposition || "";
-                    const date = row.date || row.match_date || "";
-                    const time = row.time || row.start_time || "14:00";
-                    const pitchPref = row.pitch_preference || row.pitch || row.venue || "";
-
-                    const teamMatch = findBestTeamMatch(teamNameRaw, teams);
-                    const matchedPitchId = findBestPitchMatch(pitchPref, pitches, venues);
-                    const timeSlot = deriveTimeSlot(time);
-
-                    let clashReason = null;
-                    if (!teamNameRaw) clashReason = "Missing team name";
-                    else if (!opponent) clashReason = "Missing opponent name";
-                    else if (!date) clashReason = "Missing match date";
-
-                    return {
-                        id: index,
-                        teamNameRaw,
-                        teamId: teamMatch.defaultId,
-                        teamAmbiguous: teamMatch.ambiguous,
-                        opponent,
-                        date,
-                        time,
-                        timeSlot,
-                        pitchPref,
-                        pitchId: matchedPitchId,
-                        clashReason,
-                        selected: !clashReason,
-                    };
-                });
-
-                setParsedRows(processed);
-                setStep(2);
-                showToast(`Successfully parsed ${processed.length} fixture rows.`);
-            } catch (err) {
-                console.error("Parse error:", err);
-                showToast("Failed to parse file. Ensure it is a valid CSV format.", "error");
-            }
-        };
-        reader.readAsText(file);
+            reader.readAsArrayBuffer(file);
+        } catch (libErr) {
+            console.error("Library load error:", libErr);
+            showToast("Failed to load spreadsheet parser.", "error");
+        }
     };
 
     const handleRowToggle = (id) => {
@@ -257,8 +311,8 @@ export default function FixtureImportManager({
             {toast && (
                 <div
                     className={`fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-xl flex items-center space-x-2 text-sm font-semibold ${toast.type === "error"
-                            ? "bg-rose-500 text-white"
-                            : "bg-emerald-500 text-slate-950"
+                        ? "bg-rose-500 text-white"
+                        : "bg-emerald-500 text-slate-950"
                         }`}
                 >
                     {toast.type === "error" ? <AlertTriangle size={18} /> : <Check size={18} />}
@@ -277,7 +331,7 @@ export default function FixtureImportManager({
                             Fixture Spreadsheet Import
                         </h2>
                         <p className="text-sm text-slate-400">
-                            Upload fixtures spreadsheet with smart team and pitch matching.
+                            Upload .xlsx or .csv spreadsheets with smart team and pitch matching.
                         </p>
                     </div>
                 </div>
@@ -296,10 +350,10 @@ export default function FixtureImportManager({
                             </div>
                             <div className="space-y-1">
                                 <p className="text-sm font-bold text-slate-200">
-                                    Click to upload fixture spreadsheet
+                                    Click to upload .xlsx or .csv spreadsheet
                                 </p>
                                 <p className="text-xs text-slate-500">
-                                    Supports CSV format (Required columns: team, opponent, date, time, pitch_preference)
+                                    Required columns: team, opponent, date, time, pitch_preference
                                 </p>
                             </div>
                         </div>
@@ -319,7 +373,7 @@ export default function FixtureImportManager({
                 <div className="glass-panel p-6 rounded-2xl border border-slate-800 space-y-6">
                     <div className="flex justify-between items-center">
                         <h3 className="text-base font-bold text-slate-200 font-display">
-                            Review & Adjust Mappings
+                            Review & Adjust Mappings ({parsedRows.length} rows found)
                         </h3>
                         <div className="flex space-x-3">
                             <button
