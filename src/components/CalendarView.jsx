@@ -8,14 +8,10 @@ import {
   ChevronLeft,
   ChevronRight,
   CheckCircle2,
-  AlertTriangle,
-  HelpCircle,
   ShieldAlert,
   Pencil,
   Trash2,
   Shovel,
-  Smartphone,
-  Monitor,
 } from "lucide-react";
 
 export default function CalendarView({
@@ -45,7 +41,6 @@ export default function CalendarView({
   // Date range state: start at current week or today
   const [startDateStr, setStartDateStr] = useState(() => {
     const today = new Date();
-    // Default to current Monday
     const day = today.getDay();
     const diff = today.getDate() - day + (day === 0 ? -6 : 1);
     const monday = new Date(today.setDate(diff));
@@ -80,34 +75,47 @@ export default function CalendarView({
 
   // Edit modal state
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editData, setEditData] = useState(null); // the booking being edited
+  const [editData, setEditData] = useState(null);
   const [editForm, setEditForm] = useState({});
   const [editSaving, setEditSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  useEffect(() => {
-    if (venues.length > 0 && selectedVenueId === "all") {
-      setSelectedVenueId(venues[0].id.toString());
-    }
-  }, [venues, selectedVenueId]);
+  // Alphabetically sorted venues memo
+  const sortedVenues = useMemo(() => {
+    return [...venues].sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, { sensitivity: "base", numeric: true })
+    );
+  }, [venues]);
 
-  // Find compatible pitch lengths for the filtered team (Must be declared BEFORE filteredPitches)
+  // Alphabetically sorted teams memo
+  const sortedTeams = useMemo(() => {
+    return [...teams].sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, { sensitivity: "base", numeric: true })
+    );
+  }, [teams]);
+
+  useEffect(() => {
+    if (sortedVenues.length > 0 && selectedVenueId === "all") {
+      const defaultVenue = sortedVenues.find((v) => v.is_default);
+      setSelectedVenueId(defaultVenue ? defaultVenue.id.toString() : sortedVenues[0].id.toString());
+    }
+  }, [sortedVenues, selectedVenueId]);
+
+  // Find compatible pitch lengths for the filtered team
   const filteredTeam = useMemo(() => {
     if (selectedTeamId === "all") return null;
-    return teams.find((t) => t.id === parseInt(selectedTeamId));
+    return teams.find((t) => t.id === parseInt(selectedTeamId, 10));
   }, [selectedTeamId, teams]);
 
   // Filter & Sort Pitches based on venue, team compatibility, and entity type hierarchy
   const filteredPitches = useMemo(() => {
     const filtered = pitches.filter((pitch) => {
-      // 1. Venue Filter
       if (
         selectedVenueId !== "all" &&
-        pitch.venue !== parseInt(selectedVenueId)
+        pitch.venue !== parseInt(selectedVenueId, 10)
       ) {
         return false;
       }
-      // 2. Team Length Compatibility Filter
       if (filteredTeam && filteredTeam.required_length) {
         if (!pitch.supported_lengths.includes(filteredTeam.required_length)) {
           return false;
@@ -116,7 +124,6 @@ export default function CalendarView({
       return true;
     });
 
-    // Entity Type Priority Rank mapping
     const typeRank = {
       main: 1,
       youth: 2,
@@ -124,7 +131,6 @@ export default function CalendarView({
       net: 4,
     };
 
-    // Sort by entity_type hierarchy first, then Venue Name, then Pitch Name alphabetically
     return [...filtered].sort((a, b) => {
       const rankA = typeRank[(a.entity_type || "").toLowerCase()] || 99;
       const rankB = typeRank[(b.entity_type || "").toLowerCase()] || 99;
@@ -148,7 +154,6 @@ export default function CalendarView({
     });
   }, [pitches, selectedVenueId, filteredTeam, venues]);
 
-  // Set default mobile pitch selection if empty
   useEffect(() => {
     if (filteredPitches.length > 0 && !mobileSelectedPitchId) {
       setMobileSelectedPitchId(filteredPitches[0].id.toString());
@@ -169,52 +174,46 @@ export default function CalendarView({
     });
   }, [startDateStr]);
 
-  // Adjust week
   const shiftWeek = (weeks) => {
     const d = new Date(startDateStr);
     d.setDate(d.getDate() + weeks * 7);
     setStartDateStr(d.toISOString().split("T")[0]);
   };
 
-  // Shift single day for mobile view
   const shiftMobileDay = (days) => {
     const d = new Date(mobileSelectedDateStr);
     d.setDate(d.getDate() + days);
     setMobileSelectedDateStr(d.toISOString().split("T")[0]);
   };
 
-  // Compute allowed teams for the current user
   const allowedTeams = useMemo(() => {
-    if (!currentUser) return teams;
+    if (!currentUser) return sortedTeams;
     const hasAdminOrSec =
       currentUser.roles?.includes("ADMIN") ||
       currentUser.roles?.includes("FIXTURE_SECRETARY") ||
       currentUser.roles?.includes("USER_MANAGER");
-    if (hasAdminOrSec) return teams;
-    // Otherwise, only teams where user is manager
-    return teams.filter((t) => t.managers?.includes(currentUser.id));
-  }, [currentUser, teams]);
+    if (hasAdminOrSec) return sortedTeams;
+    return sortedTeams.filter((t) => t.managers?.includes(currentUser.id));
+  }, [currentUser, sortedTeams]);
 
-  // Check if a date falls within booking range
   const isDateInBooking = (dateStr, booking) => {
-    return dateStr >= booking.start_date && dateStr <= booking.end_date;
+    const start = booking.start_date || booking.date;
+    const end = booking.end_date || start;
+    return dateStr >= start && dateStr <= end;
   };
 
-  // Build booking grid cell mapping: returns booking info if occupied or blocked
   const getCellStatus = (pitchId, dateStr, timeSlot) => {
-    // Find all bookings matching this pitch + date + timeslot
     const matchingBookings = bookings.filter(
       (b) =>
-        b.pitch == pitchId &&
+        parseInt(b.pitch, 10) === parseInt(pitchId, 10) &&
         isDateInBooking(dateStr, b) &&
         (b.time_slot === "ALL_DAY" ||
           timeSlot === "ALL_DAY" ||
-          b.time_slot === timeSlot),
+          b.time_slot === timeSlot)
     );
 
-    // 1. Check for an approved/maintenance booking first — these are definitive locks
     const approvedBooking = matchingBookings.find(
-      (b) => b.status === "APPROVED" || b.status === "GROUND_MAINTENANCE",
+      (b) => b.status === "APPROVED" || b.status === "GROUND_MAINTENANCE"
     );
 
     if (approvedBooking) {
@@ -222,7 +221,6 @@ export default function CalendarView({
         return null;
       }
 
-      // Ground maintenance
       if (approvedBooking.booking_type === "GROUND_MAINTENANCE") {
         return {
           type: "BOOKED",
@@ -233,19 +231,9 @@ export default function CalendarView({
         };
       }
 
-      // Auto-lock notes
       if (approvedBooking.notes?.startsWith("AUTO_LOCK:")) {
         const parts = approvedBooking.notes.split(":");
         const pitchName = parts[2] || "Pitch";
-        return {
-          type: "BLOCKED",
-          label: `Blocked (${pitchName} active)`,
-          reason: `Outfield overlap due to booking on ${pitchName}`,
-        };
-      }
-      if (approvedBooking.notes?.startsWith("AUTO_OUTFIELD_LOCK:")) {
-        const parts = approvedBooking.notes.split(":");
-        const pitchName = parts[2] || "Main Pitch";
         return {
           type: "BLOCKED",
           label: `Blocked (${pitchName} active)`,
@@ -267,22 +255,18 @@ export default function CalendarView({
         label,
         status: approvedBooking.status,
         isMaintenance: false,
-        isOutfieldLock: false,
       };
     }
 
-    // 2. Check for pending bookings (slot not yet confirmed)
     const pendingBookings = matchingBookings.filter(
-      (b) => b.status === "PENDING",
+      (b) => b.status === "PENDING"
     );
 
     if (pendingBookings.length > 0) {
-      // Filter by selectedStatus if needed
       if (selectedStatus !== "all" && selectedStatus !== "PENDING") {
         return null;
       }
 
-      // Build label list for each pending booking
       const pendingItems = pendingBookings.map((b) => {
         const fixtureObj = b.fixture ? fixtures.find((f) => f.id === b.fixture) : null;
         const teamObj = fixtureObj ? teams.find((t) => t.id === fixtureObj.team) : null;
@@ -298,19 +282,18 @@ export default function CalendarView({
       };
     }
 
-    // 3. Overlap Blocking Logic (Evaluated Dynamically)
     const blockingPitches = pitches.filter((p) =>
-      p.blocks_pitches.includes(pitchId),
+      p.blocks_pitches?.includes(pitchId)
     );
     for (const bp of blockingPitches) {
       const activeBlockingBooking = bookings.find(
         (b) =>
-          b.pitch === bp.id &&
+          parseInt(b.pitch, 10) === parseInt(bp.id, 10) &&
           isDateInBooking(dateStr, b) &&
           b.status === "APPROVED" &&
           (b.time_slot === "ALL_DAY" ||
             timeSlot === "ALL_DAY" ||
-            b.time_slot === timeSlot),
+            b.time_slot === timeSlot)
       );
 
       if (activeBlockingBooking) {
@@ -319,7 +302,7 @@ export default function CalendarView({
           bp.entity_type !== "OUTFIELD" &&
           bp.entity_type !== "YOUTH"
         ) {
-          continue; // Skip this block
+          continue;
         }
 
         return {
@@ -337,7 +320,6 @@ export default function CalendarView({
     return currentUser?.roles?.includes("EXTERNAL");
   }, [currentUser]);
 
-  // Check role conditions for Groundstaff vs Fixture booking
   const isOnlyGroundstaff = useMemo(() => {
     if (!currentUser || !currentUser.roles) return false;
     const hasGroundstaff = currentUser.roles.includes("GROUNDSTAFF");
@@ -370,29 +352,26 @@ export default function CalendarView({
   };
 
   const handleCellClick = (pitchId, dateStr, timeSlot, existingCell) => {
-    // 1. Existing Booking / Blocked Slot clicked
     if (existingCell) {
       if (existingCell.type === "BLOCKED") {
         alert(
           existingCell.reason ||
-          "This slot is blocked due to an outfield overlap.",
+          "This slot is blocked due to an outfield overlap."
         );
         return;
       }
 
       if (existingCell.type === "BOOKED") {
         const b = existingCell.booking;
-
-        // If user has edit permissions, open edit modal
         if (canEditBooking(b)) {
           const fix = b.fixture ? fixtures.find((f) => f.id === b.fixture) : null;
           setEditData(b);
           setEditForm({
             pitchId: b.pitch.toString(),
             timeSlot: b.time_slot,
-            date: b.start_date,
-            endDate: b.end_date,
-            isMultiDay: b.start_date !== b.end_date,
+            date: b.start_date || b.date,
+            endDate: b.end_date || b.start_date || b.date,
+            isMultiDay: (b.start_date || b.date) !== (b.end_date || b.start_date || b.date),
             opponent: fix?.opponent || b.external_contact_name || "",
             requiresTeas: b.requires_teas,
             requiresDrinks: b.requires_drinks,
@@ -401,22 +380,19 @@ export default function CalendarView({
           setShowDeleteConfirm(false);
           setIsEditModalOpen(true);
         } else {
-          // Fallback info alert for bookings they can't edit
           alert(
-            `Booking Details:\nStatus: ${b.status}\nNotes: ${b.notes || "None"}`,
+            `Booking Details:\nStatus: ${b.status}\nNotes: ${b.notes || "None"}`
           );
         }
         return;
       }
 
-      // PENDING_MULTI: slot has pending requests — allow requesting it regardless
       if (existingCell.type === "PENDING_MULTI") {
         if (isExternalUser) {
           alert("This slot has pending requests. External users cannot create bookings directly.");
           return;
         }
         if (isOnlyGroundstaff) {
-          // Groundstaff can do maintenance even on pending slots
           setMaintenanceData({
             pitchId: pitchId.toString(),
             date: dateStr,
@@ -428,7 +404,6 @@ export default function CalendarView({
           setIsMaintenanceModalOpen(true);
           return;
         }
-        // Open booking modal — allow requesting even if pending requests exist
         setModalData({
           pitchId: pitchId.toString(),
           date: dateStr,
@@ -446,13 +421,11 @@ export default function CalendarView({
       }
     }
 
-    // 2. Empty slot clicked -> Restricted if external
     if (isExternalUser) {
       alert("External users cannot create bookings directly.");
       return;
     }
 
-    // 3. Groundstaff-only role triggers Maintenance Modal
     if (isOnlyGroundstaff) {
       setMaintenanceData({
         pitchId: pitchId.toString(),
@@ -466,7 +439,6 @@ export default function CalendarView({
       return;
     }
 
-    // Otherwise, open standard fixture booking modal
     setModalData({
       pitchId: pitchId.toString(),
       date: dateStr,
@@ -495,14 +467,14 @@ export default function CalendarView({
     }
 
     const payload = {
-      pitch: parseInt(modalData.pitchId),
+      pitch: parseInt(modalData.pitchId, 10),
       start_date: modalData.date,
       end_date: modalData.isMultiDay ? modalData.endDate : modalData.date,
       time_slot: modalData.timeSlot,
       requires_teas: modalData.requiresTeas,
       requires_drinks: modalData.requiresDrinks,
       notes: modalData.notes,
-      fixture_team: parseInt(modalData.teamId),
+      fixture_team: parseInt(modalData.teamId, 10),
       fixture_opponent: modalData.opponent,
     };
 
@@ -520,7 +492,7 @@ export default function CalendarView({
     setEditSaving(true);
     try {
       await onBookingUpdated(editData.id, {
-        pitch: parseInt(editForm.pitchId || editData.pitch),
+        pitch: parseInt(editForm.pitchId || editData.pitch, 10),
         time_slot: editForm.timeSlot,
         start_date: editForm.date,
         end_date: editForm.isMultiDay ? editForm.endDate : editForm.date,
@@ -554,7 +526,6 @@ export default function CalendarView({
     <div className="space-y-6">
       {/* Calendar Header with Controls & Filters */}
       <div className="glass-panel p-6 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
-        {/* Date Selector (Desktop) */}
         <div className="hidden md:flex items-center space-x-3">
           <button
             onClick={() => shiftWeek(-1)}
@@ -581,7 +552,6 @@ export default function CalendarView({
           </button>
         </div>
 
-        {/* Mobile View Toggle & Notice */}
         <div className="flex md:hidden flex-col gap-2 w-full">
           <div className="flex items-center justify-between bg-slate-900 p-1.5 rounded-xl border border-slate-800">
             <button
@@ -605,9 +575,7 @@ export default function CalendarView({
           </div>
         </div>
 
-        {/* Filters & View Mode Toggle */}
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-          {/* Desktop View Mode Toggle Button Group */}
           <div className="hidden md:flex bg-slate-900 p-1 rounded-xl border border-slate-800 shrink-0">
             <button
               onClick={() => setViewMode("transposed")}
@@ -615,7 +583,6 @@ export default function CalendarView({
                   ? "bg-emerald-500 text-slate-950 font-bold"
                   : "text-slate-400 hover:text-slate-200"
                 }`}
-              title="Pitches across (columns), Days & Sessions down (rows)"
             >
               Pitches Across
             </button>
@@ -625,13 +592,13 @@ export default function CalendarView({
                   ? "bg-emerald-500 text-slate-950 font-bold"
                   : "text-slate-400 hover:text-slate-200"
                 }`}
-              title="Days across (columns), Pitches down (rows)"
             >
               Days Across
             </button>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full md:w-auto">
+            {/* Sorted Venue Dropdown */}
             <div className="flex items-center space-x-2">
               <Filter size={16} className="text-slate-400 shrink-0" />
               <select
@@ -639,7 +606,7 @@ export default function CalendarView({
                 onChange={(e) => setSelectedVenueId(e.target.value)}
                 className="bg-slate-800 text-slate-200 text-sm rounded-xl py-2 px-3 outline-none border border-slate-700 w-full focus:border-emerald-500"
               >
-                {venues.map((v) => (
+                {sortedVenues.map((v) => (
                   <option key={v.id} value={v.id}>
                     {v.name}
                   </option>
@@ -647,17 +614,18 @@ export default function CalendarView({
               </select>
             </div>
 
+            {/* Sorted Team Dropdown */}
             <select
               value={selectedTeamId}
               onChange={(e) => setSelectedTeamId(e.target.value)}
               className="bg-slate-800 text-slate-200 text-sm rounded-xl py-2 px-3 outline-none border border-slate-700 w-full focus:border-emerald-500"
             >
               <option value="all">Filter by Team</option>
-              {teams
+              {sortedTeams
                 .filter((t) => !t.is_external)
                 .map((t) => {
                   const length = pitchLengths.find(
-                    (l) => l.id === t.required_length,
+                    (l) => l.id === t.required_length
                   );
                   return (
                     <option key={t.id} value={t.id}>
@@ -681,7 +649,6 @@ export default function CalendarView({
         </div>
       </div>
 
-      {/* Info Warning Bar */}
       {filteredTeam && (
         <div className="bg-emerald-950/40 border border-emerald-800/60 p-4 rounded-xl flex items-center space-x-3 text-emerald-300 text-sm">
           <CheckCircle2 size={18} className="shrink-0" />
@@ -700,12 +667,9 @@ export default function CalendarView({
         </div>
       )}
 
-      {/* ========================================================= */}
-      {/* MOBILE RESPONSIVE VIEWS (Visible only on mobile screens)   */}
-      {/* ========================================================= */}
+      {/* MOBILE RESPONSIVE VIEWS */}
       <div className="block md:hidden space-y-4">
         {mobileLayoutMode === "singleDay" ? (
-          /* MOBILE VIEW A: Single Day Column with Pitch Rows */
           <div className="glass-panel p-4 rounded-2xl space-y-4">
             <div className="flex items-center justify-between">
               <button
@@ -760,7 +724,7 @@ export default function CalendarView({
                           const cell = getCellStatus(
                             pitch.id,
                             mobileSelectedDateStr,
-                            slot,
+                            slot
                           );
                           return (
                             <div key={slot} className="space-y-1">
@@ -774,7 +738,7 @@ export default function CalendarView({
                                     pitch.id,
                                     mobileSelectedDateStr,
                                     slot,
-                                    cell,
+                                    cell
                                   )
                                 }
                                 compact={true}
@@ -791,7 +755,6 @@ export default function CalendarView({
             </div>
           </div>
         ) : (
-          /* MOBILE VIEW B: Single Pitch Column with Day Rows */
           <div className="glass-panel p-4 rounded-2xl space-y-4">
             <div>
               <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
@@ -810,7 +773,6 @@ export default function CalendarView({
               </select>
             </div>
 
-            {/* Week Navigation for Single Pitch View */}
             <div className="flex items-center justify-between bg-slate-900/80 p-2 rounded-xl border border-slate-800">
               <button
                 onClick={() => shiftWeek(-1)}
@@ -847,9 +809,9 @@ export default function CalendarView({
                   <div className="grid grid-cols-3 gap-2">
                     {["MORNING", "AFTERNOON", "EVENING"].map((slot) => {
                       const cell = getCellStatus(
-                        parseInt(mobileSelectedPitchId),
+                        parseInt(mobileSelectedPitchId, 10),
                         day.isoStr,
-                        slot,
+                        slot
                       );
                       return (
                         <div key={slot} className="space-y-1">
@@ -860,10 +822,10 @@ export default function CalendarView({
                             cell={cell}
                             onClick={() =>
                               handleCellClick(
-                                parseInt(mobileSelectedPitchId),
+                                parseInt(mobileSelectedPitchId, 10),
                                 day.isoStr,
                                 slot,
-                                cell,
+                                cell
                               )
                             }
                             compact={true}
@@ -880,13 +842,10 @@ export default function CalendarView({
         )}
       </div>
 
-      {/* ========================================================= */}
-      {/* EXISTING DESKTOP CALENDAR MATRIX (Hidden on mobile)       */}
-      {/* ========================================================= */}
+      {/* DESKTOP CALENDAR MATRIX */}
       <div className="hidden md:block glass-panel rounded-2xl overflow-hidden border border-slate-800">
         <div className="overflow-x-auto">
           {viewMode === "transposed" ? (
-            /* TRANSPOSED MODE: Pitches Across (Columns), Days & Sessions Down (Rows) */
             <table className="w-full table-fixed border-collapse text-left min-w-[900px]">
               <thead>
                 <tr className="bg-slate-900/80 border-b border-slate-850">
@@ -922,7 +881,6 @@ export default function CalendarView({
                 ) : (
                   datesList.map((day) => (
                     <React.Fragment key={day.isoStr}>
-                      {/* Day Group Header Row */}
                       <tr className="bg-slate-900/90 border-t-4 border-b-2 border-emerald-500/40">
                         <td
                           colSpan={filteredPitches.length + 1}
@@ -931,127 +889,53 @@ export default function CalendarView({
                           {day.label}
                         </td>
                       </tr>
-                      {/* Morning Slot Row */}
-                      <tr className="border-b border-slate-800/30 hover:bg-slate-800/10">
-                        <td className="px-3 py-1.5 border-r border-slate-800 font-medium bg-slate-950/40">
-                          <span className="text-xs text-slate-300 font-semibold block">
-                            Morning
-                          </span>
-                          <span className="text-[10px] text-slate-500 block">
-                            09:00 - 13:00
-                          </span>
-                        </td>
-                        {filteredPitches.map((pitch) => {
-                          const cell = getCellStatus(
-                            pitch.id,
-                            day.isoStr,
-                            "MORNING",
-                          );
-                          return (
-                            <td
-                              key={pitch.id}
-                              className="p-1 border-r border-slate-800/40 last:border-r-0 align-top"
-                            >
-                              <CellContent
-                                cell={cell}
-                                onClick={() =>
-                                  handleCellClick(
-                                    pitch.id,
-                                    day.isoStr,
-                                    "MORNING",
-                                    cell,
-                                  )
-                                }
-                                compact={true}
-                                isExternal={isExternalUser}
-                              />
-                            </td>
-                          );
-                        })}
-                      </tr>
-                      {/* Afternoon Slot Row */}
-                      <tr className="border-b border-slate-800/30 hover:bg-slate-800/10">
-                        <td className="px-3 py-1.5 border-r border-slate-800 font-medium bg-slate-950/40">
-                          <span className="text-xs text-slate-300 font-semibold block">
-                            Afternoon
-                          </span>
-                          <span className="text-[10px] text-slate-500 block">
-                            13:30 - 18:00
-                          </span>
-                        </td>
-                        {filteredPitches.map((pitch) => {
-                          const cell = getCellStatus(
-                            pitch.id,
-                            day.isoStr,
-                            "AFTERNOON",
-                          );
-                          return (
-                            <td
-                              key={pitch.id}
-                              className="p-1 border-r border-slate-800/40 last:border-r-0 align-top"
-                            >
-                              <CellContent
-                                cell={cell}
-                                onClick={() =>
-                                  handleCellClick(
-                                    pitch.id,
-                                    day.isoStr,
-                                    "AFTERNOON",
-                                    cell,
-                                  )
-                                }
-                                compact={true}
-                                isExternal={isExternalUser}
-                              />
-                            </td>
-                          );
-                        })}
-                      </tr>
-                      {/* Evening Slot Row */}
-                      <tr className="border-b-2 border-slate-800 hover:bg-slate-800/10">
-                        <td className="px-3 py-1.5 border-r border-slate-800 font-medium bg-slate-950/40">
-                          <span className="text-xs text-slate-300 font-semibold block">
-                            Evening
-                          </span>
-                          <span className="text-[10px] text-slate-500 block">
-                            18:00 - 21:00
-                          </span>
-                        </td>
-                        {filteredPitches.map((pitch) => {
-                          const cell = getCellStatus(
-                            pitch.id,
-                            day.isoStr,
-                            "EVENING",
-                          );
-                          return (
-                            <td
-                              key={pitch.id}
-                              className="p-1 border-r border-slate-800/40 last:border-r-0 align-top"
-                            >
-                              <CellContent
-                                cell={cell}
-                                onClick={() =>
-                                  handleCellClick(
-                                    pitch.id,
-                                    day.isoStr,
-                                    "EVENING",
-                                    cell,
-                                  )
-                                }
-                                compact={true}
-                                isExternal={isExternalUser}
-                              />
-                            </td>
-                          );
-                        })}
-                      </tr>
+                      {["MORNING", "AFTERNOON", "EVENING"].map((slot) => (
+                        <tr key={slot} className="border-b border-slate-800/30 hover:bg-slate-800/10">
+                          <td className="px-3 py-1.5 border-r border-slate-800 font-medium bg-slate-950/40">
+                            <span className="text-xs text-slate-300 font-semibold block capitalize">
+                              {slot.toLowerCase()}
+                            </span>
+                            <span className="text-[10px] text-slate-500 block">
+                              {slot === "MORNING" && "09:00 - 13:00"}
+                              {slot === "AFTERNOON" && "13:30 - 18:00"}
+                              {slot === "EVENING" && "18:00 - 21:00"}
+                            </span>
+                          </td>
+                          {filteredPitches.map((pitch) => {
+                            const cell = getCellStatus(
+                              pitch.id,
+                              day.isoStr,
+                              slot
+                            );
+                            return (
+                              <td
+                                key={pitch.id}
+                                className="p-1 border-r border-slate-800/40 last:border-r-0 align-top"
+                              >
+                                <CellContent
+                                  cell={cell}
+                                  onClick={() =>
+                                    handleCellClick(
+                                      pitch.id,
+                                      day.isoStr,
+                                      slot,
+                                      cell
+                                    )
+                                  }
+                                  compact={true}
+                                  isExternal={isExternalUser}
+                                />
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
                     </React.Fragment>
                   ))
                 )}
               </tbody>
             </table>
           ) : (
-            /* STANDARD MODE: Days Across (Columns), Pitches Down (Rows Grouped by Pitch) */
             <table className="w-full table-fixed border-collapse text-left min-w-[900px]">
               <thead>
                 <tr className="bg-slate-900/80 border-b border-slate-850">
@@ -1100,122 +984,47 @@ export default function CalendarView({
                           </td>
                         </tr>
 
-                        {/* Morning Slot Row */}
-                        <tr className="border-b border-slate-800/30 hover:bg-slate-800/10">
-                          <td className="px-3 py-1.5 border-r border-slate-800 font-medium bg-slate-950/40">
-                            <span className="text-xs text-slate-300 font-semibold block">
-                              Morning
-                            </span>
-                            <span className="text-[10px] text-slate-500 block">
-                              09:00 - 13:00
-                            </span>
-                          </td>
-                          {datesList.map((day) => {
-                            const cell = getCellStatus(
-                              pitch.id,
-                              day.isoStr,
-                              "MORNING",
-                            );
-                            return (
-                              <td
-                                key={day.isoStr}
-                                className="p-1 border-r border-slate-800/40 last:border-r-0 align-top"
-                              >
-                                <CellContent
-                                  cell={cell}
-                                  onClick={() =>
-                                    handleCellClick(
-                                      pitch.id,
-                                      day.isoStr,
-                                      "MORNING",
-                                      cell,
-                                    )
-                                  }
-                                  compact={true}
-                                  isExternal={isExternalUser}
-                                />
-                              </td>
-                            );
-                          })}
-                        </tr>
-
-                        {/* Afternoon Slot Row */}
-                        <tr className="border-b border-slate-800/30 hover:bg-slate-800/10">
-                          <td className="px-3 py-1.5 border-r border-slate-800 font-medium bg-slate-950/40">
-                            <span className="text-xs text-slate-300 font-semibold block">
-                              Afternoon
-                            </span>
-                            <span className="text-[10px] text-slate-500 block">
-                              13:30 - 18:00
-                            </span>
-                          </td>
-                          {datesList.map((day) => {
-                            const cell = getCellStatus(
-                              pitch.id,
-                              day.isoStr,
-                              "AFTERNOON",
-                            );
-                            return (
-                              <td
-                                key={day.isoStr}
-                                className="p-1 border-r border-slate-800/40 last:border-r-0 align-top"
-                              >
-                                <CellContent
-                                  cell={cell}
-                                  onClick={() =>
-                                    handleCellClick(
-                                      pitch.id,
-                                      day.isoStr,
-                                      "AFTERNOON",
-                                      cell,
-                                    )
-                                  }
-                                  compact={true}
-                                  isExternal={isExternalUser}
-                                />
-                              </td>
-                            );
-                          })}
-                        </tr>
-
-                        {/* Evening Slot Row */}
-                        <tr className="border-b-2 border-slate-800 hover:bg-slate-800/10">
-                          <td className="px-3 py-1.5 border-r border-slate-800 font-medium bg-slate-950/40">
-                            <span className="text-xs text-slate-300 font-semibold block">
-                              Evening
-                            </span>
-                            <span className="text-[10px] text-slate-500 block">
-                              18:00 - 21:00
-                            </span>
-                          </td>
-                          {datesList.map((day) => {
-                            const cell = getCellStatus(
-                              pitch.id,
-                              day.isoStr,
-                              "EVENING",
-                            );
-                            return (
-                              <td
-                                key={day.isoStr}
-                                className="p-1 border-r border-slate-800/40 last:border-r-0 align-top"
-                              >
-                                <CellContent
-                                  cell={cell}
-                                  onClick={() =>
-                                    handleCellClick(
-                                      pitch.id,
-                                      day.isoStr,
-                                      "EVENING",
-                                      cell,
-                                    )
-                                  }
-                                  compact={true}
-                                  isExternal={isExternalUser}
-                                />
-                              </td>
-                            );
-                          })}
-                        </tr>
+                        {["MORNING", "AFTERNOON", "EVENING"].map((slot) => (
+                          <tr key={slot} className="border-b border-slate-800/30 hover:bg-slate-800/10">
+                            <td className="px-3 py-1.5 border-r border-slate-800 font-medium bg-slate-950/40">
+                              <span className="text-xs text-slate-300 font-semibold block capitalize">
+                                {slot.toLowerCase()}
+                              </span>
+                              <span className="text-[10px] text-slate-500 block">
+                                {slot === "MORNING" && "09:00 - 13:00"}
+                                {slot === "AFTERNOON" && "13:30 - 18:00"}
+                                {slot === "EVENING" && "18:00 - 21:00"}
+                              </span>
+                            </td>
+                            {datesList.map((day) => {
+                              const cell = getCellStatus(
+                                pitch.id,
+                                day.isoStr,
+                                slot
+                              );
+                              return (
+                                <td
+                                  key={day.isoStr}
+                                  className="p-1 border-r border-slate-800/40 last:border-r-0 align-top"
+                                >
+                                  <CellContent
+                                    cell={cell}
+                                    onClick={() =>
+                                      handleCellClick(
+                                        pitch.id,
+                                        day.isoStr,
+                                        slot,
+                                        cell
+                                      )
+                                    }
+                                    compact={true}
+                                    isExternal={isExternalUser}
+                                  />
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        ))}
                       </React.Fragment>
                     );
                   })
@@ -1255,17 +1064,17 @@ export default function CalendarView({
                       let updatedTeamId = modalData.teamId;
                       if (newPitchId && modalData.teamId) {
                         const newPitch = pitches.find(
-                          (p) => p.id === parseInt(newPitchId),
+                          (p) => p.id === parseInt(newPitchId, 10)
                         );
                         const currentTeam = teams.find(
-                          (t) => t.id === parseInt(modalData.teamId),
+                          (t) => t.id === parseInt(modalData.teamId, 10)
                         );
                         if (
                           newPitch &&
                           currentTeam &&
                           currentTeam.required_length &&
                           !newPitch.supported_lengths.includes(
-                            currentTeam.required_length,
+                            currentTeam.required_length
                           )
                         ) {
                           updatedTeamId = "";
@@ -1329,13 +1138,13 @@ export default function CalendarView({
 
                       if (modalData.pitchId) {
                         const selectedPitch = pitches.find(
-                          (p) => p.id === parseInt(modalData.pitchId),
+                          (p) => p.id === parseInt(modalData.pitchId, 10)
                         );
                         if (
                           selectedPitch &&
                           t.required_length &&
                           !selectedPitch.supported_lengths.includes(
-                            t.required_length,
+                            t.required_length
                           )
                         ) {
                           return false;
@@ -1378,6 +1187,9 @@ export default function CalendarView({
                         setModalData({
                           ...modalData,
                           isMultiDay: e.target.checked,
+                          endDate: e.target.checked
+                            ? modalData.endDate || modalData.date
+                            : modalData.date,
                         })
                       }
                       className="rounded text-emerald-500 bg-slate-800 border-slate-700 focus:ring-emerald-500"
@@ -1491,7 +1303,7 @@ export default function CalendarView({
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-semibold shadow-lg shadow-emerald-550/20 transition"
+                  className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-semibold shadow-lg transition"
                 >
                   Submit Request
                 </button>
@@ -1501,7 +1313,6 @@ export default function CalendarView({
         </div>
       )}
 
-      {/* Ground Maintenance Modal Component */}
       <GroundMaintenanceModal
         isOpen={isMaintenanceModalOpen}
         onClose={() => setIsMaintenanceModalOpen(false)}
@@ -1517,7 +1328,7 @@ export default function CalendarView({
           <div className="glass-panel w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden border border-slate-800 max-h-[90vh] flex flex-col">
             <div className="bg-slate-900 px-6 py-4 border-b border-slate-800 flex justify-between items-center">
               <div className="flex items-center space-x-3">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-500 flex items-center justify-center shadow-lg">
                   <Pencil size={16} className="text-slate-950 font-bold" />
                 </div>
                 <div>
@@ -1684,7 +1495,7 @@ export default function CalendarView({
                       type="button"
                       onClick={handleDeleteBooking}
                       disabled={editSaving}
-                      className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-bold shadow-lg shadow-red-900/30 transition flex items-center justify-center space-x-2"
+                      className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-bold shadow-lg transition flex items-center justify-center space-x-2"
                     >
                       <Trash2 size={16} />
                       <span>
@@ -1706,7 +1517,7 @@ export default function CalendarView({
                   <button
                     type="submit"
                     disabled={editSaving}
-                    className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-semibold shadow-lg shadow-emerald-550/20 transition"
+                    className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-semibold shadow-lg transition"
                   >
                     {editSaving ? "Saving…" : "Save Changes"}
                   </button>
@@ -1720,11 +1531,9 @@ export default function CalendarView({
   );
 }
 
-// Inner helper component for cell mapping with robust interactive buttons
 function CellContent({ cell, onClick, compact = false, isExternal = false }) {
   const heightClass = compact ? "h-16" : "h-24";
 
-  // 1. Empty / Available Slot
   if (!cell) {
     if (isExternal) {
       return (
@@ -1751,13 +1560,13 @@ function CellContent({ cell, onClick, compact = false, isExternal = false }) {
     );
   }
 
-  // 2. Blocked Slot
   if (cell.type === "BLOCKED") {
     return (
       <button
         type="button"
         onClick={onClick}
-        className={`w-full ${heightClass} text-left bg-slate-900/60 border border-slate-800 rounded-xl ${compact ? "p-1.5" : "p-2.5"} flex flex-col justify-between overflow-hidden cursor-pointer hover:border-slate-700 transition`}
+        className={`w-full ${heightClass} text-left bg-slate-900/60 border border-slate-800 rounded-xl ${compact ? "p-1.5" : "p-2.5"
+          } flex flex-col justify-between overflow-hidden cursor-pointer hover:border-slate-700 transition`}
         title={isExternal ? "Unavailable" : cell.reason}
       >
         <div className="flex items-start space-x-1 text-slate-500 pointer-events-none">
@@ -1775,18 +1584,16 @@ function CellContent({ cell, onClick, compact = false, isExternal = false }) {
     );
   }
 
-  // 3. Multiple Pending Requests (PENDING_MULTI)
   if (cell.type === "PENDING_MULTI") {
     const count = cell.pendingItems.length;
     return (
       <button
         type="button"
         onClick={onClick}
-        className={`w-full ${heightClass} text-left cursor-pointer border rounded-xl ${compact ? "p-1.5" : "p-2"} flex flex-col justify-between overflow-hidden transition-all duration-300 bg-violet-950/25 border-violet-900/60 hover:border-violet-500/70 hover:bg-violet-950/40 group`}
-        title={isExternal ? `${count} pending request${count > 1 ? "s" : ""}` : `${count} pending request${count > 1 ? "s" : ""} — click to add your own`}
+        className={`w-full ${heightClass} text-left cursor-pointer border rounded-xl ${compact ? "p-1.5" : "p-2"
+          } flex flex-col justify-between overflow-hidden transition-all duration-300 bg-violet-950/25 border-violet-900/60 hover:border-violet-500/70 hover:bg-violet-950/40 group`}
       >
         <div className="pointer-events-none w-full space-y-0.5 overflow-hidden">
-          {/* Header badge */}
           <div className="flex items-center justify-between gap-1 mb-1">
             <span className="text-[9px] px-1.5 py-0.5 rounded font-extrabold uppercase font-display bg-violet-900/50 text-violet-300 flex items-center gap-1 truncate">
               {count} Pending
@@ -1797,7 +1604,6 @@ function CellContent({ cell, onClick, compact = false, isExternal = false }) {
               </span>
             )}
           </div>
-          {/* List first 1–2 pending items */}
           {cell.pendingItems.slice(0, compact ? 1 : 2).map(({ booking, label }) => (
             <p key={booking.id} className="text-[10px] text-slate-400 truncate leading-tight">
               {isExternal ? "Pending" : label}
@@ -1813,7 +1619,6 @@ function CellContent({ cell, onClick, compact = false, isExternal = false }) {
     );
   }
 
-  // 4. Single Booked Slot (APPROVED or maintenance)
   const isApproved = cell.status === "APPROVED";
   const isMaintenance = cell.isMaintenance;
 
@@ -1821,23 +1626,24 @@ function CellContent({ cell, onClick, compact = false, isExternal = false }) {
     <button
       type="button"
       onClick={onClick}
-      className={`w-full ${heightClass} text-left cursor-pointer border rounded-xl ${compact ? "p-1.5" : "p-2.5"} flex flex-col justify-between overflow-hidden transition-all duration-300 ${isMaintenance
-          ? "bg-amber-950/40 border-amber-800/80 hover:border-amber-500 shadow-sm shadow-amber-900/10"
+      className={`w-full ${heightClass} text-left cursor-pointer border rounded-xl ${compact ? "p-1.5" : "p-2.5"
+        } flex flex-col justify-between overflow-hidden transition-all duration-300 ${isMaintenance
+          ? "bg-amber-950/40 border-amber-800/80 hover:border-amber-500 shadow-sm"
           : isApproved
-            ? "bg-emerald-950/30 border-emerald-900/80 hover:border-blue-500 shadow-sm shadow-emerald-900/10"
+            ? "bg-emerald-950/30 border-emerald-900/80 hover:border-blue-500 shadow-sm"
             : "bg-amber-950/20 border-amber-900/50 hover:border-blue-500"
         }`}
     >
       <div className="pointer-events-none w-full">
         <div className="flex items-center justify-between gap-1 mb-0.5">
           {isMaintenance ? (
-            <span className="text-[9px] px-1.5 py-0.2 rounded font-extrabold uppercase font-display truncate bg-amber-900/60 text-amber-300 flex items-center gap-1">
+            <span className="text-[9px] px-1.5 py-0.5 rounded font-extrabold uppercase font-display truncate bg-amber-900/60 text-amber-300 flex items-center gap-1">
               <Shovel size={10} />
               Maintenance
             </span>
           ) : (
             <span
-              className={`text-[9px] px-1.5 py-0.2 rounded font-extrabold uppercase font-display truncate ${isApproved
+              className={`text-[9px] px-1.5 py-0.5 rounded font-extrabold uppercase font-display truncate ${isApproved
                   ? "bg-emerald-900/50 text-emerald-400"
                   : "bg-amber-900/50 text-amber-400"
                 }`}
@@ -1851,8 +1657,8 @@ function CellContent({ cell, onClick, compact = false, isExternal = false }) {
         </p>
       </div>
 
-      {!compact && !isExternal && cell.booking.notes && !isMaintenance && (
-        <span className="text-[10px] text-slate-450 line-clamp-1 italic pointer-events-none">
+      {!compact && !isExternal && cell.booking?.notes && !isMaintenance && (
+        <span className="text-[10px] text-slate-400 line-clamp-1 italic pointer-events-none">
           "{cell.booking.notes}"
         </span>
       )}

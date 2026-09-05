@@ -31,6 +31,7 @@ export default function VenuesManager({
   const [showVenueForm, setShowVenueForm] = useState(false);
   const [editingVenue, setEditingVenue] = useState(null);
   const [venueName, setVenueName] = useState("");
+  const [venueIsDefault, setVenueIsDefault] = useState(false);
 
   // --- PITCH FORM STATE ---
   const [selectedPitchVenueFilter, setSelectedPitchVenueFilter] = useState("");
@@ -51,7 +52,7 @@ export default function VenuesManager({
   const [lengthDescription, setLengthDescription] = useState("");
 
   // Delete Confirm Modal State
-  const [deleteTarget, setDeleteTarget] = useState(null); // { type: 'venue'|'pitch'|'length', id, name }
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   // Set default filter to the first venue when venues load
   useEffect(() => {
@@ -68,6 +69,7 @@ export default function VenuesManager({
   // ------------------ VENUE HANDLERS ------------------
   const resetVenueForm = () => {
     setVenueName("");
+    setVenueIsDefault(false);
     setEditingVenue(null);
     setShowVenueForm(false);
   };
@@ -77,11 +79,16 @@ export default function VenuesManager({
     if (!venueName.trim()) return;
 
     try {
+      const payload = {
+        name: venueName.trim(),
+        is_default: venueIsDefault,
+      };
+
       if (editingVenue) {
-        await api.updateVenue(editingVenue.id, { name: venueName.trim() });
+        await api.updateVenue(editingVenue.id, payload);
         showToast(`Venue "${venueName.trim()}" updated`);
       } else {
-        await api.createVenue({ name: venueName.trim() });
+        await api.createVenue(payload);
         showToast(`Venue "${venueName.trim()}" created`);
       }
       resetVenueForm();
@@ -328,7 +335,7 @@ export default function VenuesManager({
               <h4 className="text-sm font-bold text-slate-200 font-display">
                 {editingVenue ? "Edit Venue" : "New Ground Venue"}
               </h4>
-              <div className="flex gap-4">
+              <div className="flex flex-col sm:flex-row gap-4">
                 <input
                   type="text"
                   required
@@ -337,19 +344,36 @@ export default function VenuesManager({
                   onChange={(e) => setVenueName(e.target.value)}
                   className="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-200 placeholder-slate-500 outline-none focus:border-emerald-500"
                 />
-                <button
-                  type="submit"
-                  className="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs transition"
+                <div className="flex gap-2">
+                  <button
+                    type="submit"
+                    className="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs transition"
+                  >
+                    {editingVenue ? "Update" : "Save"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={resetVenueForm}
+                    className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl text-xs transition"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2 pt-1">
+                <input
+                  id="venue-default"
+                  type="checkbox"
+                  checked={venueIsDefault}
+                  onChange={(e) => setVenueIsDefault(e.target.checked)}
+                  className="w-4 h-4 rounded text-emerald-500 bg-slate-950 border-slate-700 focus:ring-emerald-500/40"
+                />
+                <label
+                  htmlFor="venue-default"
+                  className="text-xs text-slate-300 select-none cursor-pointer font-medium"
                 >
-                  {editingVenue ? "Update" : "Save"}
-                </button>
-                <button
-                  type="button"
-                  onClick={resetVenueForm}
-                  className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl text-xs transition"
-                >
-                  Cancel
-                </button>
+                  Set as Default Venue (automatically selected in calendar)
+                </label>
               </div>
             </form>
           )}
@@ -362,16 +386,24 @@ export default function VenuesManager({
                   key={v.id}
                   className="glass-panel p-5 rounded-2xl border border-slate-800 flex flex-col justify-between space-y-3"
                 >
-                  <div>
+                  <div className="space-y-2">
                     <div className="flex justify-between items-start">
-                      <h4 className="font-bold text-slate-100 font-display text-base">
-                        {v.name}
-                      </h4>
+                      <div className="space-y-1">
+                        <h4 className="font-bold text-slate-100 font-display text-base">
+                          {v.name}
+                        </h4>
+                        {v.is_default && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-950/50 text-emerald-400 border border-emerald-900/40">
+                            Default Venue
+                          </span>
+                        )}
+                      </div>
                       <div className="flex space-x-1">
                         <button
                           onClick={() => {
                             setEditingVenue(v);
                             setVenueName(v.name);
+                            setVenueIsDefault(v.is_default || false);
                             setShowVenueForm(true);
                           }}
                           className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-400 hover:bg-slate-800 transition"
@@ -392,9 +424,8 @@ export default function VenuesManager({
                         </button>
                       </div>
                     </div>
-                    <p className="text-xs text-slate-400 mt-1">
-                      {venuePitches.length} Pitch
-                      {venuePitches.length !== 1 ? "es" : ""} Allocated
+                    <p className="text-xs text-slate-400">
+                      {venuePitches.length} Pitch{venuePitches.length !== 1 ? "es" : ""} Allocated
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-1.5 pt-2 border-t border-slate-850">
@@ -625,7 +656,7 @@ export default function VenuesManager({
             </form>
           )}
 
-          {/* Pitches List (Sorted by Entity Type & Alphabetically) */}
+          {/* Pitches List */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {displayedPitches.length === 0 ? (
               <div className="col-span-2 p-8 text-center text-slate-500 text-xs italic glass-panel rounded-2xl">
@@ -646,7 +677,7 @@ export default function VenuesManager({
                     <div className="space-y-2">
                       <div className="flex justify-between items-start">
                         <div>
-                          <span className="text-xxs uppercase tracking-wider font-bold text-emerald-400 font-display">
+                          <span className="text-[10px] uppercase tracking-wider font-bold text-emerald-400 font-display">
                             {venueObj?.name}
                           </span>
                           <h4 className="font-bold text-slate-100 font-display text-base flex items-center gap-2">
@@ -694,7 +725,7 @@ export default function VenuesManager({
 
                       {/* Supported lengths */}
                       <div className="text-xs space-y-1">
-                        <span className="text-slate-500 font-semibold block text-xxs uppercase tracking-wider">
+                        <span className="text-slate-500 font-semibold block text-[10px] uppercase tracking-wider">
                           Supported Lengths:
                         </span>
                         <div className="flex flex-wrap gap-1">
@@ -703,7 +734,7 @@ export default function VenuesManager({
                             return (
                               <span
                                 key={lenId}
-                                className="text-xxs px-2 py-0.5 rounded bg-slate-900/80 text-emerald-300 border border-slate-800"
+                                className="text-[10px] px-2 py-0.5 rounded bg-slate-900/80 text-emerald-300 border border-slate-800"
                               >
                                 {lObj ? `${lObj.length_yards} Yards` : `ID ${lenId}`}
                               </span>
@@ -715,10 +746,10 @@ export default function VenuesManager({
                       {/* Overlaps */}
                       {blockedPitchNames.length > 0 && (
                         <div className="bg-amber-950/20 border border-amber-900/40 p-2 rounded-xl text-xs text-amber-300 space-y-0.5">
-                          <span className="font-bold text-xxs block uppercase tracking-wider">
+                          <span className="font-bold text-[10px] block uppercase tracking-wider">
                             Overlap Rules:
                           </span>
-                          <p className="text-xxs">
+                          <p className="text-[10px]">
                             Booking this pitch automatically blocks: {blockedPitchNames.join(", ")}
                           </p>
                         </div>

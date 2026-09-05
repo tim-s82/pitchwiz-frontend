@@ -158,6 +158,15 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(bookingData),
     }),
+
+  // Change Password
+  changePassword: (data) =>
+    apiRequest("/api/users/change-password/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    }),
+
   // Team CRUD
   createTeam: (data) =>
     apiRequest("/api/teams/", {
