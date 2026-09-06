@@ -51,7 +51,7 @@ export default function UserManagement() {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/users/`, {
+      const response = await fetch(`${API_BASE_URL}/api/users`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("access_token")}`,
         },
@@ -130,7 +130,7 @@ export default function UserManagement() {
         };
 
         const response = await fetch(
-          `${API_BASE_URL}/api/users/${editingUser.id}/`,
+          `${API_BASE_URL}/api/users/${editingUser.id}`,
           {
             method: "PATCH",
             headers: {
@@ -164,7 +164,7 @@ export default function UserManagement() {
           roles: selectedRoles,
         };
 
-        const response = await fetch(`${API_BASE_URL}/api/users/`, {
+        const response = await fetch(`${API_BASE_URL}/api/users`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -198,7 +198,7 @@ export default function UserManagement() {
 
   const toggleLock = async (user) => {
     try {
-      await fetch(`${API_BASE_URL}/api/users/${user.id}/`, {
+      await fetch(`${API_BASE_URL}/api/users/${user.id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -218,7 +218,7 @@ export default function UserManagement() {
 
   const forceReset = async (user) => {
     try {
-      await fetch(`${API_BASE_URL}/api/users/${user.id}/`, {
+      await fetch(`${API_BASE_URL}/api/users/${user.id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -238,7 +238,7 @@ export default function UserManagement() {
     if (!window.confirm(`Are you sure you want to delete user "${name}"?`))
       return;
     try {
-      await fetch(`${API_BASE_URL}/api/users/${id}/`, {
+      await fetch(`${API_BASE_URL}/api/users/${id}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("access_token")}`,
@@ -261,8 +261,8 @@ export default function UserManagement() {
       {toast && (
         <div
           className={`fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-xl flex items-center space-x-2 text-sm font-semibold animate-in fade-in slide-in-from-bottom-3 ${toast.type === "error"
-              ? "bg-rose-500 text-white shadow-rose-500/20"
-              : "bg-emerald-500 text-slate-950 shadow-emerald-500/20"
+            ? "bg-rose-500 text-white shadow-rose-500/20"
+            : "bg-emerald-500 text-slate-950 shadow-emerald-500/20"
             }`}
         >
           {toast.type === "error" ? (
@@ -536,8 +536,8 @@ export default function UserManagement() {
                         key={r.id}
                         onClick={() => toggleRole(r.id)}
                         className={`flex items-center space-x-2.5 p-2 rounded-lg cursor-pointer border transition text-xs select-none ${isChecked
-                            ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-400"
-                            : "bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700"
+                          ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-400"
+                          : "bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700"
                           }`}
                       >
                         <input

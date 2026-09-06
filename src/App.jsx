@@ -71,7 +71,7 @@ export default function App() {
         api.getPitchLengths(),
         api.getMe
           ? api.getMe()
-          : fetch(`${API_BASE_URL}/api/users/me/`, {
+          : fetch(`${API_BASE_URL}/api/users/me`, {
             headers: {
               Authorization: `Bearer ${localStorage.getItem("access_token")}`,
             },
@@ -351,8 +351,8 @@ export default function App() {
                 <button
                   onClick={() => handleNavClick("playCricketSync")}
                   className={`w-full flex items-center space-x-3 py-3 px-4 rounded-xl text-xs font-semibold tracking-wide transition font-display ${activeView === "playCricketSync"
-                      ? "bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60"
-                      : "text-slate-400 hover:text-emerald-400 hover:bg-slate-800/50"
+                    ? "bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60"
+                    : "text-slate-400 hover:text-emerald-400 hover:bg-slate-800/50"
                     }`}
                 >
                   <CloudDownload size={16} />

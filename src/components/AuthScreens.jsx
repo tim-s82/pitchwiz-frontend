@@ -14,7 +14,7 @@ export function LoginScreen({ onLoginSuccess }) {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/token/`, {
+      const response = await fetch(`${API_BASE_URL}/api/token`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
@@ -136,7 +136,7 @@ export function ForcePasswordResetScreen({ onResetSuccess, onCancel }) {
     setError(null);
     try {
       const response = await fetch(
-        `${API_BASE_URL}/api/users/change_password/`,
+        `${API_BASE_URL}/api/users/change_password`,
         {
           method: "POST",
           headers: {
@@ -153,8 +153,8 @@ export function ForcePasswordResetScreen({ onResetSuccess, onCancel }) {
         const errData = await response.json();
         throw new Error(
           errData.old_password?.[0] ||
-            errData.new_password?.[0] ||
-            "Failed to update password",
+          errData.new_password?.[0] ||
+          "Failed to update password",
         );
       }
       onResetSuccess();

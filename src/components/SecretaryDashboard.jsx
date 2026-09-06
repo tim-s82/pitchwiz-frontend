@@ -68,7 +68,7 @@ export default function SecretaryDashboard({
 
   const fetchChangeRequests = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/booking-change-requests/`, {
+      const res = await fetch(`${API_BASE_URL}/api/booking-change-requests`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("access_token")}`,
         },
@@ -307,7 +307,7 @@ export default function SecretaryDashboard({
   // Change request approve/reject
   const handleApproveChange = async (crId) => {
     try {
-      await fetch(`${API_BASE_URL}/api/booking-change-requests/${crId}/`, {
+      await fetch(`${API_BASE_URL}/api/booking-change-requests/${crId}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -332,7 +332,7 @@ export default function SecretaryDashboard({
     }
     try {
       await fetch(
-        `${API_BASE_URL}/api/booking-change-requests/${changeRejectModal.crId}/`,
+        `${API_BASE_URL}/api/booking-change-requests/${changeRejectModal.crId}`,
         {
           method: "PATCH",
           headers: {
@@ -356,7 +356,7 @@ export default function SecretaryDashboard({
     if (!newPitchId) return;
     try {
       const response = await fetch(
-        `${API_BASE_URL}/api/pitchbookings/${bookingId}/`,
+        `${API_BASE_URL}/api/pitchbookings/${bookingId}`,
         {
           method: "PATCH",
           headers: {
@@ -456,11 +456,10 @@ export default function SecretaryDashboard({
       <div className="flex border-b border-slate-800">
         <button
           onClick={() => setActiveTab("pending")}
-          className={`pb-4 px-6 font-semibold text-sm transition-all duration-300 relative ${
-            activeTab === "pending"
+          className={`pb-4 px-6 font-semibold text-sm transition-all duration-300 relative ${activeTab === "pending"
               ? "text-emerald-400"
               : "text-slate-400 hover:text-slate-200"
-          }`}
+            }`}
         >
           Pending Requests
           {pendingBookings.length > 0 && (
@@ -474,11 +473,10 @@ export default function SecretaryDashboard({
         </button>
         <button
           onClick={() => setActiveTab("changes")}
-          className={`pb-4 px-6 font-semibold text-sm transition-all duration-300 relative ${
-            activeTab === "changes"
+          className={`pb-4 px-6 font-semibold text-sm transition-all duration-300 relative ${activeTab === "changes"
               ? "text-emerald-400"
               : "text-slate-400 hover:text-slate-200"
-          }`}
+            }`}
         >
           Change Requests
           {pendingChangeRequests.length > 0 && (
@@ -492,11 +490,10 @@ export default function SecretaryDashboard({
         </button>
         <button
           onClick={() => setActiveTab("resolved")}
-          className={`pb-4 px-6 font-semibold text-sm transition-all duration-300 relative ${
-            activeTab === "resolved"
+          className={`pb-4 px-6 font-semibold text-sm transition-all duration-300 relative ${activeTab === "resolved"
               ? "text-emerald-400"
               : "text-slate-400 hover:text-slate-200"
-          }`}
+            }`}
         >
           Booking History
           {activeTab === "resolved" && (
@@ -534,20 +531,18 @@ export default function SecretaryDashboard({
               return (
                 <div
                   key={booking.id}
-                  className={`glass-panel p-6 rounded-2xl border transition duration-300 flex flex-col lg:flex-row lg:items-center justify-between gap-6 ${
-                    conflicts.length > 0
+                  className={`glass-panel p-6 rounded-2xl border transition duration-300 flex flex-col lg:flex-row lg:items-center justify-between gap-6 ${conflicts.length > 0
                       ? "border-amber-900/50 bg-amber-950/5"
                       : "border-slate-800"
-                  }`}
+                    }`}
                 >
                   <div className="space-y-3 max-w-2xl">
                     <div className="flex flex-wrap items-center gap-2">
                       <span
-                        className={`text-xxs px-2 py-0.5 rounded font-extrabold font-display uppercase ${
-                          booking.fixture
+                        className={`text-xxs px-2 py-0.5 rounded font-extrabold font-display uppercase ${booking.fixture
                             ? "bg-indigo-900/50 text-indigo-400 border border-indigo-900/55"
                             : "bg-pink-900/40 text-pink-400 border border-pink-900/50"
-                        }`}
+                          }`}
                       >
                         {booking.fixture ? "Club Fixture" : "External Booking"}
                       </span>
@@ -747,11 +742,10 @@ export default function SecretaryDashboard({
                         </td>
                         <td className="p-4">
                           <span
-                            className={`inline-block text-xxs font-bold uppercase tracking-wider px-2 py-0.5 rounded font-display ${
-                              b.status === "APPROVED"
+                            className={`inline-block text-xxs font-bold uppercase tracking-wider px-2 py-0.5 rounded font-display ${b.status === "APPROVED"
                                 ? "bg-emerald-950/60 text-emerald-400"
                                 : "bg-red-950/60 text-red-400"
-                            }`}
+                              }`}
                           >
                             {b.status === "APPROVED" ? "Approved" : "Denied"}
                           </span>
