@@ -139,21 +139,21 @@ async function apiRequest(endpoint, options = {}) {
 }
 
 export const api = {
-  getMe: () => apiRequest("/api/users/me/"),
-  getVenues: () => apiRequest("/api/venues/"),
-  getPitches: () => apiRequest("/api/pitches/"),
-  getPitchLengths: () => apiRequest("/api/pitchlengths/"),
-  getTeams: () => apiRequest("/api/teams/"),
-  getFixtures: () => apiRequest("/api/fixtures/"),
+  getMe: () => apiRequest("/api/users/me"),
+  getVenues: () => apiRequest("/api/venues"),
+  getPitches: () => apiRequest("/api/pitches"),
+  getPitchLengths: () => apiRequest("/api/pitchlengths"),
+  getTeams: () => apiRequest("/api/teams"),
+  getFixtures: () => apiRequest("/api/fixtures"),
   createFixture: (data) =>
-    apiRequest("/api/fixtures/", {
+    apiRequest("/api/fixtures", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     }),
-  getBookings: () => apiRequest("/api/pitchbookings/"),
+  getBookings: () => apiRequest("/api/pitchbookings"),
   createBooking: (bookingData) =>
-    apiRequest("/api/pitchbookings/", {
+    apiRequest("/api/pitchbookings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(bookingData),
@@ -161,7 +161,7 @@ export const api = {
 
   // Change Password
   changePassword: (data) =>
-    apiRequest("/api/users/change-password/", {
+    apiRequest("/api/users/change-password", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
@@ -169,79 +169,79 @@ export const api = {
 
   // Team CRUD
   createTeam: (data) =>
-    apiRequest("/api/teams/", {
+    apiRequest("/api/teams", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     }),
   updateTeam: (id, data) =>
-    apiRequest(`/api/teams/${id}/`, {
+    apiRequest(`/api/teams/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     }),
   deleteTeam: (id) =>
-    apiRequest(`/api/teams/${id}/`, {
+    apiRequest(`/api/teams/${id}`, {
       method: "DELETE",
     }),
 
   // Venue CRUD
   createVenue: (data) =>
-    apiRequest("/api/venues/", {
+    apiRequest("/api/venues", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     }),
   updateVenue: (id, data) =>
-    apiRequest(`/api/venues/${id}/`, {
+    apiRequest(`/api/venues/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     }),
   deleteVenue: (id) =>
-    apiRequest(`/api/venues/${id}/`, {
+    apiRequest(`/api/venues/${id}`, {
       method: "DELETE",
     }),
 
   // Pitch CRUD
   createPitch: (data) =>
-    apiRequest("/api/pitches/", {
+    apiRequest("/api/pitches", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     }),
   updatePitch: (id, data) =>
-    apiRequest(`/api/pitches/${id}/`, {
+    apiRequest(`/api/pitches/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     }),
   deletePitch: (id) =>
-    apiRequest(`/api/pitches/${id}/`, {
+    apiRequest(`/api/pitches/${id}`, {
       method: "DELETE",
     }),
 
   // PitchLength CRUD
   createPitchLength: (data) =>
-    apiRequest("/api/pitchlengths/", {
+    apiRequest("/api/pitchlengths", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     }),
   updatePitchLength: (id, data) =>
-    apiRequest(`/api/pitchlengths/${id}/`, {
+    apiRequest(`/api/pitchlengths/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     }),
   deletePitchLength: (id) =>
-    apiRequest(`/api/pitchlengths/${id}/`, {
+    apiRequest(`/api/pitchlengths/${id}`, {
       method: "DELETE",
     }),
 
   // Fixture secretary status update via dedicated action endpoint
   updateBookingStatus: (id, status, rejectionReason = "") =>
-    apiRequest(`/api/pitchbookings/${id}/update-status/`, {
+    apiRequest(`/api/pitchbookings/${id}/update-status`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -250,19 +250,19 @@ export const api = {
       }),
     }),
   updateBooking: (id, data) =>
-    apiRequest(`/api/pitchbookings/${id}/`, {
+    apiRequest(`/api/pitchbookings/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     }),
   deleteBooking: (id) =>
-    apiRequest(`/api/pitchbookings/${id}/`, {
+    apiRequest(`/api/pitchbookings/${id}`, {
       method: "DELETE",
     }),
 
   // Fixture Import
   importFixtures: (data) =>
-    apiRequest("/api/fixtures/import/", {
+    apiRequest("/api/fixtures/import", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
@@ -270,7 +270,7 @@ export const api = {
 
   // Sync Play-Cricket Fixtures
   syncPlayCricketFixtures: (season) =>
-    apiRequest("/api/fixtures/sync-play-cricket/", {
+    apiRequest("/api/fixtures/sync-play-cricket", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ season }),
