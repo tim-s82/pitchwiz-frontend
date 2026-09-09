@@ -34,7 +34,7 @@ export default function CatererDashboard({
 
   const fetchCateringRequests = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/catering-requests/`, {
+      const res = await fetch(`${API_BASE_URL}/api/catering-requests`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("access_token")}`,
         },
@@ -82,7 +82,7 @@ export default function CatererDashboard({
 
   const handleApproveCatering = async (id) => {
     try {
-      await fetch(`${API_BASE_URL}/api/catering-requests/${id}/`, {
+      await fetch(`${API_BASE_URL}/api/catering-requests/${id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -107,7 +107,7 @@ export default function CatererDashboard({
     }
     try {
       await fetch(
-        `${API_BASE_URL}/api/catering-requests/${rejectModal.crId}/`,
+        `${API_BASE_URL}/api/catering-requests/${rejectModal.crId}`,
         {
           method: "PATCH",
           headers: {
@@ -189,11 +189,10 @@ export default function CatererDashboard({
       <div className="flex border-b border-slate-800">
         <button
           onClick={() => setActiveTab("pending")}
-          className={`pb-4 px-6 font-semibold text-sm transition-all duration-300 relative ${
-            activeTab === "pending"
+          className={`pb-4 px-6 font-semibold text-sm transition-all duration-300 relative ${activeTab === "pending"
               ? "text-emerald-400"
               : "text-slate-400 hover:text-slate-200"
-          }`}
+            }`}
         >
           Pending Catering Requests
           {pendingCateringRequests.length > 0 && (
@@ -207,11 +206,10 @@ export default function CatererDashboard({
         </button>
         <button
           onClick={() => setActiveTab("upcoming")}
-          className={`pb-4 px-6 font-semibold text-sm transition-all duration-300 relative ${
-            activeTab === "upcoming"
+          className={`pb-4 px-6 font-semibold text-sm transition-all duration-300 relative ${activeTab === "upcoming"
               ? "text-emerald-400"
               : "text-slate-400 hover:text-slate-200"
-          }`}
+            }`}
         >
           Upcoming Orders
           {activeTab === "upcoming" && (
