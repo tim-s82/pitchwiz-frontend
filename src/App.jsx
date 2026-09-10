@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { api } from "./services/api";
 import CalendarView from "./components/CalendarView";
 import SecretaryDashboard from "./components/SecretaryDashboard";
@@ -33,8 +33,6 @@ import ChangePasswordModal from "./components/ChangePasswordModal";
 import GroundMaintenanceModal from "./components/GroundMaintenanceModal";
 import FixtureImportManager from "./components/FixtureImportManager";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL;
-
 export default function App() {
   const [activeView, setActiveView] = useState("calendar");
   const [loading, setLoading] = useState(true);
@@ -57,10 +55,16 @@ export default function App() {
   const [isGroundMaintenanceModalOpen, setIsGroundMaintenanceModalOpen] =
     useState(false);
 
-  // Fetch all initial data
-  const loadData = async () => {
-    if (!isAuthenticated) return;
-    setLoading(true);
+  // Role helper wrapped in useCallback
+  const hasRole = useCallback(
+    (role) =>
+      currentUser?.roles?.includes(role) ||
+      currentUser?.roles?.includes("ADMIN"),
+    [currentUser]
+  );
+
+  // Fetch all initial data wrapped in useCallback to satisfy exhaustive-deps
+  const loadData = useCallback(async () => {
     try {
       const [v, p, t, f, b, pl, me] = await Promise.all([
         api.getVenues(),
@@ -69,13 +73,7 @@ export default function App() {
         api.getFixtures(),
         api.getBookings(),
         api.getPitchLengths(),
-        api.getMe
-          ? api.getMe()
-          : fetch(`${API_BASE_URL}/api/users/me`, {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-            },
-          }).then((res) => res.json()),
+        api.getMe(),
       ]);
       setVenues(v);
       setPitches(p);
@@ -89,7 +87,63 @@ export default function App() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  // Handle authentication status and data loading on mount or auth change
+  useEffect(() => {
+    let isMounted = true;
+
+    const handleUnauthorized = () => {
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("refresh_token");
+      if (isMounted) setIsAuthenticated(false);
+    };
+    const handleForceReset = () => {
+      if (isMounted) setIsForceReset(true);
+    };
+
+    window.addEventListener("auth-unauthorized", handleUnauthorized);
+    window.addEventListener("auth-force-reset", handleForceReset);
+
+    async function initializeApp() {
+      if (isAuthenticated) {
+        try {
+          const [v, p, t, f, b, pl, me] = await Promise.all([
+            api.getVenues(),
+            api.getPitches(),
+            api.getTeams(),
+            api.getFixtures(),
+            api.getBookings(),
+            api.getPitchLengths(),
+            api.getMe(),
+          ]);
+          if (isMounted) {
+            setVenues(v);
+            setPitches(p);
+            setTeams(t);
+            setFixtures(f);
+            setBookings(b);
+            setPitchLengths(pl);
+            setCurrentUser(me);
+          }
+        } catch (err) {
+          if (isMounted) console.error("Failed to load core data: ", err);
+        } finally {
+          if (isMounted) setLoading(false);
+        }
+      } else {
+        if (isMounted) setLoading(false);
+      }
+    }
+
+    initializeApp();
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener("auth-unauthorized", handleUnauthorized);
+      window.removeEventListener("auth-force-reset", handleForceReset);
+    };
+  }, [isAuthenticated]);
 
   // Safeguard: Automatically redirect to calendar if user lacks permission for the active view
   useEffect(() => {
@@ -111,34 +165,13 @@ export default function App() {
       users: hasRole("USER_MANAGER") || hasRole("ADMIN"),
     };
 
-    // If the active view is restricted and the user doesn't have access, force 'calendar'
     if (restrictedViews[activeView] === false) {
-      setActiveView("calendar");
+      const timer = setTimeout(() => {
+        setActiveView("calendar");
+      }, 0);
+      return () => clearTimeout(timer);
     }
-  }, [activeView, currentUser]);
-
-  useEffect(() => {
-    const handleUnauthorized = () => {
-      localStorage.removeItem("access_token");
-      localStorage.removeItem("refresh_token");
-      setIsAuthenticated(false);
-    };
-    const handleForceReset = () => setIsForceReset(true);
-
-    window.addEventListener("auth-unauthorized", handleUnauthorized);
-    window.addEventListener("auth-force-reset", handleForceReset);
-
-    if (isAuthenticated) {
-      loadData();
-    } else {
-      setLoading(false);
-    }
-
-    return () => {
-      window.removeEventListener("auth-unauthorized", handleUnauthorized);
-      window.removeEventListener("auth-force-reset", handleForceReset);
-    };
-  }, [isAuthenticated]);
+  }, [activeView, currentUser, loading, hasRole]);
 
   const handleLoginSuccess = () => {
     setIsAuthenticated(true);
@@ -167,11 +200,6 @@ export default function App() {
       fixId = createdFixture.id;
     }
 
-    const isAutoApproved =
-      currentUser?.roles?.includes("ADMIN") ||
-      currentUser?.roles?.includes("FIXTURE_SECRETARY");
-    const initialStatus = isAutoApproved ? "APPROVED" : "PENDING";
-
     const bookingData = {
       fixture: fixId,
       pitch: payload.pitch,
@@ -183,7 +211,6 @@ export default function App() {
       requested_by: currentUser ? currentUser.id : null,
       external_contact_name: payload.external_contact_name || "",
       external_contact_email: payload.external_contact_email || "",
-      status: initialStatus,
       notes: payload.notes || "",
     };
 
@@ -213,7 +240,6 @@ export default function App() {
   };
 
   const handleMaintenanceCreated = async (payload) => {
-    // Pass the payload directly so booking_type: 'GROUND_MAINTENANCE' and pitches are preserved
     await api.createBooking(payload);
     await loadData();
   };
@@ -231,9 +257,6 @@ export default function App() {
     );
   }
 
-  const hasRole = (role) =>
-    currentUser?.roles?.includes(role) || currentUser?.roles?.includes("ADMIN");
-
   const handleNavClick = (view) => {
     setActiveView(view);
     setIsMobileMenuOpen(false);
@@ -242,7 +265,7 @@ export default function App() {
   return (
     <div className="flex flex-col min-h-screen bg-slate-950 text-slate-100 selection:bg-emerald-500 selection:text-slate-950 relative">
       {/* Compact Top Header with Hamburger Toggle */}
-      <header className="sticky top-0 z-40 bg-slate-950/80 backdrop-blur-md border-b border-slate-900 px-6 py-4">
+      <header className="sticky top-0 z-40 bg-slate-950/85 backdrop-blur-md border-b border-slate-900 px-6 py-4">
         <div className="max-w-[1600px] mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/20 font-bold font-display text-lg text-slate-950">
@@ -279,18 +302,15 @@ export default function App() {
       <div
         className={`fixed inset-0 z-50 overflow-hidden transition-all duration-300 ${isMobileMenuOpen ? "pointer-events-auto" : "pointer-events-none"}`}
       >
-        {/* Backdrop overlay */}
         <div
           className={`absolute inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity duration-300 ease-out ${isMobileMenuOpen ? "opacity-100" : "opacity-0"}`}
           onClick={() => setIsMobileMenuOpen(false)}
         />
 
-        {/* Drawer Panel sliding smoothly from the right */}
         <div className="absolute inset-y-0 right-0 pl-10 max-w-full flex">
           <div
             className={`w-80 bg-slate-900 border-l border-slate-800 shadow-2xl flex flex-col h-full z-10 overflow-y-auto transform transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? "translate-x-0" : "translate-x-full"}`}
           >
-            {/* Drawer Header */}
             <div className="p-6 border-b border-slate-800 flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-emerald-500 to-teal-500 flex items-center justify-center font-bold font-display text-sm text-slate-950">
@@ -308,7 +328,6 @@ export default function App() {
               </button>
             </div>
 
-            {/* Navigation Links List */}
             <nav className="p-4 space-y-1.5 flex-grow">
               <button
                 onClick={() => handleNavClick("calendar")}
@@ -442,7 +461,6 @@ export default function App() {
               )}
             </nav>
 
-            {/* Drawer Footer Actions (Password & Logout) */}
             <div className="p-4 border-t border-slate-800 space-y-1.5 bg-slate-950/40">
               <button
                 onClick={() => {
@@ -474,7 +492,7 @@ export default function App() {
         {loading ? (
           <div className="flex flex-col items-center justify-center py-32 space-y-4">
             <Activity className="animate-spin text-emerald-400" size={36} />
-            <p className="text-sm text-slate-405 font-display font-medium">
+            <p className="text-sm text-slate-400 font-display font-medium">
               Fetching PitchWiz live data...
             </p>
           </div>

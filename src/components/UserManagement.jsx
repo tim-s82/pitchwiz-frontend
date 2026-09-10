@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
   UserPlus,
-  Shield,
   Lock,
   Unlock,
   Key,
@@ -11,8 +10,7 @@ import {
   X,
   AlertCircle,
 } from "lucide-react";
-
-const API_BASE_URL = import.meta.env.VITE_API_URL;
+import { api } from "../services/api";
 
 const AVAILABLE_ROLES = [
   { id: "ADMIN", label: "Admin" },
@@ -49,16 +47,11 @@ export default function UserManagement() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  const fetchUsers = async () => {
+  // Reusable fetch function for user actions (outside of useEffect)
+  const fetchUsersData = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/users`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-        },
-      });
-      if (!response.ok) throw new Error("Failed to fetch users");
-      const data = await response.json();
-      setUsers(data);
+      const data = await api.getUsers();
+      setUsers(data || []);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -67,7 +60,30 @@ export default function UserManagement() {
   };
 
   useEffect(() => {
-    fetchUsers();
+    let isMounted = true;
+
+    async function loadUsers() {
+      try {
+        const data = await api.getUsers();
+        if (isMounted) {
+          setUsers(data || []);
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError(err.message);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadUsers();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const resetForm = () => {
@@ -102,10 +118,8 @@ export default function UserManagement() {
   const toggleRole = (roleId) => {
     setSelectedRoles((prev) => {
       if (roleId === "EXTERNAL") {
-        // If toggling EXTERNAL on, remove all other roles; if toggling off, clear roles
         return prev.includes("EXTERNAL") ? [] : ["EXTERNAL"];
       } else {
-        // If selecting any non-EXTERNAL role, ensure EXTERNAL is removed
         const withoutExternal = prev.filter((r) => r !== "EXTERNAL");
         return withoutExternal.includes(roleId)
           ? withoutExternal.filter((r) => r !== roleId)
@@ -121,7 +135,6 @@ export default function UserManagement() {
 
     try {
       if (editingUser) {
-        // Edit User
         const payload = {
           email: email.trim(),
           first_name: firstName.trim(),
@@ -129,26 +142,9 @@ export default function UserManagement() {
           roles: selectedRoles,
         };
 
-        const response = await fetch(
-          `${API_BASE_URL}/api/users/${editingUser.id}`,
-          {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-            },
-            body: JSON.stringify(payload),
-          },
-        );
-
-        if (!response.ok) {
-          const errData = await response.json().catch(() => ({}));
-          throw new Error(JSON.stringify(errData) || "Failed to update user");
-        }
-
+        await api.updateUser(editingUser.id, payload);
         showToast(`User "${editingUser.username}" updated successfully`);
       } else {
-        // Create User
         if (!password) {
           setFormError("Password is required when creating a user.");
           setSubmitting(false);
@@ -164,31 +160,12 @@ export default function UserManagement() {
           roles: selectedRoles,
         };
 
-        const response = await fetch(`${API_BASE_URL}/api/users`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-          },
-          body: JSON.stringify(payload),
-        });
-
-        if (!response.ok) {
-          const errData = await response.json().catch(() => ({}));
-          const errMsg = Object.entries(errData)
-            .map(
-              ([field, msgs]) =>
-                `${field}: ${Array.isArray(msgs) ? msgs.join(", ") : msgs}`,
-            )
-            .join(" | ");
-          throw new Error(errMsg || "Failed to create user");
-        }
-
+        await api.createUser(payload);
         showToast(`User "${username.trim()}" created successfully`);
       }
 
       resetForm();
-      fetchUsers();
+      fetchUsersData();
     } catch (err) {
       setFormError(err.message);
     } finally {
@@ -198,18 +175,11 @@ export default function UserManagement() {
 
   const toggleLock = async (user) => {
     try {
-      await fetch(`${API_BASE_URL}/api/users/${user.id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-        },
-        body: JSON.stringify({ is_locked: !user.is_locked }),
-      });
+      await api.updateUser(user.id, { is_locked: !user.is_locked });
       showToast(
         `Account for "${user.username}" ${!user.is_locked ? "locked" : "unlocked"}`,
       );
-      fetchUsers();
+      fetchUsersData();
     } catch (err) {
       console.error(err);
       showToast("Failed to change lock status", "error");
@@ -218,16 +188,9 @@ export default function UserManagement() {
 
   const forceReset = async (user) => {
     try {
-      await fetch(`${API_BASE_URL}/api/users/${user.id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-        },
-        body: JSON.stringify({ force_password_reset: true }),
-      });
+      await api.updateUser(user.id, { force_password_reset: true });
       showToast(`Password reset flagged for "${user.username}" on next login`);
-      fetchUsers();
+      fetchUsersData();
     } catch (err) {
       console.error(err);
       showToast("Failed to set password reset flag", "error");
@@ -238,14 +201,9 @@ export default function UserManagement() {
     if (!window.confirm(`Are you sure you want to delete user "${name}"?`))
       return;
     try {
-      await fetch(`${API_BASE_URL}/api/users/${id}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-        },
-      });
+      await api.deleteUser(id);
       showToast(`User "${name}" deleted`);
-      fetchUsers();
+      fetchUsersData();
     } catch (err) {
       console.error(err);
       showToast("Failed to delete user", "error");
@@ -261,8 +219,8 @@ export default function UserManagement() {
       {toast && (
         <div
           className={`fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-xl flex items-center space-x-2 text-sm font-semibold animate-in fade-in slide-in-from-bottom-3 ${toast.type === "error"
-            ? "bg-rose-500 text-white shadow-rose-500/20"
-            : "bg-emerald-500 text-slate-950 shadow-emerald-500/20"
+              ? "bg-rose-500 text-white shadow-rose-500/20"
+              : "bg-emerald-500 text-slate-950 shadow-emerald-500/20"
             }`}
         >
           {toast.type === "error" ? (
@@ -385,7 +343,10 @@ export default function UserManagement() {
                       </button>
                       <button
                         onClick={() => toggleLock(u)}
-                        className={`p-1.5 rounded-lg transition-colors ${u.is_locked ? "text-teal-400 hover:bg-teal-400/10" : "text-red-400 hover:bg-red-400/10"}`}
+                        className={`p-1.5 rounded-lg transition-colors ${u.is_locked
+                            ? "text-teal-400 hover:bg-teal-400/10"
+                            : "text-red-400 hover:bg-red-400/10"
+                          }`}
                         title={
                           u.is_locked
                             ? "Unlock User Account"
@@ -401,7 +362,10 @@ export default function UserManagement() {
                       <button
                         onClick={() => forceReset(u)}
                         disabled={u.force_password_reset}
-                        className={`p-1.5 rounded-lg transition-colors ${u.force_password_reset ? "text-slate-600 cursor-not-allowed" : "text-orange-400 hover:bg-orange-400/10"}`}
+                        className={`p-1.5 rounded-lg transition-colors ${u.force_password_reset
+                            ? "text-slate-600 cursor-not-allowed"
+                            : "text-orange-400 hover:bg-orange-400/10"
+                          }`}
                         title="Flag Password Reset on Next Login"
                       >
                         <Key size={15} />
@@ -536,8 +500,8 @@ export default function UserManagement() {
                         key={r.id}
                         onClick={() => toggleRole(r.id)}
                         className={`flex items-center space-x-2.5 p-2 rounded-lg cursor-pointer border transition text-xs select-none ${isChecked
-                          ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-400"
-                          : "bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700"
+                            ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-400"
+                            : "bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700"
                           }`}
                       >
                         <input

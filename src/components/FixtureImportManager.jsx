@@ -5,10 +5,8 @@ import {
     FileSpreadsheet,
     Check,
     AlertTriangle,
-    X,
     ArrowRight,
     ShieldAlert,
-    Calendar,
 } from "lucide-react";
 
 export default function FixtureImportManager({

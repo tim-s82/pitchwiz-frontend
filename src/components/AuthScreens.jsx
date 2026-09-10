@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { Lock, Mail, KeyRound, AlertCircle, RefreshCw } from "lucide-react";
 import { api } from "../services/api";
-const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 export function LoginScreen({ onLoginSuccess }) {
   const [username, setUsername] = useState("");
@@ -14,17 +13,7 @@ export function LoginScreen({ onLoginSuccess }) {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/token`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
-      });
-      if (!response.ok) {
-        throw new Error("Invalid username or password");
-      }
-      const data = await response.json();
-      localStorage.setItem("access_token", data.access);
-      localStorage.setItem("refresh_token", data.refresh);
+      const data = await api.login(username, password);
       onLoginSuccess(data.access);
     } catch (err) {
       setError(err.message);
@@ -135,28 +124,10 @@ export function ForcePasswordResetScreen({ onResetSuccess, onCancel }) {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/api/users/change_password`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-          },
-          body: JSON.stringify({
-            old_password: oldPassword,
-            new_password: newPassword,
-          }),
-        },
-      );
-      if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(
-          errData.old_password?.[0] ||
-          errData.new_password?.[0] ||
-          "Failed to update password",
-        );
-      }
+      await api.changePassword({
+        old_password: oldPassword,
+        new_password: newPassword,
+      });
       onResetSuccess();
     } catch (err) {
       setError(err.message);

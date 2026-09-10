@@ -7,7 +7,6 @@ import {
     RefreshCw,
     Calendar,
     ShieldCheck,
-    ArrowRight,
 } from "lucide-react";
 
 export default function PlayCricketSyncManager({ onSyncComplete }) {

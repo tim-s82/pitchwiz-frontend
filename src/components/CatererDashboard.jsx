@@ -1,7 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react";
 import {
   Coffee,
-  ListCollapse,
   Utensils,
   Calendar,
   MapPin,
@@ -11,7 +10,7 @@ import {
   X,
   AlertCircle,
 } from "lucide-react";
-const API_BASE_URL = import.meta.env.VITE_API_URL;
+import { api } from "../services/api";
 
 export default function CatererDashboard({
   venues,
@@ -19,7 +18,6 @@ export default function CatererDashboard({
   teams,
   fixtures,
   bookings,
-  currentUser,
 }) {
   const [cateringRequests, setCateringRequests] = useState([]);
   const [rejectModal, setRejectModal] = useState({
@@ -29,17 +27,32 @@ export default function CatererDashboard({
   });
 
   useEffect(() => {
-    fetchCateringRequests();
+    let isMounted = true;
+
+    async function loadCateringRequests() {
+      try {
+        const data = await api.getCateringRequests();
+        if (isMounted) {
+          setCateringRequests(data || []);
+        }
+      } catch (e) {
+        if (isMounted) {
+          console.warn("Could not fetch catering requests", e);
+        }
+      }
+    }
+
+    loadCateringRequests();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  const fetchCateringRequests = async () => {
+  const refreshCateringRequests = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/catering-requests`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-        },
-      });
-      if (res.ok) setCateringRequests(await res.json());
+      const data = await api.getCateringRequests();
+      setCateringRequests(data || []);
     } catch (e) {
       console.warn("Could not fetch catering requests", e);
     }
@@ -57,10 +70,6 @@ export default function CatererDashboard({
 
   const pendingCateringRequests = useMemo(() => {
     return cateringRequests.filter((cr) => cr.status === "PENDING");
-  }, [cateringRequests]);
-
-  const resolvedCateringRequests = useMemo(() => {
-    return cateringRequests.filter((cr) => cr.status !== "PENDING");
   }, [cateringRequests]);
 
   // Aggregate stats
@@ -82,15 +91,8 @@ export default function CatererDashboard({
 
   const handleApproveCatering = async (id) => {
     try {
-      await fetch(`${API_BASE_URL}/api/catering-requests/${id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-        },
-        body: JSON.stringify({ status: "APPROVED" }),
-      });
-      fetchCateringRequests();
+      await api.updateCateringRequest(id, { status: "APPROVED" });
+      refreshCateringRequests();
     } catch (e) {
       console.error(e);
     }
@@ -106,22 +108,12 @@ export default function CatererDashboard({
       return;
     }
     try {
-      await fetch(
-        `${API_BASE_URL}/api/catering-requests/${rejectModal.crId}`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-          },
-          body: JSON.stringify({
-            status: "REJECTED",
-            rejection_reason: rejectModal.reason,
-          }),
-        },
-      );
+      await api.updateCateringRequest(rejectModal.crId, {
+        status: "REJECTED",
+        rejection_reason: rejectModal.reason,
+      });
       setRejectModal({ open: false, crId: null, reason: "" });
-      fetchCateringRequests();
+      refreshCateringRequests();
     } catch (e) {
       console.error(e);
     }
