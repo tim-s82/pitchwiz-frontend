@@ -1,7 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react";
 import {
   Coffee,
-  ListCollapse,
   Utensils,
   Calendar,
   MapPin,
@@ -19,7 +18,6 @@ export default function CatererDashboard({
   teams,
   fixtures,
   bookings,
-  currentUser,
 }) {
   const [cateringRequests, setCateringRequests] = useState([]);
   const [rejectModal, setRejectModal] = useState({
@@ -29,10 +27,29 @@ export default function CatererDashboard({
   });
 
   useEffect(() => {
-    fetchCateringRequests();
+    let isMounted = true;
+
+    async function loadCateringRequests() {
+      try {
+        const data = await api.getCateringRequests();
+        if (isMounted) {
+          setCateringRequests(data || []);
+        }
+      } catch (e) {
+        if (isMounted) {
+          console.warn("Could not fetch catering requests", e);
+        }
+      }
+    }
+
+    loadCateringRequests();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  const fetchCateringRequests = async () => {
+  const refreshCateringRequests = async () => {
     try {
       const data = await api.getCateringRequests();
       setCateringRequests(data || []);
@@ -55,10 +72,6 @@ export default function CatererDashboard({
     return cateringRequests.filter((cr) => cr.status === "PENDING");
   }, [cateringRequests]);
 
-  const resolvedCateringRequests = useMemo(() => {
-    return cateringRequests.filter((cr) => cr.status !== "PENDING");
-  }, [cateringRequests]);
-
   // Aggregate stats
   const stats = useMemo(() => {
     let teasCount = 0;
@@ -79,7 +92,7 @@ export default function CatererDashboard({
   const handleApproveCatering = async (id) => {
     try {
       await api.updateCateringRequest(id, { status: "APPROVED" });
-      fetchCateringRequests();
+      refreshCateringRequests();
     } catch (e) {
       console.error(e);
     }
@@ -100,7 +113,7 @@ export default function CatererDashboard({
         rejection_reason: rejectModal.reason,
       });
       setRejectModal({ open: false, crId: null, reason: "" });
-      fetchCateringRequests();
+      refreshCateringRequests();
     } catch (e) {
       console.error(e);
     }

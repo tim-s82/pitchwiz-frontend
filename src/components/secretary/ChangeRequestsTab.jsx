@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { api } from "../../services/api";
 import { GitPullRequestArrow, Check, X } from "lucide-react";
 
@@ -14,27 +14,50 @@ export default function ChangeRequestsTab({
     reason: "",
   });
 
-  const fetchChangeRequests = async () => {
-    try {
-      const data = await api.getBookingChangeRequests();
-      setChangeRequests(data || []);
-      const pending = (data || []).filter((cr) => cr.status === "PENDING");
-      if (onPendingCountChange) {
-        onPendingCountChange(pending.length);
-      }
-    } catch (e) {
-      console.warn("Could not fetch change requests", e);
-    }
-  };
-
+  const onPendingCountChangeRef = useRef(onPendingCountChange);
   useEffect(() => {
-    fetchChangeRequests();
+    onPendingCountChangeRef.current = onPendingCountChange;
+  }, [onPendingCountChange]);
+
+  // Fetch data directly inside useEffect to satisfy the linter rules completely
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadRequests() {
+      try {
+        const data = await api.getBookingChangeRequests();
+        if (isMounted) {
+          const list = data || [];
+          setChangeRequests(list);
+          const pending = list.filter((cr) => cr.status === "PENDING");
+          if (onPendingCountChangeRef.current) {
+            onPendingCountChangeRef.current(pending.length);
+          }
+        }
+      } catch (e) {
+        if (isMounted) {
+          console.warn("Could not fetch change requests", e);
+        }
+      }
+    }
+
+    loadRequests();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const handleApproveChange = async (crId) => {
     try {
       await api.updateBookingChangeRequest(crId, { status: "APPROVED" });
-      await fetchChangeRequests();
+      const data = await api.getBookingChangeRequests();
+      const list = data || [];
+      setChangeRequests(list);
+      const pending = list.filter((cr) => cr.status === "PENDING");
+      if (onPendingCountChangeRef.current) {
+        onPendingCountChangeRef.current(pending.length);
+      }
       if (onDataChanged) onDataChanged();
     } catch (e) {
       console.error(e);
@@ -57,7 +80,13 @@ export default function ChangeRequestsTab({
         rejection_reason: changeRejectModal.reason,
       });
       setChangeRejectModal({ open: false, crId: null, reason: "" });
-      await fetchChangeRequests();
+      const data = await api.getBookingChangeRequests();
+      const list = data || [];
+      setChangeRequests(list);
+      const pending = list.filter((cr) => cr.status === "PENDING");
+      if (onPendingCountChangeRef.current) {
+        onPendingCountChangeRef.current(pending.length);
+      }
       if (onDataChanged) onDataChanged();
     } catch (e) {
       console.error(e);

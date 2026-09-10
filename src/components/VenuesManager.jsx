@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { api } from "../services/api";
 import { MapPin, Plus, Pencil, Trash2 } from "lucide-react";
 import Toast from "./shared/Toast";
@@ -52,12 +52,9 @@ export default function VenuesManager({
   // Delete Confirm Modal State
   const [deleteTarget, setDeleteTarget] = useState(null);
 
-  // Set default filter to the first venue when venues load
-  useEffect(() => {
-    if (venues.length > 0 && !selectedPitchVenueFilter) {
-      setSelectedPitchVenueFilter(String(venues[0].id));
-    }
-  }, [venues, selectedPitchVenueFilter]);
+  // Active filter falls back to first venue when not explicitly selected
+  const activePitchVenueFilter =
+    selectedPitchVenueFilter || (venues.length > 0 ? String(venues[0].id) : "");
 
   const showToast = (message, type = "success") => {
     setToast({ message, type });
@@ -111,8 +108,8 @@ export default function VenuesManager({
 
   const openAddPitch = () => {
     resetPitchForm();
-    if (selectedPitchVenueFilter) {
-      setPitchVenueId(selectedPitchVenueFilter);
+    if (activePitchVenueFilter) {
+      setPitchVenueId(activePitchVenueFilter);
     }
     setShowPitchForm(true);
   };
@@ -216,7 +213,7 @@ export default function VenuesManager({
   // Filtered and entity-type prioritized sorted pitches
   const displayedPitches = useMemo(() => {
     const filtered = pitches.filter((p) => {
-      if (selectedPitchVenueFilter && p.venue !== parseInt(selectedPitchVenueFilter, 10)) {
+      if (activePitchVenueFilter && p.venue !== parseInt(activePitchVenueFilter, 10)) {
         return false;
       }
       return true;
@@ -239,7 +236,7 @@ export default function VenuesManager({
 
       return a.name.localeCompare(b.name, undefined, { sensitivity: "base", numeric: true });
     });
-  }, [pitches, selectedPitchVenueFilter]);
+  }, [pitches, activePitchVenueFilter]);
 
   return (
     <div className="space-y-6">
@@ -265,31 +262,28 @@ export default function VenuesManager({
         <div className="flex bg-slate-900/80 p-1 rounded-xl border border-slate-800">
           <button
             onClick={() => handleTabChange("venues")}
-            className={`px-4 py-2 rounded-lg text-xs font-semibold font-display transition ${
-              activeSubTab === "venues"
+            className={`px-4 py-2 rounded-lg text-xs font-semibold font-display transition ${activeSubTab === "venues"
                 ? "bg-emerald-500 text-slate-950 font-bold"
                 : "text-slate-400 hover:text-slate-200"
-            }`}
+              }`}
           >
             Ground Venues ({venues.length})
           </button>
           <button
             onClick={() => handleTabChange("pitches")}
-            className={`px-4 py-2 rounded-lg text-xs font-semibold font-display transition ${
-              activeSubTab === "pitches"
+            className={`px-4 py-2 rounded-lg text-xs font-semibold font-display transition ${activeSubTab === "pitches"
                 ? "bg-emerald-500 text-slate-950 font-bold"
                 : "text-slate-400 hover:text-slate-200"
-            }`}
+              }`}
           >
             Pitches ({pitches.length})
           </button>
           <button
             onClick={() => handleTabChange("lengths")}
-            className={`px-4 py-2 rounded-lg text-xs font-semibold font-display transition ${
-              activeSubTab === "lengths"
+            className={`px-4 py-2 rounded-lg text-xs font-semibold font-display transition ${activeSubTab === "lengths"
                 ? "bg-emerald-500 text-slate-950 font-bold"
                 : "text-slate-400 hover:text-slate-200"
-            }`}
+              }`}
           >
             Pitch Lengths ({pitchLengths.length})
           </button>
@@ -405,7 +399,7 @@ export default function VenuesManager({
                 Pitches & Outfield Rules
               </h3>
               <select
-                value={selectedPitchVenueFilter}
+                value={activePitchVenueFilter}
                 onChange={(e) => setSelectedPitchVenueFilter(e.target.value)}
                 className="bg-slate-900 text-slate-200 text-xs rounded-xl py-1.5 px-3 outline-none border border-slate-700 focus:border-emerald-500"
               >
@@ -485,11 +479,10 @@ export default function VenuesManager({
                         </div>
                         <div className="flex items-center space-x-1">
                           <span
-                            className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded ${
-                              p.is_active
+                            className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded ${p.is_active
                                 ? "bg-emerald-950/60 text-emerald-400 border border-emerald-900/50"
                                 : "bg-rose-950/60 text-rose-400 border border-rose-900/50"
-                            }`}
+                              }`}
                           >
                             {p.is_active ? "Active" : "Inactive"}
                           </span>

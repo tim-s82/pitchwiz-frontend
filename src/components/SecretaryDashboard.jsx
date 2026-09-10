@@ -26,7 +26,6 @@ export default function SecretaryDashboard({
   onBookingStatusUpdate,
   onBookingUpdated,
   onBookingDeleted,
-  currentUser,
 }) {
   const [activeTab, setActiveTab] = useState("pending");
   const [altPitchId, setAltPitchId] = useState({});

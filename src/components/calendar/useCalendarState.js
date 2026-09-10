@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 
 export function useCalendarState({
   venues,
@@ -67,19 +67,21 @@ export function useCalendarState({
     );
   }, [venues]);
 
+  const defaultVenueId = useMemo(() => {
+    if (venues.length === 0) return "all";
+    const def = venues.find((v) => v.is_default);
+    return def ? def.id.toString() : venues[0].id.toString();
+  }, [venues]);
+
+  const effectiveSelectedVenueId =
+    selectedVenueId === "all" ? defaultVenueId : selectedVenueId;
+
   // Alphabetically sorted teams memo
   const sortedTeams = useMemo(() => {
     return [...teams].sort((a, b) =>
       a.name.localeCompare(b.name, undefined, { sensitivity: "base", numeric: true })
     );
   }, [teams]);
-
-  useEffect(() => {
-    if (sortedVenues.length > 0 && selectedVenueId === "all") {
-      const defaultVenue = sortedVenues.find((v) => v.is_default);
-      setSelectedVenueId(defaultVenue ? defaultVenue.id.toString() : sortedVenues[0].id.toString());
-    }
-  }, [sortedVenues, selectedVenueId]);
 
   // Find compatible pitch lengths for the filtered team
   const filteredTeam = useMemo(() => {
@@ -91,8 +93,8 @@ export function useCalendarState({
   const filteredPitches = useMemo(() => {
     const filtered = pitches.filter((pitch) => {
       if (
-        selectedVenueId !== "all" &&
-        pitch.venue !== parseInt(selectedVenueId, 10)
+        effectiveSelectedVenueId !== "all" &&
+        pitch.venue !== parseInt(effectiveSelectedVenueId, 10)
       ) {
         return false;
       }
@@ -132,13 +134,11 @@ export function useCalendarState({
         numeric: true,
       });
     });
-  }, [pitches, selectedVenueId, filteredTeam, venues]);
+  }, [pitches, effectiveSelectedVenueId, filteredTeam, venues]);
 
-  useEffect(() => {
-    if (filteredPitches.length > 0 && !mobileSelectedPitchId) {
-      setMobileSelectedPitchId(filteredPitches[0].id.toString());
-    }
-  }, [filteredPitches, mobileSelectedPitchId]);
+  const effectiveMobileSelectedPitchId =
+    mobileSelectedPitchId ||
+    (filteredPitches.length > 0 ? filteredPitches[0].id.toString() : "");
 
   // Generate 7 days starting from startDateStr
   const datesList = useMemo(() => {
@@ -197,7 +197,7 @@ export function useCalendarState({
   }, [currentUser]);
 
   return {
-    selectedVenueId,
+    selectedVenueId: effectiveSelectedVenueId,
     setSelectedVenueId,
     selectedTeamId,
     setSelectedTeamId,
@@ -209,7 +209,7 @@ export function useCalendarState({
     setMobileLayoutMode,
     mobileSelectedDateStr,
     setMobileSelectedDateStr,
-    mobileSelectedPitchId,
+    mobileSelectedPitchId: effectiveMobileSelectedPitchId,
     setMobileSelectedPitchId,
     startDateStr,
     setStartDateStr,

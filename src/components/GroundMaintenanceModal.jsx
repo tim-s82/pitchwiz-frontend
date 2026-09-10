@@ -11,7 +11,6 @@ export default function GroundMaintenanceModal({
   const [selectedVenueId, setSelectedVenueId] = useState("");
   const [selectedPitches, setSelectedPitches] = useState([]);
   const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
   const [timeSlot, setTimeSlot] = useState("ALL_DAY"); // MORNING, AFTERNOON, EVENING, ALL_DAY
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
@@ -41,7 +40,7 @@ export default function GroundMaintenanceModal({
         venue: Number(selectedVenueId),
         pitches: selectedPitches,
         start_date: startDate,
-        end_date: endDate || startDate,
+        end_date: startDate,
         time_slot: timeSlot,
         booking_type: "GROUND_MAINTENANCE",
         notes: notes.trim(),

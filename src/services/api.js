@@ -35,7 +35,7 @@ async function apiRequest(endpoint, options = {}) {
     try {
       const errData = await response.json();
       errorMsg += ` - Details: ${JSON.stringify(errData)}`;
-    } catch (e) {
+    } catch {
       // Ignore json parse error if body is empty or not json
     }
     throw new Error(errorMsg);

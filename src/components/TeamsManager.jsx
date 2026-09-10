@@ -26,17 +26,27 @@ export default function TeamsManager({ teams, pitchLengths, onTeamsChanged }) {
   const formRef = useRef(null);
 
   useEffect(() => {
-    fetchUsers();
-  }, []);
+    let isMounted = true;
 
-  const fetchUsers = async () => {
-    try {
-      const data = await api.getUsers();
-      setAvailableUsers(data || []);
-    } catch (e) {
-      console.warn("Could not fetch users for manager selection", e);
+    async function loadUsers() {
+      try {
+        const data = await api.getUsers();
+        if (isMounted) {
+          setAvailableUsers(data || []);
+        }
+      } catch (e) {
+        if (isMounted) {
+          console.warn("Could not fetch users for manager selection", e);
+        }
+      }
     }
-  };
+
+    loadUsers();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Form state
   const [formName, setFormName] = useState("");
@@ -304,8 +314,8 @@ export default function TeamsManager({ teams, pitchLengths, onTeamsChanged }) {
       {toast && (
         <div
           className={`flex items-center gap-2.5 px-4 py-3 rounded-xl text-sm font-medium border transition-all animate-in fade-in slide-in-from-top-2 duration-300 ${toast.type === "error"
-            ? "bg-red-950/60 text-red-300 border-red-900/40"
-            : "bg-emerald-950/60 text-emerald-300 border-emerald-900/40"
+              ? "bg-red-950/60 text-red-300 border-red-900/40"
+              : "bg-emerald-950/60 text-emerald-300 border-emerald-900/40"
             }`}
         >
           {toast.type === "error" ? (
@@ -427,8 +437,8 @@ export default function TeamsManager({ teams, pitchLengths, onTeamsChanged }) {
                             );
                           }}
                           className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition flex items-center gap-1.5 ${isSelected
-                            ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40"
-                            : "bg-slate-900 text-slate-400 border-slate-800 hover:border-slate-700"
+                              ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40"
+                              : "bg-slate-900 text-slate-400 border-slate-800 hover:border-slate-700"
                             }`}
                         >
                           <UserCheck size={13} />
