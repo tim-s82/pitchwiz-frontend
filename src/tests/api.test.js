@@ -21,6 +21,33 @@ const server = setupServer(
 
     http.delete("*/api/teams/99", () => {
         return new HttpResponse(null, { status: 204 });
+    }),
+
+    http.get("*/api/users", () => {
+        return HttpResponse.json([{ id: 1, username: "admin", roles: ["ADMIN"] }]);
+    }),
+
+    http.post("*/api/users", async ({ request }) => {
+        const body = await request.json();
+        return HttpResponse.json({ id: 2, ...body }, { status: 201 });
+    }),
+
+    http.patch("*/api/users/2", async ({ request }) => {
+        const body = await request.json();
+        return HttpResponse.json({ id: 2, username: "updated", ...body });
+    }),
+
+    http.delete("*/api/users/2", () => {
+        return new HttpResponse(null, { status: 204 });
+    }),
+
+    http.get("*/api/catering-requests", () => {
+        return HttpResponse.json([{ id: 1, booking: 10, status: "PENDING" }]);
+    }),
+
+    http.patch("*/api/catering-requests/1", async ({ request }) => {
+        const body = await request.json();
+        return HttpResponse.json({ id: 1, ...body });
     })
 );
 
@@ -48,5 +75,28 @@ describe("API Service Layer Tests", () => {
 
         expect(result.id).toBe(99);
         expect(result.name).toBe("3rd XI");
+    });
+
+    it("fetches, creates, updates and deletes users successfully", async () => {
+        const users = await api.getUsers();
+        expect(users).toEqual([{ id: 1, username: "admin", roles: ["ADMIN"] }]);
+
+        const created = await api.createUser({ username: "john", email: "john@example.com" });
+        expect(created.id).toBe(2);
+        expect(created.username).toBe("john");
+
+        const updated = await api.updateUser(2, { is_locked: true });
+        expect(updated.is_locked).toBe(true);
+
+        const deleted = await api.deleteUser(2);
+        expect(deleted).toBeNull();
+    });
+
+    it("fetches and updates catering requests successfully", async () => {
+        const requests = await api.getCateringRequests();
+        expect(requests).toEqual([{ id: 1, booking: 10, status: "PENDING" }]);
+
+        const updated = await api.updateCateringRequest(1, { status: "APPROVED" });
+        expect(updated.status).toBe("APPROVED");
     });
 });

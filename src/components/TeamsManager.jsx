@@ -13,7 +13,6 @@ import {
   Ruler,
   UserCheck,
 } from "lucide-react";
-const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 export default function TeamsManager({ teams, pitchLengths, onTeamsChanged }) {
   const [showForm, setShowForm] = useState(false);
@@ -32,15 +31,8 @@ export default function TeamsManager({ teams, pitchLengths, onTeamsChanged }) {
 
   const fetchUsers = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/users`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-        },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setAvailableUsers(data);
-      }
+      const data = await api.getUsers();
+      setAvailableUsers(data || []);
     } catch (e) {
       console.warn("Could not fetch users for manager selection", e);
     }

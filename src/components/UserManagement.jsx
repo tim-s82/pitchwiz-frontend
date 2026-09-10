@@ -11,8 +11,7 @@ import {
   X,
   AlertCircle,
 } from "lucide-react";
-
-const API_BASE_URL = import.meta.env.VITE_API_URL;
+import { api } from "../services/api";
 
 const AVAILABLE_ROLES = [
   { id: "ADMIN", label: "Admin" },
@@ -51,14 +50,8 @@ export default function UserManagement() {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/users`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-        },
-      });
-      if (!response.ok) throw new Error("Failed to fetch users");
-      const data = await response.json();
-      setUsers(data);
+      const data = await api.getUsers();
+      setUsers(data || []);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -129,23 +122,7 @@ export default function UserManagement() {
           roles: selectedRoles,
         };
 
-        const response = await fetch(
-          `${API_BASE_URL}/api/users/${editingUser.id}`,
-          {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-            },
-            body: JSON.stringify(payload),
-          },
-        );
-
-        if (!response.ok) {
-          const errData = await response.json().catch(() => ({}));
-          throw new Error(JSON.stringify(errData) || "Failed to update user");
-        }
-
+        await api.updateUser(editingUser.id, payload);
         showToast(`User "${editingUser.username}" updated successfully`);
       } else {
         // Create User
@@ -164,26 +141,7 @@ export default function UserManagement() {
           roles: selectedRoles,
         };
 
-        const response = await fetch(`${API_BASE_URL}/api/users`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-          },
-          body: JSON.stringify(payload),
-        });
-
-        if (!response.ok) {
-          const errData = await response.json().catch(() => ({}));
-          const errMsg = Object.entries(errData)
-            .map(
-              ([field, msgs]) =>
-                `${field}: ${Array.isArray(msgs) ? msgs.join(", ") : msgs}`,
-            )
-            .join(" | ");
-          throw new Error(errMsg || "Failed to create user");
-        }
-
+        await api.createUser(payload);
         showToast(`User "${username.trim()}" created successfully`);
       }
 
@@ -198,14 +156,7 @@ export default function UserManagement() {
 
   const toggleLock = async (user) => {
     try {
-      await fetch(`${API_BASE_URL}/api/users/${user.id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-        },
-        body: JSON.stringify({ is_locked: !user.is_locked }),
-      });
+      await api.updateUser(user.id, { is_locked: !user.is_locked });
       showToast(
         `Account for "${user.username}" ${!user.is_locked ? "locked" : "unlocked"}`,
       );
@@ -218,14 +169,7 @@ export default function UserManagement() {
 
   const forceReset = async (user) => {
     try {
-      await fetch(`${API_BASE_URL}/api/users/${user.id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-        },
-        body: JSON.stringify({ force_password_reset: true }),
-      });
+      await api.updateUser(user.id, { force_password_reset: true });
       showToast(`Password reset flagged for "${user.username}" on next login`);
       fetchUsers();
     } catch (err) {
@@ -238,12 +182,7 @@ export default function UserManagement() {
     if (!window.confirm(`Are you sure you want to delete user "${name}"?`))
       return;
     try {
-      await fetch(`${API_BASE_URL}/api/users/${id}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-        },
-      });
+      await api.deleteUser(id);
       showToast(`User "${name}" deleted`);
       fetchUsers();
     } catch (err) {

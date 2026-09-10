@@ -33,7 +33,6 @@ import ChangePasswordModal from "./components/ChangePasswordModal";
 import GroundMaintenanceModal from "./components/GroundMaintenanceModal";
 import FixtureImportManager from "./components/FixtureImportManager";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 export default function App() {
   const [activeView, setActiveView] = useState("calendar");
@@ -57,6 +56,10 @@ export default function App() {
   const [isGroundMaintenanceModalOpen, setIsGroundMaintenanceModalOpen] =
     useState(false);
 
+  // Role helper — must be defined before useEffect hooks that reference it
+  const hasRole = (role) =>
+    currentUser?.roles?.includes(role) || currentUser?.roles?.includes("ADMIN");
+
   // Fetch all initial data
   const loadData = async () => {
     if (!isAuthenticated) return;
@@ -69,13 +72,7 @@ export default function App() {
         api.getFixtures(),
         api.getBookings(),
         api.getPitchLengths(),
-        api.getMe
-          ? api.getMe()
-          : fetch(`${API_BASE_URL}/api/users/me`, {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-            },
-          }).then((res) => res.json()),
+        api.getMe(),
       ]);
       setVenues(v);
       setPitches(p);
@@ -167,11 +164,6 @@ export default function App() {
       fixId = createdFixture.id;
     }
 
-    const isAutoApproved =
-      currentUser?.roles?.includes("ADMIN") ||
-      currentUser?.roles?.includes("FIXTURE_SECRETARY");
-    const initialStatus = isAutoApproved ? "APPROVED" : "PENDING";
-
     const bookingData = {
       fixture: fixId,
       pitch: payload.pitch,
@@ -183,7 +175,6 @@ export default function App() {
       requested_by: currentUser ? currentUser.id : null,
       external_contact_name: payload.external_contact_name || "",
       external_contact_email: payload.external_contact_email || "",
-      status: initialStatus,
       notes: payload.notes || "",
     };
 
@@ -230,9 +221,6 @@ export default function App() {
       />
     );
   }
-
-  const hasRole = (role) =>
-    currentUser?.roles?.includes(role) || currentUser?.roles?.includes("ADMIN");
 
   const handleNavClick = (view) => {
     setActiveView(view);

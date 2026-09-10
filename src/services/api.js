@@ -47,6 +47,20 @@ async function apiRequest(endpoint, options = {}) {
 }
 
 export const api = {
+  login: async (username, password) => {
+    const response = await fetch(`${API_BASE_URL}/api/token`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+    });
+    if (!response.ok) {
+      throw new Error("Invalid username or password");
+    }
+    const data = await response.json();
+    localStorage.setItem("access_token", data.access);
+    localStorage.setItem("refresh_token", data.refresh);
+    return data;
+  },
   getMe: () => apiRequest("/api/users/me"),
   getVenues: () => apiRequest("/api/venues"),
   getPitches: () => apiRequest("/api/pitches"),
@@ -174,5 +188,41 @@ export const api = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ season }),
+    }),
+
+  getBookingChangeRequests: () => apiRequest("/api/booking-change-requests"),
+  updateBookingChangeRequest: (id, data) =>
+    apiRequest(`/api/booking-change-requests/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    }),
+
+  // Users
+  getUsers: () => apiRequest("/api/users"),
+  createUser: (data) =>
+    apiRequest("/api/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    }),
+  updateUser: (id, data) =>
+    apiRequest(`/api/users/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    }),
+  deleteUser: (id) =>
+    apiRequest(`/api/users/${id}`, {
+      method: "DELETE",
+    }),
+
+  // Catering Requests
+  getCateringRequests: () => apiRequest("/api/catering-requests"),
+  updateCateringRequest: (id, data) =>
+    apiRequest(`/api/catering-requests/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
     }),
 };

@@ -1,22 +1,20 @@
-import React, { useState, useMemo, useEffect } from "react";
-import { api } from "../services/api";
+import React, { useState, useMemo } from "react";
 import {
   ShieldCheck,
-  UserCheck,
   Check,
   X,
   AlertTriangle,
-  HelpCircle,
-  RefreshCcw,
   MapPin,
   Calendar,
   Clock,
   Coffee,
-  GitPullRequestArrow,
   Pencil,
-  Trash2,
 } from "lucide-react";
-const API_BASE_URL = import.meta.env.VITE_API_URL;
+import { useConflictDetection } from "./secretary/useConflictDetection";
+import RejectModal from "./secretary/RejectModal";
+import ConfirmApproveModal from "./secretary/ConfirmApproveModal";
+import BookingEditModal from "./secretary/BookingEditModal";
+import ChangeRequestsTab from "./secretary/ChangeRequestsTab";
 
 export default function SecretaryDashboard({
   venues,
@@ -32,6 +30,7 @@ export default function SecretaryDashboard({
 }) {
   const [activeTab, setActiveTab] = useState("pending");
   const [altPitchId, setAltPitchId] = useState({});
+  const [pendingChangesCount, setPendingChangesCount] = useState(0);
 
   // Rejection reason modal state
   const [rejectModal, setRejectModal] = useState({
@@ -48,36 +47,19 @@ export default function SecretaryDashboard({
     isSubmitting: false,
   });
 
-  // Change requests state
-  const [changeRequests, setChangeRequests] = useState([]);
-  const [changeRejectModal, setChangeRejectModal] = useState({
-    open: false,
-    crId: null,
-    reason: "",
-  });
-
   // Edit modal state
   const [editModal, setEditModal] = useState({ open: false, booking: null });
   const [editForm, setEditForm] = useState({});
   const [editSaving, setEditSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  useEffect(() => {
-    fetchChangeRequests();
-  }, []);
-
-  const fetchChangeRequests = async () => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/booking-change-requests`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-        },
-      });
-      if (res.ok) setChangeRequests(await res.json());
-    } catch (e) {
-      console.warn("Could not fetch change requests", e);
-    }
-  };
+  const { detectCompetingPending, detectConflicts } = useConflictDetection({
+    bookings,
+    pitches,
+    fixtures,
+    teams,
+    pitchLengths,
+  });
 
   const pendingBookings = useMemo(() => {
     return bookings.filter((b) => b.status === "PENDING");
@@ -88,155 +70,6 @@ export default function SecretaryDashboard({
       (b) => b.status === "APPROVED" || b.status === "DENIED",
     );
   }, [bookings]);
-
-  // Detect OTHER competing PENDING bookings for the same slot as this booking
-  const detectCompetingPending = (booking) => {
-    const overlaps = [];
-    const currentPitch = pitches.find((p) => p.id === booking.pitch);
-
-    // All pitches in the "conflict zone" for this booking: the booking's own pitch
-    // plus any pitches it blocks (outfield) and pitches that block it.
-    const relatedPitchIds = new Set([booking.pitch]);
-    if (currentPitch?.blocks_pitches) {
-      currentPitch.blocks_pitches.forEach((id) => relatedPitchIds.add(id));
-    }
-    pitches
-      .filter((p) => p.blocks_pitches?.includes(booking.pitch))
-      .forEach((p) => relatedPitchIds.add(p.id));
-
-    bookings.forEach((b) => {
-      if (
-        b.id === booking.id ||
-        b.status !== "PENDING" ||
-        !relatedPitchIds.has(b.pitch)
-      )
-        return;
-
-      // Date range intersection
-      if (
-        booking.start_date > b.end_date ||
-        booking.end_date < b.start_date
-      )
-        return;
-
-      // Time slot overlap
-      if (
-        b.time_slot !== "ALL_DAY" &&
-        booking.time_slot !== "ALL_DAY" &&
-        b.time_slot !== booking.time_slot
-      )
-        return;
-
-      overlaps.push(b);
-    });
-
-    return overlaps;
-  };
-
-  // Conflict Detection Logic for a pending booking
-  const detectConflicts = (booking) => {
-    const conflicts = [];
-
-    // 1. Direct overlap with APPROVED bookings
-    const directOverlap = bookings.find(
-      (b) =>
-        b.id !== booking.id &&
-        b.pitch === booking.pitch &&
-        b.status === "APPROVED" &&
-        // Check date range intersection
-        booking.start_date <= b.end_date &&
-        booking.end_date >= b.start_date &&
-        (b.time_slot === "ALL_DAY" ||
-          booking.time_slot === "ALL_DAY" ||
-          b.time_slot === booking.time_slot),
-    );
-    if (directOverlap) {
-      const matchDetails = directOverlap.fixture
-        ? fixtures.find((f) => f.id === directOverlap.fixture)
-        : null;
-      conflicts.push(
-        `Direct Overlap: Already booked for ${matchDetails ? matchDetails.opponent : directOverlap.external_contact_name || "Another fixture"}`,
-      );
-    }
-
-    // 2. Outfield Overlap Logic (Blocks pitches)
-    // Case A: This booking's pitch blocks another pitch, and the other pitch has a booking
-    const currentPitch = pitches.find((p) => p.id === booking.pitch);
-    if (
-      currentPitch &&
-      currentPitch.blocks_pitches &&
-      currentPitch.blocks_pitches.length > 0
-    ) {
-      currentPitch.blocks_pitches.forEach((blockedId) => {
-        const activeBlockedBooking = bookings.find(
-          (b) =>
-            b.id !== booking.id &&
-            b.pitch === blockedId &&
-            b.status === "APPROVED" &&
-            booking.start_date <= b.end_date &&
-            booking.end_date >= b.start_date &&
-            (b.time_slot === "ALL_DAY" ||
-              booking.time_slot === "ALL_DAY" ||
-              b.time_slot === booking.time_slot),
-        );
-        if (activeBlockedBooking) {
-          const pName = pitches.find((p) => p.id === blockedId)?.name || "";
-          conflicts.push(
-            `Outfield Overlap: Booking this blocks ${pName}, which has an approved match.`,
-          );
-        }
-      });
-    }
-
-    // Case B: Another pitch blocks this pitch, and the blocking pitch has an approved booking
-    const blockingPitches = pitches.filter(
-      (p) => p.blocks_pitches && p.blocks_pitches.includes(booking.pitch),
-    );
-    for (const bp of blockingPitches) {
-      const activeBlockingBooking = bookings.find(
-        (b) =>
-          b.id !== booking.id &&
-          b.pitch === bp.id &&
-          b.status === "APPROVED" &&
-          booking.start_date <= b.end_date &&
-          booking.end_date >= b.start_date &&
-          (b.time_slot === "ALL_DAY" ||
-            booking.time_slot === "ALL_DAY" ||
-            b.time_slot === booking.time_slot),
-      );
-      if (activeBlockingBooking) {
-        conflicts.push(
-          `Outfield Overlap: ${bp.name} is booked, which blocks this outfield pitch.`,
-        );
-      }
-    }
-
-    // 3. Competing PENDING requests for the same slot
-    const competingPending = detectCompetingPending(booking);
-    if (competingPending.length > 0) {
-      conflicts.push(
-        `${competingPending.length} competing pending request${competingPending.length > 1 ? "s" : ""} for this slot — approving will auto-reject them.`,
-      );
-    }
-
-    // 4. Length support
-    if (booking.fixture) {
-      const fix = fixtures.find((f) => f.id === booking.fixture);
-      const team = fix ? teams.find((t) => t.id === fix.team) : null;
-      if (team && team.required_length && currentPitch) {
-        if (!currentPitch.supported_lengths.includes(team.required_length)) {
-          const reqLen =
-            pitchLengths.find((l) => l.id === team.required_length)
-              ?.length_yards || "";
-          conflicts.push(
-            `Pitch Specifics: ${currentPitch.name} does not support the required length for ${team.name} (${reqLen} Yards).`,
-          );
-        }
-      }
-    }
-
-    return conflicts;
-  };
 
   const handleApprove = (id) => {
     const booking = bookings.find((b) => b.id === id);
@@ -304,81 +137,18 @@ export default function SecretaryDashboard({
     }
   };
 
-  // Change request approve/reject
-  const handleApproveChange = async (crId) => {
-    try {
-      await fetch(`${API_BASE_URL}/api/booking-change-requests/${crId}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-        },
-        body: JSON.stringify({ status: "APPROVED" }),
-      });
-      fetchChangeRequests();
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const handleRejectChange = (crId) => {
-    setChangeRejectModal({ open: true, crId, reason: "" });
-  };
-
-  const submitChangeRejection = async () => {
-    if (!changeRejectModal.reason.trim()) {
-      alert("A rejection reason is required.");
-      return;
-    }
-    try {
-      await fetch(
-        `${API_BASE_URL}/api/booking-change-requests/${changeRejectModal.crId}`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-          },
-          body: JSON.stringify({
-            status: "REJECTED",
-            rejection_reason: changeRejectModal.reason,
-          }),
-        },
-      );
-      setChangeRejectModal({ open: false, crId: null, reason: "" });
-      fetchChangeRequests();
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
   const handleProposeAlternative = async (bookingId, newPitchId) => {
     if (!newPitchId) return;
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/api/pitchbookings/${bookingId}`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-          },
-          body: JSON.stringify({ pitch: parseInt(newPitchId) }),
-        },
-      );
-      if (response.ok) {
-        alert("Pitch updated successfully!");
-        window.location.reload();
-      }
+      await onBookingUpdated(bookingId, { pitch: parseInt(newPitchId, 10) });
+      alert("Pitch updated successfully!");
     } catch (e) {
       console.error(e);
+      alert("Failed to move pitch: " + e.message);
     }
   };
 
   const handleEditBooking = (booking) => {
-    const fix = booking.fixture
-      ? fixtures.find((f) => f.id === booking.fixture)
-      : null;
     setEditForm({
       pitchId: booking.pitch.toString(),
       timeSlot: booking.time_slot,
@@ -398,7 +168,7 @@ export default function SecretaryDashboard({
     setEditSaving(true);
     try {
       await onBookingUpdated(editModal.booking.id, {
-        pitch: parseInt(editForm.pitchId),
+        pitch: parseInt(editForm.pitchId, 10),
         time_slot: editForm.timeSlot,
         start_date: editForm.date,
         end_date: editForm.isMultiDay ? editForm.endDate : editForm.date,
@@ -428,10 +198,6 @@ export default function SecretaryDashboard({
     }
   };
 
-  const pendingChangeRequests = changeRequests.filter(
-    (cr) => cr.status === "PENDING",
-  );
-
   return (
     <div className="space-y-6">
       {/* Dashboard Top Header */}
@@ -456,10 +222,11 @@ export default function SecretaryDashboard({
       <div className="flex border-b border-slate-800">
         <button
           onClick={() => setActiveTab("pending")}
-          className={`pb-4 px-6 font-semibold text-sm transition-all duration-300 relative ${activeTab === "pending"
+          className={`pb-4 px-6 font-semibold text-sm transition-all duration-300 relative ${
+            activeTab === "pending"
               ? "text-emerald-400"
               : "text-slate-400 hover:text-slate-200"
-            }`}
+          }`}
         >
           Pending Requests
           {pendingBookings.length > 0 && (
@@ -473,15 +240,16 @@ export default function SecretaryDashboard({
         </button>
         <button
           onClick={() => setActiveTab("changes")}
-          className={`pb-4 px-6 font-semibold text-sm transition-all duration-300 relative ${activeTab === "changes"
+          className={`pb-4 px-6 font-semibold text-sm transition-all duration-300 relative ${
+            activeTab === "changes"
               ? "text-emerald-400"
               : "text-slate-400 hover:text-slate-200"
-            }`}
+          }`}
         >
           Change Requests
-          {pendingChangeRequests.length > 0 && (
+          {pendingChangesCount > 0 && (
             <span className="ml-2 bg-indigo-500 text-white font-bold px-2 py-0.5 text-xs rounded-full">
-              {pendingChangeRequests.length}
+              {pendingChangesCount}
             </span>
           )}
           {activeTab === "changes" && (
@@ -490,10 +258,11 @@ export default function SecretaryDashboard({
         </button>
         <button
           onClick={() => setActiveTab("resolved")}
-          className={`pb-4 px-6 font-semibold text-sm transition-all duration-300 relative ${activeTab === "resolved"
+          className={`pb-4 px-6 font-semibold text-sm transition-all duration-300 relative ${
+            activeTab === "resolved"
               ? "text-emerald-400"
               : "text-slate-400 hover:text-slate-200"
-            }`}
+          }`}
         >
           Booking History
           {activeTab === "resolved" && (
@@ -531,18 +300,20 @@ export default function SecretaryDashboard({
               return (
                 <div
                   key={booking.id}
-                  className={`glass-panel p-6 rounded-2xl border transition duration-300 flex flex-col lg:flex-row lg:items-center justify-between gap-6 ${conflicts.length > 0
+                  className={`glass-panel p-6 rounded-2xl border transition duration-300 flex flex-col lg:flex-row lg:items-center justify-between gap-6 ${
+                    conflicts.length > 0
                       ? "border-amber-900/50 bg-amber-950/5"
                       : "border-slate-800"
-                    }`}
+                  }`}
                 >
                   <div className="space-y-3 max-w-2xl">
                     <div className="flex flex-wrap items-center gap-2">
                       <span
-                        className={`text-xxs px-2 py-0.5 rounded font-extrabold font-display uppercase ${booking.fixture
+                        className={`text-xxs px-2 py-0.5 rounded font-extrabold font-display uppercase ${
+                          booking.fixture
                             ? "bg-indigo-900/50 text-indigo-400 border border-indigo-900/55"
                             : "bg-pink-900/40 text-pink-400 border border-pink-900/50"
-                          }`}
+                        }`}
                       >
                         {booking.fixture ? "Club Fixture" : "External Booking"}
                       </span>
@@ -694,7 +465,7 @@ export default function SecretaryDashboard({
               <tbody className="text-sm divide-y divide-slate-850">
                 {resolvedBookings.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="p-8 text-center text-slate-500">
+                    <td colSpan={7} className="p-8 text-center text-slate-500">
                       No resolved bookings history.
                     </td>
                   </tr>
@@ -742,10 +513,11 @@ export default function SecretaryDashboard({
                         </td>
                         <td className="p-4">
                           <span
-                            className={`inline-block text-xxs font-bold uppercase tracking-wider px-2 py-0.5 rounded font-display ${b.status === "APPROVED"
+                            className={`inline-block text-xxs font-bold uppercase tracking-wider px-2 py-0.5 rounded font-display ${
+                              b.status === "APPROVED"
                                 ? "bg-emerald-950/60 text-emerald-400"
                                 : "bg-red-950/60 text-red-400"
-                              }`}
+                            }`}
                           >
                             {b.status === "APPROVED" ? "Approved" : "Denied"}
                           </span>
@@ -767,443 +539,63 @@ export default function SecretaryDashboard({
           </div>
         </div>
       ) : activeTab === "changes" ? (
-        /* Change Requests Tab */
-        <div className="space-y-4">
-          {pendingChangeRequests.length === 0 ? (
-            <div className="glass-panel p-12 text-center text-slate-400 rounded-2xl">
-              No pending change requests.
-            </div>
-          ) : (
-            pendingChangeRequests.map((cr) => {
-              const origBooking = bookings.find(
-                (b) => b.id === cr.original_booking,
-              );
-              const newPitch = cr.new_pitch
-                ? pitches.find((p) => p.id === cr.new_pitch)
-                : null;
-              return (
-                <div
-                  key={cr.id}
-                  className="glass-panel p-6 rounded-2xl border border-indigo-900/40 bg-indigo-950/5 space-y-3"
-                >
-                  <div className="flex items-center gap-2">
-                    <GitPullRequestArrow
-                      size={16}
-                      className="text-indigo-400"
-                    />
-                    <span className="text-sm font-bold text-indigo-300">
-                      Change Request #{cr.id}
-                    </span>
-                    <span className="text-xxs bg-indigo-900/50 text-indigo-400 border border-indigo-800 px-2 py-0.5 rounded">
-                      Original Booking #{cr.original_booking}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs text-slate-300">
-                    {cr.new_start_date && (
-                      <div>
-                        <span className="text-slate-500">New Start:</span>{" "}
-                        {cr.new_start_date}
-                      </div>
-                    )}
-                    {cr.new_end_date && (
-                      <div>
-                        <span className="text-slate-500">New End:</span>{" "}
-                        {cr.new_end_date}
-                      </div>
-                    )}
-                    {cr.new_time_slot && (
-                      <div>
-                        <span className="text-slate-500">New Slot:</span>{" "}
-                        {cr.new_time_slot}
-                      </div>
-                    )}
-                    {newPitch && (
-                      <div>
-                        <span className="text-slate-500">New Pitch:</span>{" "}
-                        {newPitch.name}
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex gap-2 pt-2">
-                    <button
-                      onClick={() => handleApproveChange(cr.id)}
-                      className="py-2 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-xs flex items-center gap-1 transition"
-                    >
-                      <Check size={14} /> Approve
-                    </button>
-                    <button
-                      onClick={() => handleRejectChange(cr.id)}
-                      className="py-2 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs border border-slate-700 flex items-center gap-1 transition"
-                    >
-                      <X size={14} /> Reject
-                    </button>
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
+        <ChangeRequestsTab
+          pitches={pitches}
+          onPendingCountChange={setPendingChangesCount}
+          onDataChanged={() => {
+            // Can reload bookings via update handler
+            onBookingUpdated(null, null);
+          }}
+        />
       ) : null}
 
       {/* Edit Booking Modal */}
-      {editModal.open && editModal.booking && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-slate-800 flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-500 to-indigo-500 flex items-center justify-center">
-                  <Pencil size={16} className="text-white" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-bold font-display text-slate-100">
-                    Edit Booking
-                  </h2>
-                  <p className="text-xs text-slate-400">
-                    Booking #{editModal.booking.id}
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setEditModal({ open: false, booking: null })}
-                className="text-slate-400 hover:text-slate-200 transition p-1"
-              >
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={handleEditSubmit} className="p-6 space-y-5">
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
-                  Pitch
-                </label>
-                <select
-                  value={editForm.pitchId}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, pitchId: e.target.value })
-                  }
-                  className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 outline-none focus:border-blue-500"
-                >
-                  {pitches.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {venues.find((v) => v.id === p.venue)?.name} – {p.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
-                  Time Slot
-                </label>
-                <select
-                  value={editForm.timeSlot}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, timeSlot: e.target.value })
-                  }
-                  className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 outline-none focus:border-blue-500"
-                >
-                  <option value="MORNING">Morning</option>
-                  <option value="AFTERNOON">Afternoon</option>
-                  <option value="EVENING">Evening</option>
-                  <option value="ALL_DAY">All Day</option>
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
-                    Start Date
-                  </label>
-                  <input
-                    type="date"
-                    value={editForm.date}
-                    onChange={(e) =>
-                      setEditForm({ ...editForm, date: e.target.value })
-                    }
-                    className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 outline-none focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
-                    End Date
-                  </label>
-                  <input
-                    type="date"
-                    value={
-                      editForm.isMultiDay ? editForm.endDate : editForm.date
-                    }
-                    disabled={!editForm.isMultiDay}
-                    onChange={(e) =>
-                      setEditForm({ ...editForm, endDate: e.target.value })
-                    }
-                    className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 outline-none focus:border-blue-500 disabled:opacity-50"
-                  />
-                </div>
-              </div>
-              <label className="flex items-center space-x-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={editForm.isMultiDay}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, isMultiDay: e.target.checked })
-                  }
-                  className="w-4 h-4 accent-blue-500"
-                />
-                <span className="text-sm text-slate-300">
-                  Multi-day fixture
-                </span>
-              </label>
-
-              <div className="flex space-x-4">
-                <label className="flex items-center space-x-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={editForm.requiresTeas}
-                    onChange={(e) =>
-                      setEditForm({
-                        ...editForm,
-                        requiresTeas: e.target.checked,
-                      })
-                    }
-                    className="w-4 h-4 accent-blue-500"
-                  />
-                  <span className="text-sm text-slate-200">Teas</span>
-                </label>
-                <label className="flex items-center space-x-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={editForm.requiresDrinks}
-                    onChange={(e) =>
-                      setEditForm({
-                        ...editForm,
-                        requiresDrinks: e.target.checked,
-                      })
-                    }
-                    className="w-4 h-4 accent-blue-500"
-                  />
-                  <span className="text-sm text-slate-200">Drinks</span>
-                </label>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
-                  Notes
-                </label>
-                <textarea
-                  value={editForm.notes}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, notes: e.target.value })
-                  }
-                  rows={2}
-                  className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 outline-none focus:border-blue-500"
-                />
-              </div>
-
-              {showDeleteConfirm ? (
-                <div className="space-y-3 pt-2">
-                  <p className="text-sm text-red-400 font-semibold text-center">
-                    Are you sure you want to cancel this booking? This cannot be
-                    undone.
-                  </p>
-                  <div className="flex space-x-3">
-                    <button
-                      type="button"
-                      onClick={() => setShowDeleteConfirm(false)}
-                      disabled={editSaving}
-                      className="flex-1 py-3 px-4 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold transition"
-                    >
-                      Keep Booking
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleDeleteBooking}
-                      disabled={editSaving}
-                      className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-bold transition flex items-center justify-center space-x-2"
-                    >
-                      <Trash2 size={16} />
-                      <span>
-                        {editSaving ? "Cancelling…" : "Yes, Cancel It"}
-                      </span>
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex space-x-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowDeleteConfirm(true)}
-                    className="py-3 px-4 rounded-xl border border-red-800 bg-red-950/30 hover:bg-red-950/60 text-red-400 font-semibold transition flex items-center space-x-2"
-                  >
-                    <Trash2 size={15} />
-                    <span>Cancel Booking</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setEditModal({ open: false, booking: null })}
-                    className="flex-1 py-3 px-4 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold transition"
-                  >
-                    Discard
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={editSaving}
-                    className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white font-semibold transition"
-                  >
-                    {editSaving ? "Saving…" : "Save Changes"}
-                  </button>
-                </div>
-              )}
-            </form>
-          </div>
-        </div>
-      )}
+      <BookingEditModal
+        isOpen={editModal.open}
+        booking={editModal.booking}
+        editForm={editForm}
+        setEditForm={setEditForm}
+        editSaving={editSaving}
+        showDeleteConfirm={showDeleteConfirm}
+        setShowDeleteConfirm={setShowDeleteConfirm}
+        onSubmit={handleEditSubmit}
+        onDelete={handleDeleteBooking}
+        onClose={() => setEditModal({ open: false, booking: null })}
+        pitches={pitches}
+        venues={venues}
+      />
 
       {/* Rejection Reason Modal */}
-      {rejectModal.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-6 w-full max-w-md space-y-4">
-            <h3 className="text-lg font-bold text-white font-display">
-              Denial Reason
-            </h3>
-            <p className="text-sm text-slate-400">
-              A reason must be provided when denying a booking.
-            </p>
-            <textarea
-              value={rejectModal.reason}
-              onChange={(e) =>
-                setRejectModal({ ...rejectModal, reason: e.target.value })
-              }
-              placeholder="Enter the reason for denial..."
-              className="w-full bg-slate-950 border border-slate-700 text-slate-200 text-sm rounded-xl p-3 h-28 outline-none focus:border-red-500 resize-none"
-            />
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() =>
-                  setRejectModal({ open: false, bookingId: null, reason: "" })
-                }
-                className="px-4 py-2 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 text-sm font-semibold transition"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={submitDenial}
-                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-bold transition"
-              >
-                Deny Booking
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <RejectModal
+        isOpen={rejectModal.open}
+        reason={rejectModal.reason}
+        setReason={(reason) => setRejectModal((prev) => ({ ...prev, reason }))}
+        onSubmit={submitDenial}
+        onClose={() =>
+          setRejectModal({ open: false, bookingId: null, reason: "" })
+        }
+      />
 
       {/* Confirm Approve Modal — shown when competing pending bookings exist */}
-      {confirmApproveModal.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-sm">
-          <div className="bg-slate-900 border border-amber-800/60 rounded-2xl shadow-2xl p-6 w-full max-w-lg space-y-5">
-            <div className="flex items-start gap-3">
-              <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 shrink-0">
-                <AlertTriangle size={22} />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-white font-display">
-                  Competing Requests Exist
-                </h3>
-                <p className="text-sm text-slate-400 mt-1">
-                  Approving this booking will automatically <span className="text-red-400 font-semibold">deny</span> the following conflicting pending request{confirmApproveModal.competingBookings.length > 1 ? "s" : ""}:
-                </p>
-              </div>
-            </div>
-
-            <ul className="space-y-2">
-              {confirmApproveModal.competingBookings.map((cb) => {
-                const fix = cb.fixture ? fixtures.find((f) => f.id === cb.fixture) : null;
-                const team = fix ? teams.find((t) => t.id === fix.team) : null;
-                const cbPitch = pitches.find((p) => p.id === cb.pitch);
-                const cbVenue = cbPitch ? venues.find((v) => v.id === cbPitch.venue) : null;
-                const cbLabel = team
-                  ? `${team.name} vs ${fix.opponent}`
-                  : cb.external_contact_name || "External Booking";
-                return (
-                  <li key={cb.id} className="flex items-start gap-2.5 bg-red-950/30 border border-red-900/50 rounded-xl p-3">
-                    <X size={14} className="text-red-400 mt-0.5 shrink-0" />
-                    <div className="text-xs">
-                      <p className="font-semibold text-slate-200">{cbLabel}</p>
-                      <p className="text-slate-400 mt-0.5">
-                        {cbVenue?.name} · {cbPitch?.name} · {cb.start_date}{cb.start_date !== cb.end_date ? ` → ${cb.end_date}` : ""} · {cb.time_slot.toLowerCase().replace("_", " ")}
-                      </p>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-
-            <p className="text-xs text-slate-500">
-              This action cannot be undone. The denied parties will see their requests marked as rejected.
-            </p>
-
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() =>
-                  setConfirmApproveModal({ open: false, booking: null, competingBookings: [], isSubmitting: false })
-                }
-                disabled={confirmApproveModal.isSubmitting}
-                className="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 text-sm font-semibold transition disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmApproval}
-                disabled={confirmApproveModal.isSubmitting}
-                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-slate-950 text-sm font-bold transition flex items-center gap-2 disabled:opacity-50"
-              >
-                <Check size={15} />
-                {confirmApproveModal.isSubmitting ? "Processing…" : "Approve & Auto-Reject Conflicts"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Change Request Rejection Modal */}
-      {changeRejectModal.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-6 w-full max-w-md space-y-4">
-            <h3 className="text-lg font-bold text-white font-display">
-              Rejection Reason
-            </h3>
-            <p className="text-sm text-slate-400">
-              A reason must be provided when rejecting a change request.
-            </p>
-            <textarea
-              value={changeRejectModal.reason}
-              onChange={(e) =>
-                setChangeRejectModal({
-                  ...changeRejectModal,
-                  reason: e.target.value,
-                })
-              }
-              placeholder="Enter the reason for rejection..."
-              className="w-full bg-slate-950 border border-slate-700 text-slate-200 text-sm rounded-xl p-3 h-28 outline-none focus:border-red-500 resize-none"
-            />
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() =>
-                  setChangeRejectModal({ open: false, crId: null, reason: "" })
-                }
-                className="px-4 py-2 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 text-sm font-semibold transition"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={submitChangeRejection}
-                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-bold transition"
-              >
-                Reject Change
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmApproveModal
+        isOpen={confirmApproveModal.open}
+        booking={confirmApproveModal.booking}
+        competingBookings={confirmApproveModal.competingBookings}
+        isSubmitting={confirmApproveModal.isSubmitting}
+        onConfirm={confirmApproval}
+        onClose={() =>
+          setConfirmApproveModal({
+            open: false,
+            booking: null,
+            competingBookings: [],
+            isSubmitting: false,
+          })
+        }
+        teams={teams}
+        fixtures={fixtures}
+        pitches={pitches}
+        venues={venues}
+      />
     </div>
   );
 }

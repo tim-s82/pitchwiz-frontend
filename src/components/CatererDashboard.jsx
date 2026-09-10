@@ -11,7 +11,7 @@ import {
   X,
   AlertCircle,
 } from "lucide-react";
-const API_BASE_URL = import.meta.env.VITE_API_URL;
+import { api } from "../services/api";
 
 export default function CatererDashboard({
   venues,
@@ -34,12 +34,8 @@ export default function CatererDashboard({
 
   const fetchCateringRequests = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/catering-requests`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-        },
-      });
-      if (res.ok) setCateringRequests(await res.json());
+      const data = await api.getCateringRequests();
+      setCateringRequests(data || []);
     } catch (e) {
       console.warn("Could not fetch catering requests", e);
     }
@@ -82,14 +78,7 @@ export default function CatererDashboard({
 
   const handleApproveCatering = async (id) => {
     try {
-      await fetch(`${API_BASE_URL}/api/catering-requests/${id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-        },
-        body: JSON.stringify({ status: "APPROVED" }),
-      });
+      await api.updateCateringRequest(id, { status: "APPROVED" });
       fetchCateringRequests();
     } catch (e) {
       console.error(e);
@@ -106,20 +95,10 @@ export default function CatererDashboard({
       return;
     }
     try {
-      await fetch(
-        `${API_BASE_URL}/api/catering-requests/${rejectModal.crId}`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-          },
-          body: JSON.stringify({
-            status: "REJECTED",
-            rejection_reason: rejectModal.reason,
-          }),
-        },
-      );
+      await api.updateCateringRequest(rejectModal.crId, {
+        status: "REJECTED",
+        rejection_reason: rejectModal.reason,
+      });
       setRejectModal({ open: false, crId: null, reason: "" });
       fetchCateringRequests();
     } catch (e) {
