@@ -1,4 +1,5 @@
 import React from "react";
+import { Calendar } from "lucide-react";
 
 export default function BookingCreateModal({
   isOpen,
@@ -186,40 +187,52 @@ export default function BookingCreateModal({
                 <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
                   {modalData.isMultiDay ? "Start Date" : "Date"}
                 </label>
-                <input
-                  type="date"
-                  value={modalData.date}
-                  onChange={(e) =>
-                    setModalData({
-                      ...modalData,
-                      date: e.target.value,
-                      endDate: modalData.isMultiDay
-                        ? modalData.endDate
-                        : e.target.value,
-                    })
-                  }
-                  className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 outline-none focus:border-emerald-500"
-                  required
-                />
+                <div className="relative flex items-center">
+                  <input
+                    type="date"
+                    value={modalData.date}
+                    onChange={(e) =>
+                      setModalData({
+                        ...modalData,
+                        date: e.target.value,
+                        endDate: modalData.isMultiDay
+                          ? modalData.endDate
+                          : e.target.value,
+                      })
+                    }
+                    required
+                    className="w-full px-3.5 py-2.5 pr-10 rounded-xl bg-slate-950 border border-slate-700/60 text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                  />
+                  <Calendar
+                    size={18}
+                    className="absolute right-3.5 text-emerald-500 pointer-events-none"
+                  />
+                </div>
               </div>
               {modalData.isMultiDay && (
                 <div>
                   <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
                     End Date
                   </label>
-                  <input
-                    type="date"
-                    value={modalData.endDate}
-                    onChange={(e) =>
-                      setModalData({
-                        ...modalData,
-                        endDate: e.target.value,
-                      })
-                    }
-                    min={modalData.date}
-                    className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 outline-none focus:border-emerald-500"
-                    required
-                  />
+                  <div className="relative flex items-center">
+                    <input
+                      type="date"
+                      value={modalData.endDate}
+                      min={modalData.date}
+                      onChange={(e) =>
+                        setModalData({
+                          ...modalData,
+                          endDate: e.target.value,
+                        })
+                      }
+                      required
+                      className="w-full px-3.5 py-2.5 pr-10 rounded-xl bg-slate-950 border border-slate-700/60 text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                    />
+                    <Calendar
+                      size={18}
+                      className="absolute right-3.5 text-emerald-500 pointer-events-none"
+                    />
+                  </div>
                 </div>
               )}
             </div>

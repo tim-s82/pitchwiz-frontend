@@ -52,9 +52,27 @@ export default function VenuesManager({
   // Delete Confirm Modal State
   const [deleteTarget, setDeleteTarget] = useState(null);
 
-  // Active filter falls back to first venue when not explicitly selected
-  const activePitchVenueFilter =
-    selectedPitchVenueFilter || (venues.length > 0 ? String(venues[0].id) : "");
+  // Sorted venues helper (default venue first, then alphabetical)
+  const sortedVenues = useMemo(() => {
+    return [...venues].sort((a, b) => {
+      if (a.is_default && !b.is_default) return -1;
+      if (!a.is_default && b.is_default) return 1;
+      return a.name.localeCompare(b.name, undefined, {
+        sensitivity: "base",
+        numeric: true,
+      });
+    });
+  }, [venues]);
+
+  // Determine default venue ID (fallback to first sorted venue if none marked default)
+  const defaultVenueId = useMemo(() => {
+    const def = sortedVenues.find((v) => v.is_default);
+    if (def) return String(def.id);
+    return sortedVenues.length > 0 ? String(sortedVenues[0].id) : "";
+  }, [sortedVenues]);
+
+  // Active filter falls back to default venue when not explicitly selected
+  const activePitchVenueFilter = selectedPitchVenueFilter || defaultVenueId;
 
   const showToast = (message, type = "success") => {
     setToast({ message, type });
@@ -95,7 +113,7 @@ export default function VenuesManager({
 
   // ------------------ PITCH HANDLERS ------------------
   const resetPitchForm = () => {
-    setPitchVenueId(venues.length > 0 ? String(venues[0].id) : "");
+    setPitchVenueId(defaultVenueId);
     setPitchName("");
     setPitchType("GRASS");
     setEntityType("MAIN");
@@ -210,23 +228,16 @@ export default function VenuesManager({
     }
   };
 
-  // Filtered and entity-type prioritized sorted pitches
-  const displayedPitches = useMemo(() => {
-    const filtered = pitches.filter((p) => {
-      if (activePitchVenueFilter && p.venue !== parseInt(activePitchVenueFilter, 10)) {
-        return false;
-      }
-      return true;
-    });
-
+  // Helper sorting function for pitches (main, youth, net, outfield - then alphabetical)
+  const sortPitchesByGroupAndName = (pitchList) => {
     const typeRank = {
       main: 1,
       youth: 2,
-      outfield: 3,
-      net: 4,
+      net: 3,
+      outfield: 4,
     };
 
-    return [...filtered].sort((a, b) => {
+    return [...pitchList].sort((a, b) => {
       const rankA = typeRank[(a.entity_type || "").toLowerCase()] || 99;
       const rankB = typeRank[(b.entity_type || "").toLowerCase()] || 99;
 
@@ -234,9 +245,32 @@ export default function VenuesManager({
         return rankA - rankB;
       }
 
-      return a.name.localeCompare(b.name, undefined, { sensitivity: "base", numeric: true });
+      return a.name.localeCompare(b.name, undefined, {
+        sensitivity: "base",
+        numeric: true,
+      });
     });
+  };
+
+  // Filtered and sorted pitches for the Pitches tab
+  const displayedPitches = useMemo(() => {
+    const filtered = pitches.filter((p) => {
+      if (
+        activePitchVenueFilter &&
+        p.venue !== parseInt(activePitchVenueFilter, 10)
+      ) {
+        return false;
+      }
+      return true;
+    });
+
+    return sortPitchesByGroupAndName(filtered);
   }, [pitches, activePitchVenueFilter]);
+
+  // Sorted pitch lengths in descending order of length
+  const sortedPitchLengths = useMemo(() => {
+    return [...pitchLengths].sort((a, b) => b.length_yards - a.length_yards);
+  }, [pitchLengths]);
 
   return (
     <div className="space-y-6">
@@ -324,8 +358,10 @@ export default function VenuesManager({
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {venues.map((v) => {
-              const venuePitches = pitches.filter((p) => p.venue === v.id);
+            {sortedVenues.map((v) => {
+              const venuePitches = sortPitchesByGroupAndName(
+                pitches.filter((p) => p.venue === v.id)
+              );
               return (
                 <div
                   key={v.id}
@@ -370,7 +406,8 @@ export default function VenuesManager({
                       </div>
                     </div>
                     <p className="text-xs text-slate-400">
-                      {venuePitches.length} Pitch{venuePitches.length !== 1 ? "es" : ""} Allocated
+                      {venuePitches.length} Pitch
+                      {venuePitches.length !== 1 ? "es" : ""} Allocated
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-1.5 pt-2 border-t border-slate-850">
@@ -403,7 +440,7 @@ export default function VenuesManager({
                 onChange={(e) => setSelectedPitchVenueFilter(e.target.value)}
                 className="bg-slate-900 text-slate-200 text-xs rounded-xl py-1.5 px-3 outline-none border border-slate-700 focus:border-emerald-500"
               >
-                {venues.map((v) => (
+                {sortedVenues.map((v) => (
                   <option key={v.id} value={v.id}>
                     {v.name}
                   </option>
@@ -438,9 +475,9 @@ export default function VenuesManager({
               setPitchBlocksPitches={setPitchBlocksPitches}
               pitchIsActive={pitchIsActive}
               setPitchIsActive={setPitchIsActive}
-              venues={venues}
+              venues={sortedVenues}
               pitches={pitches}
-              pitchLengths={pitchLengths}
+              pitchLengths={sortedPitchLengths}
               onSubmit={handlePitchSubmit}
               onCancel={resetPitchForm}
             />
@@ -454,7 +491,7 @@ export default function VenuesManager({
               </div>
             ) : (
               displayedPitches.map((p) => {
-                const venueObj = venues.find((v) => v.id === p.venue);
+                const venueObj = sortedVenues.find((v) => v.id === p.venue);
                 const blockedPitchNames = (p.blocks_pitches || [])
                   .map((id) => pitches.find((target) => target.id === id)?.name)
                   .filter(Boolean);
@@ -520,13 +557,17 @@ export default function VenuesManager({
                         </span>
                         <div className="flex flex-wrap gap-1">
                           {(p.supported_lengths || []).map((lenId) => {
-                            const lObj = pitchLengths.find((l) => l.id === lenId);
+                            const lObj = sortedPitchLengths.find(
+                              (l) => l.id === lenId
+                            );
                             return (
                               <span
                                 key={lenId}
                                 className="text-[10px] px-2 py-0.5 rounded bg-slate-900/80 text-emerald-300 border border-slate-800"
                               >
-                                {lObj ? `${lObj.length_yards} Yards` : `ID ${lenId}`}
+                                {lObj
+                                  ? `${lObj.length_yards} Yards`
+                                  : `ID ${lenId}`}
                               </span>
                             );
                           })}
@@ -540,7 +581,8 @@ export default function VenuesManager({
                             Overlap Rules:
                           </span>
                           <p className="text-[10px]">
-                            Booking this pitch automatically blocks: {blockedPitchNames.join(", ")}
+                            Booking this pitch automatically blocks:{" "}
+                            {blockedPitchNames.join(", ")}
                           </p>
                         </div>
                       )}
@@ -596,12 +638,14 @@ export default function VenuesManager({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-850">
-                {pitchLengths.map((l) => (
+                {sortedPitchLengths.map((l) => (
                   <tr key={l.id} className="hover:bg-slate-800/20 transition">
                     <td className="px-6 py-4 font-bold text-emerald-400 font-display text-base">
                       {l.length_yards} Yards
                     </td>
-                    <td className="px-6 py-4 text-slate-200">{l.description}</td>
+                    <td className="px-6 py-4 text-slate-200">
+                      {l.description}
+                    </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end space-x-2">
                         <button

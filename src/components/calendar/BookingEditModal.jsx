@@ -1,5 +1,5 @@
 import React from "react";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, Calendar } from "lucide-react";
 
 export default function BookingEditModal({
   isOpen,
@@ -95,29 +95,41 @@ export default function BookingEditModal({
                 <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
                   {editForm.isMultiDay ? "Start Date" : "Date"}
                 </label>
-                <input
-                  type="date"
-                  value={editForm.date}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, date: e.target.value })
-                  }
-                  className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 outline-none focus:border-emerald-500"
-                />
+                <div className="relative flex items-center">
+                  <input
+                    type="date"
+                    value={editForm.date}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, date: e.target.value })
+                    }
+                    className="w-full px-3.5 py-2.5 pr-10 rounded-xl bg-slate-950 border border-slate-700/60 text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                  />
+                  <Calendar
+                    size={18}
+                    className="absolute right-3.5 text-emerald-500 pointer-events-none"
+                  />
+                </div>
               </div>
               {editForm.isMultiDay && (
                 <div>
                   <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
                     End Date
                   </label>
-                  <input
-                    type="date"
-                    value={editForm.endDate}
-                    min={editForm.date}
-                    onChange={(e) =>
-                      setEditForm({ ...editForm, endDate: e.target.value })
-                    }
-                    className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 outline-none focus:border-emerald-500"
-                  />
+                  <div className="relative flex items-center">
+                    <input
+                      type="date"
+                      value={editForm.endDate}
+                      min={editForm.date}
+                      onChange={(e) =>
+                        setEditForm({ ...editForm, endDate: e.target.value })
+                      }
+                      className="w-full px-3.5 py-2.5 pr-10 rounded-xl bg-slate-950 border border-slate-700/60 text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                    />
+                    <Calendar
+                      size={18}
+                      className="absolute right-3.5 text-emerald-500 pointer-events-none"
+                    />
+                  </div>
                 </div>
               )}
             </div>

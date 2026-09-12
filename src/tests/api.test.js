@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterEach, afterAll } from "vitest";
 import { setupServer } from "msw/node";
 import { http, HttpResponse } from "msw";
 import { api } from "../services/api";
-import { MOCK_VENUES, MOCK_TEAMS } from "../services/mockData";
+import { MOCK_VENUES, MOCK_TEAMS } from "./mockData";
 
 // Use wildcard or match both localhost and 127.0.0.1
 const server = setupServer(
