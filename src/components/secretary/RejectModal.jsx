@@ -27,13 +27,13 @@ export default function RejectModal({
         <div className="flex justify-end gap-3">
           <button
             onClick={onClose}
-            className="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 text-sm font-semibold transition"
+            className="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 text-sm font-semibold font-display border border-slate-700/60 hover:bg-slate-700 hover:text-slate-200 transition-all active:scale-[0.97]"
           >
             Cancel
           </button>
           <button
             onClick={onSubmit}
-            className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-sm font-bold shadow-lg shadow-rose-600/20 transition"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 text-sm font-semibold font-display text-white shadow-lg shadow-rose-500/20 hover:shadow-rose-500/30 hover:from-rose-500 hover:to-red-500 transition-all active:scale-[0.97]"
           >
             Deny Booking
           </button>

@@ -219,8 +219,8 @@ export default function UserManagement() {
       {toast && (
         <div
           className={`fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-xl flex items-center space-x-2 text-sm font-semibold animate-in fade-in slide-in-from-bottom-3 ${toast.type === "error"
-              ? "bg-rose-500 text-white shadow-rose-500/20"
-              : "bg-emerald-500 text-slate-950 shadow-emerald-500/20"
+            ? "bg-rose-500 text-white shadow-rose-500/20"
+            : "bg-emerald-500 text-slate-950 shadow-emerald-500/20"
             }`}
         >
           {toast.type === "error" ? (
@@ -244,10 +244,10 @@ export default function UserManagement() {
         </div>
         <button
           onClick={openAddModal}
-          className="flex items-center space-x-2 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl transition-all shadow-lg shadow-emerald-500/10 text-xs uppercase font-display tracking-wider"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-sm font-semibold font-display text-white shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 hover:from-emerald-500 hover:to-teal-500 transition-all active:scale-[0.97]"
         >
-          <UserPlus size={18} />
-          <span>Add User</span>
+          <UserPlus size={16} />
+          Add User
         </button>
       </div>
 
@@ -344,8 +344,8 @@ export default function UserManagement() {
                       <button
                         onClick={() => toggleLock(u)}
                         className={`p-1.5 rounded-lg transition-colors ${u.is_locked
-                            ? "text-teal-400 hover:bg-teal-400/10"
-                            : "text-red-400 hover:bg-red-400/10"
+                          ? "text-teal-400 hover:bg-teal-400/10"
+                          : "text-red-400 hover:bg-red-400/10"
                           }`}
                         title={
                           u.is_locked
@@ -363,8 +363,8 @@ export default function UserManagement() {
                         onClick={() => forceReset(u)}
                         disabled={u.force_password_reset}
                         className={`p-1.5 rounded-lg transition-colors ${u.force_password_reset
-                            ? "text-slate-600 cursor-not-allowed"
-                            : "text-orange-400 hover:bg-orange-400/10"
+                          ? "text-slate-600 cursor-not-allowed"
+                          : "text-orange-400 hover:bg-orange-400/10"
                           }`}
                         title="Flag Password Reset on Next Login"
                       >
@@ -500,8 +500,8 @@ export default function UserManagement() {
                         key={r.id}
                         onClick={() => toggleRole(r.id)}
                         className={`flex items-center space-x-2.5 p-2 rounded-lg cursor-pointer border transition text-xs select-none ${isChecked
-                            ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-400"
-                            : "bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700"
+                          ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-400"
+                          : "bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700"
                           }`}
                       >
                         <input
@@ -528,7 +528,7 @@ export default function UserManagement() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs transition shadow-lg shadow-emerald-500/10 disabled:opacity-50"
+                  className="px-4 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-500 transition disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-500/15"
                 >
                   {submitting
                     ? "Saving..."

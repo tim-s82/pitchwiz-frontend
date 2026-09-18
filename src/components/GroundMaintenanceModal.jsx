@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Wrench, X, AlertTriangle, Check, Calendar } from "lucide-react";
 
 export default function GroundMaintenanceModal({
@@ -14,6 +14,30 @@ export default function GroundMaintenanceModal({
   const [timeSlot, setTimeSlot] = useState("ALL_DAY"); // MORNING, AFTERNOON, EVENING, ALL_DAY
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // 1. Sort venues alphabetically, bringing the default venue to the top
+  const sortedVenues = useMemo(() => {
+    return [...venues].sort((a, b) => {
+      if (a.is_default) return -1;
+      if (b.is_default) return 1;
+      return a.name.localeCompare(b.name);
+    });
+  }, [venues]);
+
+  // 2. Initialize the form and auto-select the default venue when the modal opens
+  useEffect(() => {
+    if (isOpen) {
+      // Find the explicit default, or fallback to the first alphabetical venue
+      const defaultV = venues.find((v) => v.is_default) || sortedVenues[0];
+      setSelectedVenueId(defaultV ? defaultV.id.toString() : "");
+
+      // Clean up previous modal state
+      setSelectedPitches([]);
+      setStartDate("");
+      setTimeSlot("ALL_DAY");
+      setNotes("");
+    }
+  }, [isOpen, venues, sortedVenues]);
 
   if (!isOpen) return null;
 
@@ -92,7 +116,7 @@ export default function GroundMaintenanceModal({
               className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700/60 text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
             >
               <option value="">— Select Venue —</option>
-              {venues.map((v) => (
+              {sortedVenues.map((v) => (
                 <option key={v.id} value={v.id}>
                   {v.name}
                 </option>
@@ -119,11 +143,10 @@ export default function GroundMaintenanceModal({
                         type="button"
                         key={p.id}
                         onClick={() => handlePitchToggle(p.id)}
-                        className={`px-3 py-2 rounded-lg text-xs font-semibold border text-left transition flex items-center justify-between ${
-                          isSelected
-                            ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
-                            : "bg-slate-900 text-slate-400 border-slate-800"
-                        }`}
+                        className={`px-3 py-2 rounded-lg text-xs font-semibold border text-left transition flex items-center justify-between ${isSelected
+                          ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
+                          : "bg-slate-900 text-slate-400 border-slate-800"
+                          }`}
                       >
                         <span>{p.name}</span>
                         {isSelected && (
@@ -201,14 +224,14 @@ export default function GroundMaintenanceModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 text-sm font-semibold hover:bg-slate-700 transition"
+              className="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 text-sm font-semibold font-display border border-slate-700/60 hover:bg-slate-700 hover:text-slate-200 transition-all active:scale-[0.97]"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={saving || selectedPitches.length === 0}
-              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-slate-950 text-sm font-bold shadow-lg shadow-emerald-500/10 transition disabled:opacity-50"
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-sm font-semibold font-display text-white shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 hover:from-emerald-500 hover:to-teal-500 transition-all active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {saving ? "Scheduling..." : "Confirm Maintenance"}
             </button>

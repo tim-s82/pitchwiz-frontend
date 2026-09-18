@@ -84,7 +84,7 @@ export default function CalendarView({
       if (existingCell.type === "BLOCKED") {
         alert(
           existingCell.reason ||
-            "This slot is blocked due to an outfield overlap."
+          "This slot is blocked due to an outfield overlap."
         );
         return;
       }
@@ -279,11 +279,11 @@ export default function CalendarView({
             <div className="flex items-center justify-between">
               <button
                 onClick={() => shiftMobileDay(-1)}
-                className="p-2 rounded-xl bg-slate-800 text-slate-300 border border-slate-700"
+                className="inline-flex items-center justify-center p-2.5 rounded-xl bg-slate-800 text-slate-300 border border-slate-700/60 hover:bg-slate-700 hover:text-slate-200 transition-all active:scale-[0.97]"
               >
                 ←
               </button>
-              <div className="text-sm font-bold text-slate-100 font-display">
+              <div className="text-sm font-bold text-slate-100 font-display tracking-wide">
                 {new Date(mobileSelectedDateStr).toLocaleDateString("en-GB", {
                   weekday: "short",
                   day: "numeric",
@@ -293,7 +293,7 @@ export default function CalendarView({
               </div>
               <button
                 onClick={() => shiftMobileDay(1)}
-                className="p-2 rounded-xl bg-slate-800 text-slate-300 border border-slate-700"
+                className="inline-flex items-center justify-center p-2.5 rounded-xl bg-slate-800 text-slate-300 border border-slate-700/60 hover:bg-slate-700 hover:text-slate-200 transition-all active:scale-[0.97]"
               >
                 →
               </button>
@@ -378,14 +378,14 @@ export default function CalendarView({
               </select>
             </div>
 
-            <div className="flex items-center justify-between bg-slate-900/80 p-2 rounded-xl border border-slate-800">
+            <div className="flex items-center justify-between bg-slate-900/80 p-2 rounded-xl border border-slate-800/80 shadow-inner">
               <button
                 onClick={() => shiftWeek(-1)}
-                className="p-2 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition flex items-center space-x-1 text-xs font-semibold"
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-slate-800 text-slate-300 text-xs font-semibold font-display border border-slate-700/60 hover:bg-slate-700 hover:text-slate-200 transition-all active:scale-[0.97]"
               >
                 <span>← Prev Week</span>
               </button>
-              <div className="text-xs font-bold text-slate-100 font-display">
+              <div className="text-xs font-bold text-slate-100 font-display tracking-wide">
                 Week of{" "}
                 {new Date(startDateStr).toLocaleDateString("en-GB", {
                   day: "numeric",
@@ -394,7 +394,7 @@ export default function CalendarView({
               </div>
               <button
                 onClick={() => shiftWeek(1)}
-                className="p-2 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition flex items-center space-x-1 text-xs font-semibold"
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-slate-800 text-slate-300 text-xs font-semibold font-display border border-slate-700/60 hover:bg-slate-700 hover:text-slate-200 transition-all active:scale-[0.97]"
               >
                 <span>Next Week →</span>
               </button>
