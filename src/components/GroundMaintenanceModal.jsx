@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { Wrench, X, AlertTriangle, Check, Calendar } from "lucide-react";
 
 export default function GroundMaintenanceModal({
@@ -8,13 +8,6 @@ export default function GroundMaintenanceModal({
   pitches,
   onMaintenanceCreated,
 }) {
-  const [selectedVenueId, setSelectedVenueId] = useState("");
-  const [selectedPitches, setSelectedPitches] = useState([]);
-  const [startDate, setStartDate] = useState("");
-  const [timeSlot, setTimeSlot] = useState("ALL_DAY"); // MORNING, AFTERNOON, EVENING, ALL_DAY
-  const [notes, setNotes] = useState("");
-  const [saving, setSaving] = useState(false);
-
   // 1. Sort venues alphabetically, bringing the default venue to the top
   const sortedVenues = useMemo(() => {
     return [...venues].sort((a, b) => {
@@ -24,20 +17,17 @@ export default function GroundMaintenanceModal({
     });
   }, [venues]);
 
-  // 2. Initialize the form and auto-select the default venue when the modal opens
-  useEffect(() => {
-    if (isOpen) {
-      // Find the explicit default, or fallback to the first alphabetical venue
-      const defaultV = venues.find((v) => v.is_default) || sortedVenues[0];
-      setSelectedVenueId(defaultV ? defaultV.id.toString() : "");
+  // 2. Initialize venue state directly without a cascading effect hook
+  const [selectedVenueId, setSelectedVenueId] = useState(() => {
+    const defaultV = venues.find((v) => v.is_default) || sortedVenues[0];
+    return defaultV ? defaultV.id.toString() : "";
+  });
 
-      // Clean up previous modal state
-      setSelectedPitches([]);
-      setStartDate("");
-      setTimeSlot("ALL_DAY");
-      setNotes("");
-    }
-  }, [isOpen, venues, sortedVenues]);
+  const [selectedPitches, setSelectedPitches] = useState([]);
+  const [startDate, setStartDate] = useState("");
+  const [timeSlot, setTimeSlot] = useState("ALL_DAY"); // MORNING, AFTERNOON, EVENING, ALL_DAY
+  const [notes, setNotes] = useState("");
+  const [saving, setSaving] = useState(false);
 
   if (!isOpen) return null;
 
@@ -144,8 +134,8 @@ export default function GroundMaintenanceModal({
                         key={p.id}
                         onClick={() => handlePitchToggle(p.id)}
                         className={`px-3 py-2 rounded-lg text-xs font-semibold border text-left transition flex items-center justify-between ${isSelected
-                          ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
-                          : "bg-slate-900 text-slate-400 border-slate-800"
+                            ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
+                            : "bg-slate-900 text-slate-400 border-slate-800"
                           }`}
                       >
                         <span>{p.name}</span>

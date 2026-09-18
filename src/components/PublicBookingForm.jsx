@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import {
   Mail,
   User,
@@ -14,7 +14,21 @@ export default function PublicBookingForm({
   pitches,
   onBookingCreated,
 }) {
-  const [selectedVenueId, setSelectedVenueId] = useState("");
+  // 1. Sort venues alphabetically, bringing the default venue to the top
+  const sortedVenues = useMemo(() => {
+    return [...venues].sort((a, b) => {
+      if (a.is_default) return -1;
+      if (b.is_default) return 1;
+      return a.name.localeCompare(b.name);
+    });
+  }, [venues]);
+
+  // 2. Initialize selectedVenueId directly without an effect hook
+  const [selectedVenueId, setSelectedVenueId] = useState(() => {
+    const defaultV = venues.find((v) => v.is_default) || sortedVenues[0];
+    return defaultV ? defaultV.id.toString() : "";
+  });
+
   const [form, setForm] = useState({
     external_contact_name: "",
     external_contact_email: "",
@@ -32,26 +46,7 @@ export default function PublicBookingForm({
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // 1. Sort venues alphabetically, bringing the default venue to the top
-  const sortedVenues = useMemo(() => {
-    return [...venues].sort((a, b) => {
-      if (a.is_default) return -1;
-      if (b.is_default) return 1;
-      return a.name.localeCompare(b.name);
-    });
-  }, [venues]);
-
-  // Auto-select the default venue when venues load or change
-  useEffect(() => {
-    if (venues && venues.length > 0 && !selectedVenueId) {
-      const defaultV = venues.find((v) => v.is_default) || sortedVenues[0];
-      if (defaultV) {
-        setSelectedVenueId(defaultV.id.toString());
-      }
-    }
-  }, [venues, sortedVenues, selectedVenueId]);
-
-  // Filter pitches by the selected venue and sort by MAIN, YOUTH, NET, OUTFIELD, then alphabetically
+  // Filter pitches by venue and sort by entity_type (MAIN, YOUTH, NET, OUTFIELD), then alphabetically
   const venueFilteredPitches = useMemo(() => {
     if (!selectedVenueId) return [];
     const filtered = pitches.filter((p) => p.venue === Number(selectedVenueId));
@@ -72,7 +67,7 @@ export default function PublicBookingForm({
     });
   }, [pitches, selectedVenueId]);
 
-  // Reset selected pitch if the venue changes and the current pitch doesn't belong to it
+  // Reset selected pitch if the venue changes
   const handleVenueChange = (e) => {
     const newVenueId = e.target.value;
     setSelectedVenueId(newVenueId);
@@ -245,7 +240,7 @@ export default function PublicBookingForm({
               <option value="">— Select Pitch —</option>
               {venueFilteredPitches.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.name} {p.type ? `(${p.type})` : ""}
+                  {p.name}
                 </option>
               ))}
             </select>
