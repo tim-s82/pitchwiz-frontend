@@ -79,7 +79,7 @@ export default function GroundMaintenanceModal({
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {/* Venue Selection */}
           <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1.5">
+            <label className="block text-xs font-semibold text-slate-400 mb-1.5">
               Venue <span className="text-red-400">*</span>
             </label>
             <select
@@ -103,7 +103,7 @@ export default function GroundMaintenanceModal({
           {/* Pitches Multi-select */}
           {selectedVenueId && (
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1.5">
+              <label className="block text-xs font-semibold text-slate-400 mb-1.5">
                 Affected Pitches <span className="text-red-400">*</span>
               </label>
               <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 rounded-xl bg-slate-950 border border-slate-800">
@@ -119,7 +119,7 @@ export default function GroundMaintenanceModal({
                         type="button"
                         key={p.id}
                         onClick={() => handlePitchToggle(p.id)}
-                        className={`px-3 py-2 rounded-lg text-xs font-medium border text-left transition flex items-center justify-between ${
+                        className={`px-3 py-2 rounded-lg text-xs font-semibold border text-left transition flex items-center justify-between ${
                           isSelected
                             ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
                             : "bg-slate-900 text-slate-400 border-slate-800"
@@ -140,7 +140,7 @@ export default function GroundMaintenanceModal({
           {/* Date & Slot */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1.5">
+              <label className="block text-xs font-semibold text-slate-400 mb-1.5">
                 Date <span className="text-red-400">*</span>
               </label>
               <div className="relative flex items-center">
@@ -158,7 +158,7 @@ export default function GroundMaintenanceModal({
               </div>
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1.5">
+              <label className="block text-xs font-semibold text-slate-400 mb-1.5">
                 Time Slot <span className="text-red-400">*</span>
               </label>
               <select
@@ -176,7 +176,7 @@ export default function GroundMaintenanceModal({
 
           {/* Notes & Warning */}
           <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1.5">
+            <label className="block text-xs font-semibold text-slate-400 mb-1.5">
               Maintenance Notes / Reason
             </label>
             <textarea
@@ -197,18 +197,18 @@ export default function GroundMaintenanceModal({
             </span>
           </div>
 
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="flex justify-end gap-3 pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-medium hover:bg-slate-700 transition"
+              className="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 text-sm font-semibold hover:bg-slate-700 transition"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={saving || selectedPitches.length === 0}
-              className="px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-500 transition disabled:opacity-50"
+              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-slate-950 text-sm font-bold shadow-lg shadow-emerald-500/10 transition disabled:opacity-50"
             >
               {saving ? "Scheduling..." : "Confirm Maintenance"}
             </button>

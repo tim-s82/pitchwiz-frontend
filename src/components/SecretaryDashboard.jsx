@@ -398,7 +398,7 @@ export default function SecretaryDashboard({
 
                     <button
                       onClick={() => handleEditBooking(booking)}
-                      className="py-2 px-3.5 rounded-xl border border-blue-800/50 bg-blue-950/20 hover:bg-blue-950/50 text-blue-400 font-semibold text-xs flex items-center justify-center gap-1.5 transition"
+                      className="py-2 px-3.5 rounded-xl border border-emerald-800/50 bg-emerald-950/20 hover:bg-emerald-950/40 text-emerald-400 font-semibold text-xs flex items-center justify-center gap-1.5 transition"
                     >
                       <Pencil size={13} /> Edit / Cancel Booking
                     </button>
@@ -433,7 +433,7 @@ export default function SecretaryDashboard({
                           )
                         }
                         disabled={!altPitchId[booking.id]}
-                        className="p-2 bg-indigo-650/30 hover:bg-indigo-600 border border-indigo-800/40 rounded-lg text-indigo-400 hover:text-white disabled:opacity-40 transition"
+                        className="p-2 bg-emerald-950/40 hover:bg-emerald-600/30 border border-emerald-800/40 rounded-lg text-emerald-400 hover:text-emerald-300 disabled:opacity-40 transition text-xs font-semibold"
                         title="Move to alternate pitch"
                       >
                         Apply
@@ -524,7 +524,7 @@ export default function SecretaryDashboard({
                         <td className="p-4">
                           <button
                             onClick={() => handleEditBooking(b)}
-                            className="py-1.5 px-3 rounded-lg border border-blue-800/50 bg-blue-950/20 hover:bg-blue-950/50 text-blue-400 text-xs font-semibold flex items-center gap-1.5 transition"
+                            className="py-1.5 px-3 rounded-lg border border-emerald-800/50 bg-emerald-950/20 hover:bg-emerald-950/40 text-emerald-400 text-xs font-semibold flex items-center gap-1.5 transition"
                           >
                             <Pencil size={12} /> Edit
                           </button>

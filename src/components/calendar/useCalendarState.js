@@ -60,11 +60,16 @@ export function useCalendarState({
   const [editSaving, setEditSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  // Alphabetically sorted venues memo
+  // Sorted venues memo (default venue first, then alphabetically)
   const sortedVenues = useMemo(() => {
-    return [...venues].sort((a, b) =>
-      a.name.localeCompare(b.name, undefined, { sensitivity: "base", numeric: true })
-    );
+    return [...venues].sort((a, b) => {
+      if (a.is_default && !b.is_default) return -1;
+      if (!a.is_default && b.is_default) return 1;
+      return a.name.localeCompare(b.name, undefined, {
+        sensitivity: "base",
+        numeric: true,
+      });
+    });
   }, [venues]);
 
   const defaultVenueId = useMemo(() => {
