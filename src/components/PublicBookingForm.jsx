@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Mail,
   User,
@@ -14,6 +14,7 @@ export default function PublicBookingForm({
   pitches,
   onBookingCreated,
 }) {
+  const [selectedVenueId, setSelectedVenueId] = useState("");
   const [form, setForm] = useState({
     external_contact_name: "",
     external_contact_email: "",
@@ -25,11 +26,58 @@ export default function PublicBookingForm({
     requires_teas: false,
     requires_drinks: false,
     notes: "",
-    opponent: "External Match / Event", // Default placeholder for external booking
+    opponent: "External Match / Event",
   });
 
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // 1. Sort venues alphabetically, bringing the default venue to the top
+  const sortedVenues = useMemo(() => {
+    return [...venues].sort((a, b) => {
+      if (a.is_default) return -1;
+      if (b.is_default) return 1;
+      return a.name.localeCompare(b.name);
+    });
+  }, [venues]);
+
+  // Auto-select the default venue when venues load or change
+  useEffect(() => {
+    if (venues && venues.length > 0 && !selectedVenueId) {
+      const defaultV = venues.find((v) => v.is_default) || sortedVenues[0];
+      if (defaultV) {
+        setSelectedVenueId(defaultV.id.toString());
+      }
+    }
+  }, [venues, sortedVenues, selectedVenueId]);
+
+  // Filter pitches by the selected venue and sort by MAIN, YOUTH, NET, OUTFIELD, then alphabetically
+  const venueFilteredPitches = useMemo(() => {
+    if (!selectedVenueId) return [];
+    const filtered = pitches.filter((p) => p.venue === Number(selectedVenueId));
+
+    const groupOrder = { MAIN: 1, YOUTH: 2, NET: 3, OUTFIELD: 4 };
+
+    return filtered.sort((a, b) => {
+      const typeA = (a.entity_type || a.type || "").toUpperCase();
+      const typeB = (b.entity_type || b.type || "").toUpperCase();
+
+      const groupA = groupOrder[typeA] || 99;
+      const groupB = groupOrder[typeB] || 99;
+
+      if (groupA !== groupB) {
+        return groupA - groupB;
+      }
+      return a.name.localeCompare(b.name);
+    });
+  }, [pitches, selectedVenueId]);
+
+  // Reset selected pitch if the venue changes and the current pitch doesn't belong to it
+  const handleVenueChange = (e) => {
+    const newVenueId = e.target.value;
+    setSelectedVenueId(newVenueId);
+    setForm((prev) => ({ ...prev, pitch: "" }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -45,7 +93,7 @@ export default function PublicBookingForm({
 
     setLoading(true);
     const payload = {
-      pitch: parseInt(form.pitch),
+      pitch: parseInt(form.pitch, 10),
       start_date: form.start_date,
       end_date: form.isMultiDay ? form.end_date : form.start_date,
       time_slot: form.time_slot,
@@ -54,7 +102,7 @@ export default function PublicBookingForm({
       notes: form.notes,
       external_contact_name: form.external_contact_name,
       external_contact_email: form.external_contact_email,
-      fixture_team: null, // Null indicates external booking
+      fixture_team: null,
       fixture_opponent: form.opponent,
     };
 
@@ -107,7 +155,7 @@ export default function PublicBookingForm({
         </div>
         <button
           onClick={handleReset}
-          className="w-full py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold transition"
+          className="w-full px-4 py-3 rounded-xl bg-slate-800 text-slate-300 text-sm font-semibold font-display border border-slate-700/60 hover:bg-slate-700 hover:text-slate-200 transition-all active:scale-[0.97]"
         >
           Submit Another Request
         </button>
@@ -131,7 +179,7 @@ export default function PublicBookingForm({
         {/* Contact Info */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1.5 flex items-center gap-1.5">
+            <label className="block text-xs font-medium text-slate-400 mb-1.5 flex items-center gap-1.5 font-display">
               <User size={12} className="text-emerald-400" /> Contact Name <span className="text-red-400">*</span>
             </label>
             <input
@@ -146,7 +194,7 @@ export default function PublicBookingForm({
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1.5 flex items-center gap-1.5">
+            <label className="block text-xs font-medium text-slate-400 mb-1.5 flex items-center gap-1.5 font-display">
               <Mail size={12} className="text-emerald-400" /> Email Address <span className="text-red-400">*</span>
             </label>
             <input
@@ -162,10 +210,29 @@ export default function PublicBookingForm({
           </div>
         </div>
 
-        {/* Pitch & Time Slot */}
+        {/* Venue & Pitch Selection Split */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1.5">
+            <label className="block text-xs font-medium text-slate-400 mb-1.5 font-display">
+              Venue <span className="text-red-400">*</span>
+            </label>
+            <select
+              value={selectedVenueId}
+              onChange={handleVenueChange}
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700/60 text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+              required
+            >
+              <option value="">— Select Venue —</option>
+              {sortedVenues.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-slate-400 mb-1.5 font-display">
               Requested Pitch <span className="text-red-400">*</span>
             </label>
             <select
@@ -173,35 +240,38 @@ export default function PublicBookingForm({
               onChange={(e) => setForm({ ...form, pitch: e.target.value })}
               className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700/60 text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
               required
+              disabled={!selectedVenueId}
             >
               <option value="">— Select Pitch —</option>
-              {pitches.map((p) => (
+              {venueFilteredPitches.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {venues.find((v) => v.id === p.venue)?.name} - {p.name}
+                  {p.name} {p.type ? `(${p.type})` : ""}
                 </option>
               ))}
             </select>
           </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1.5 flex items-center gap-1.5">
-              <Clock size={12} className="text-emerald-400" /> Time Slot <span className="text-red-400">*</span>
-            </label>
-            <select
-              value={form.time_slot}
-              onChange={(e) => setForm({ ...form, time_slot: e.target.value })}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700/60 text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
-            >
-              <option value="MORNING">Morning (09:00 - 13:00)</option>
-              <option value="AFTERNOON">Afternoon (13:30 - 18:00)</option>
-              <option value="EVENING">Evening (18:00 - 21:00)</option>
-              <option value="ALL_DAY">All Day</option>
-            </select>
-          </div>
+        </div>
+
+        {/* Time Slot */}
+        <div>
+          <label className="block text-xs font-medium text-slate-400 mb-1.5 flex items-center gap-1.5 font-display">
+            <Clock size={12} className="text-emerald-400" /> Time Slot <span className="text-red-400">*</span>
+          </label>
+          <select
+            value={form.time_slot}
+            onChange={(e) => setForm({ ...form, time_slot: e.target.value })}
+            className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700/60 text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+          >
+            <option value="MORNING">Morning (09:00 - 13:00)</option>
+            <option value="AFTERNOON">Afternoon (13:30 - 18:00)</option>
+            <option value="EVENING">Evening (18:00 - 21:00)</option>
+            <option value="ALL_DAY">All Day</option>
+          </select>
         </div>
 
         {/* Event Name */}
         <div>
-          <label className="block text-xs font-medium text-slate-400 mb-1.5">
+          <label className="block text-xs font-medium text-slate-400 mb-1.5 font-display">
             Event Name / Match Details <span className="text-red-400">*</span>
           </label>
           <input
@@ -224,11 +294,11 @@ export default function PublicBookingForm({
               onChange={(e) =>
                 setForm({ ...form, isMultiDay: e.target.checked })
               }
-              className="rounded text-emerald-500 bg-slate-900 border-slate-700 focus:ring-emerald-500"
+              className="rounded text-emerald-500 bg-slate-900 border-slate-700 focus:ring-emerald-500 w-4 h-4"
             />
             <label
               htmlFor="publicMultiDay"
-              className="text-xs font-medium text-slate-200 cursor-pointer"
+              className="text-xs font-medium text-slate-200 cursor-pointer font-display"
             >
               This match spans multiple days (Multi-day event)
             </label>
@@ -236,7 +306,7 @@ export default function PublicBookingForm({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1.5 flex items-center gap-1.5">
+              <label className="block text-xs font-medium text-slate-400 mb-1.5 flex items-center gap-1.5 font-display">
                 <Calendar size={12} className="text-emerald-400" /> {form.isMultiDay ? "Start Date" : "Date"} <span className="text-red-400">*</span>
               </label>
               <div className="relative flex items-center">
@@ -261,7 +331,7 @@ export default function PublicBookingForm({
             </div>
             {form.isMultiDay && (
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1.5 flex items-center gap-1.5">
+                <label className="block text-xs font-medium text-slate-400 mb-1.5 flex items-center gap-1.5 font-display">
                   <Calendar size={12} className="text-emerald-400" /> End Date <span className="text-red-400">*</span>
                 </label>
                 <div className="relative flex items-center">
@@ -294,9 +364,9 @@ export default function PublicBookingForm({
               onChange={(e) =>
                 setForm({ ...form, requires_teas: e.target.checked })
               }
-              className="rounded text-emerald-500 bg-slate-900 border-slate-700 focus:ring-emerald-500"
+              className="rounded text-emerald-500 bg-slate-900 border-slate-700 focus:ring-emerald-500 w-4 h-4"
             />
-            <span className="text-slate-300">
+            <span className="text-slate-300 font-display">
               Request Teas
             </span>
           </label>
@@ -307,15 +377,15 @@ export default function PublicBookingForm({
               onChange={(e) =>
                 setForm({ ...form, requires_drinks: e.target.checked })
               }
-              className="rounded text-emerald-500 bg-slate-900 border-slate-700 focus:ring-emerald-500"
+              className="rounded text-emerald-500 bg-slate-900 border-slate-700 focus:ring-emerald-500 w-4 h-4"
             />
-            <span className="text-slate-300">Request Drinks</span>
+            <span className="text-slate-300 font-display">Request Drinks</span>
           </label>
         </div>
 
         {/* Notes */}
         <div>
-          <label className="block text-xs font-medium text-slate-400 mb-1.5">
+          <label className="block text-xs font-medium text-slate-400 mb-1.5 font-display">
             Notes / Special Requests
           </label>
           <textarea
@@ -339,7 +409,7 @@ export default function PublicBookingForm({
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 disabled:opacity-50 text-slate-950 font-bold text-sm transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/15"
+          className="w-full inline-flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-sm font-semibold font-display text-white shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 hover:from-emerald-500 hover:to-teal-500 transition-all active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Send size={15} />
           {loading ? "Submitting..." : "Send Booking Request"}

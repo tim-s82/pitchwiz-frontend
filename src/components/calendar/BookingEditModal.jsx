@@ -191,7 +191,7 @@ export default function BookingEditModal({
                 <button
                   type="button"
                   onClick={() => setShowDeleteConfirm(false)}
-                  className="flex-1 py-3 px-4 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold transition"
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 text-sm font-semibold font-display border border-slate-700/60 hover:bg-slate-700 hover:text-slate-200 transition-all active:scale-[0.97] disabled:opacity-50"
                   disabled={saving}
                 >
                   Keep Booking
@@ -200,7 +200,7 @@ export default function BookingEditModal({
                   type="button"
                   onClick={onDelete}
                   disabled={saving}
-                  className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-bold shadow-lg transition flex items-center justify-center space-x-2"
+                  className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 text-sm font-semibold font-display text-white shadow-lg shadow-rose-500/20 hover:shadow-rose-500/30 hover:from-rose-500 hover:to-red-500 transition-all active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Trash2 size={16} />
                   <span>{saving ? "Cancelling…" : "Yes, Cancel It"}</span>
@@ -212,15 +212,14 @@ export default function BookingEditModal({
               <button
                 type="button"
                 onClick={() => setShowDeleteConfirm(true)}
-                className="py-3 px-4 rounded-xl border border-red-800 bg-red-950/30 hover:bg-red-950/60 text-red-400 font-semibold transition flex items-center space-x-2"
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-rose-800/60 bg-rose-950/30 hover:bg-rose-950/50 text-rose-400 text-sm font-semibold font-display transition-all active:scale-[0.97]"
               >
-                <Trash2 size={15} />
-                <span>Cancel Booking</span>
+                <Trash2 size={16} />
               </button>
               <button
                 type="submit"
                 disabled={saving}
-                className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-slate-950 font-bold shadow-lg transition"
+                className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-sm font-semibold font-display text-white shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 hover:from-emerald-500 hover:to-teal-500 transition-all active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {saving ? "Saving…" : "Save Changes"}
               </button>

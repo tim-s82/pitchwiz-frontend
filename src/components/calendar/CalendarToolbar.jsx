@@ -26,11 +26,11 @@ export default function CalendarToolbar({
         <div className="hidden md:flex items-center space-x-3">
           <button
             onClick={() => onShiftWeek(-1)}
-            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 transition border border-slate-700 text-slate-300"
+            className="inline-flex items-center justify-center p-2.5 rounded-xl bg-slate-800 text-slate-300 border border-slate-700/60 hover:bg-slate-700 hover:text-slate-200 transition-all active:scale-[0.97]"
           >
             <ChevronLeft size={20} />
           </button>
-          <div className="flex items-center space-x-2 text-lg font-semibold tracking-wide font-display text-slate-100">
+          <div className="flex items-center space-x-2 text-lg font-semibold tracking-wide font-display text-slate-100 px-2">
             <Calendar className="text-emerald-500" size={22} />
             <span>
               Week Starting{" "}
@@ -43,7 +43,7 @@ export default function CalendarToolbar({
           </div>
           <button
             onClick={() => onShiftWeek(1)}
-            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 transition border border-slate-700 text-slate-300"
+            className="inline-flex items-center justify-center p-2.5 rounded-xl bg-slate-800 text-slate-300 border border-slate-700/60 hover:bg-slate-700 hover:text-slate-200 transition-all active:scale-[0.97]"
           >
             <ChevronRight size={20} />
           </button>
@@ -51,24 +51,22 @@ export default function CalendarToolbar({
 
         {/* Mobile Layout Switcher */}
         <div className="flex md:hidden flex-col gap-2 w-full">
-          <div className="flex items-center justify-between bg-slate-900 p-1.5 rounded-xl border border-slate-800">
+          <div className="flex items-center justify-between bg-slate-900/80 p-1 rounded-xl border border-slate-800">
             <button
               onClick={() => setMobileLayoutMode("singleDay")}
-              className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition ${
-                mobileLayoutMode === "singleDay"
-                  ? "bg-emerald-500 text-slate-950 font-bold"
-                  : "text-slate-400"
-              }`}
+              className={`flex-1 py-1.5 text-xs font-semibold font-display rounded-lg transition-all ${mobileLayoutMode === "singleDay"
+                ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md"
+                : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
+                }`}
             >
               Single Day View
             </button>
             <button
               onClick={() => setMobileLayoutMode("singlePitch")}
-              className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition ${
-                mobileLayoutMode === "singlePitch"
-                  ? "bg-emerald-500 text-slate-950 font-bold"
-                  : "text-slate-400"
-              }`}
+              className={`flex-1 py-1.5 text-xs font-semibold font-display rounded-lg transition-all ${mobileLayoutMode === "singlePitch"
+                ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md"
+                : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
+                }`}
             >
               Single Pitch View
             </button>
@@ -77,24 +75,22 @@ export default function CalendarToolbar({
 
         {/* Filters and View Toggles */}
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-          <div className="hidden md:flex bg-slate-900 p-1 rounded-xl border border-slate-800 shrink-0">
+          <div className="hidden md:flex bg-slate-900/80 p-1 rounded-xl border border-slate-800 shrink-0">
             <button
               onClick={() => setViewMode("transposed")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold font-display transition ${
-                viewMode === "transposed"
-                  ? "bg-emerald-500 text-slate-950 font-bold"
-                  : "text-slate-400 hover:text-slate-200"
-              }`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold font-display transition-all ${viewMode === "transposed"
+                  ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
+                }`}
             >
               Pitches Across
             </button>
             <button
               onClick={() => setViewMode("standard")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold font-display transition ${
-                viewMode === "standard"
-                  ? "bg-emerald-500 text-slate-950 font-bold"
-                  : "text-slate-400 hover:text-slate-200"
-              }`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold font-display transition-all ${viewMode === "standard"
+                  ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
+                }`}
             >
               Days Across
             </button>
