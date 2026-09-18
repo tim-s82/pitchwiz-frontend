@@ -221,11 +221,10 @@ export default function SecretaryDashboard({
       <div className="flex border-b border-slate-800">
         <button
           onClick={() => setActiveTab("pending")}
-          className={`pb-4 px-6 font-semibold text-sm transition-all duration-300 relative ${
-            activeTab === "pending"
-              ? "text-emerald-400"
-              : "text-slate-400 hover:text-slate-200"
-          }`}
+          className={`pb-4 px-6 font-semibold text-sm transition-all duration-300 relative ${activeTab === "pending"
+            ? "text-emerald-400"
+            : "text-slate-400 hover:text-slate-200"
+            }`}
         >
           Pending Requests
           {pendingBookings.length > 0 && (
@@ -239,11 +238,10 @@ export default function SecretaryDashboard({
         </button>
         <button
           onClick={() => setActiveTab("changes")}
-          className={`pb-4 px-6 font-semibold text-sm transition-all duration-300 relative ${
-            activeTab === "changes"
-              ? "text-emerald-400"
-              : "text-slate-400 hover:text-slate-200"
-          }`}
+          className={`pb-4 px-6 font-semibold text-sm transition-all duration-300 relative ${activeTab === "changes"
+            ? "text-emerald-400"
+            : "text-slate-400 hover:text-slate-200"
+            }`}
         >
           Change Requests
           {pendingChangesCount > 0 && (
@@ -257,11 +255,10 @@ export default function SecretaryDashboard({
         </button>
         <button
           onClick={() => setActiveTab("resolved")}
-          className={`pb-4 px-6 font-semibold text-sm transition-all duration-300 relative ${
-            activeTab === "resolved"
-              ? "text-emerald-400"
-              : "text-slate-400 hover:text-slate-200"
-          }`}
+          className={`pb-4 px-6 font-semibold text-sm transition-all duration-300 relative ${activeTab === "resolved"
+            ? "text-emerald-400"
+            : "text-slate-400 hover:text-slate-200"
+            }`}
         >
           Booking History
           {activeTab === "resolved" && (
@@ -299,20 +296,18 @@ export default function SecretaryDashboard({
               return (
                 <div
                   key={booking.id}
-                  className={`glass-panel p-6 rounded-2xl border transition duration-300 flex flex-col lg:flex-row lg:items-center justify-between gap-6 ${
-                    conflicts.length > 0
-                      ? "border-amber-900/50 bg-amber-950/5"
-                      : "border-slate-800"
-                  }`}
+                  className={`glass-panel p-6 rounded-2xl border transition duration-300 flex flex-col lg:flex-row lg:items-center justify-between gap-6 ${conflicts.length > 0
+                    ? "border-amber-900/50 bg-amber-950/5"
+                    : "border-slate-800"
+                    }`}
                 >
                   <div className="space-y-3 max-w-2xl">
                     <div className="flex flex-wrap items-center gap-2">
                       <span
-                        className={`text-xxs px-2 py-0.5 rounded font-extrabold font-display uppercase ${
-                          booking.fixture
-                            ? "bg-indigo-900/50 text-indigo-400 border border-indigo-900/55"
-                            : "bg-pink-900/40 text-pink-400 border border-pink-900/50"
-                        }`}
+                        className={`text-xxs px-2 py-0.5 rounded font-extrabold font-display uppercase ${booking.fixture
+                          ? "bg-indigo-900/50 text-indigo-400 border border-indigo-900/55"
+                          : "bg-pink-900/40 text-pink-400 border border-pink-900/50"
+                          }`}
                       >
                         {booking.fixture ? "Club Fixture" : "External Booking"}
                       </span>
@@ -380,65 +375,63 @@ export default function SecretaryDashboard({
                   </div>
 
                   {/* Actions Panel */}
-                  <div className="flex flex-col sm:flex-row lg:flex-col justify-end gap-3 sm:items-center lg:items-stretch min-w-[220px]">
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleApprove(booking.id)}
-                        className="flex-1 py-2 px-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-xs flex items-center justify-center gap-1 transition shadow-lg shadow-emerald-500/10"
-                      >
-                        <Check size={14} /> Approve
-                      </button>
-                      <button
-                        onClick={() => handleDeny(booking.id)}
-                        className="flex-1 py-2 px-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs border border-slate-700 flex items-center justify-center gap-1 transition"
-                      >
-                        <X size={14} /> Deny
-                      </button>
-                    </div>
-
+                  <div className="flex gap-2">
                     <button
-                      onClick={() => handleEditBooking(booking)}
-                      className="py-2 px-3.5 rounded-xl border border-emerald-800/50 bg-emerald-950/20 hover:bg-emerald-950/40 text-emerald-400 font-semibold text-xs flex items-center justify-center gap-1.5 transition"
+                      onClick={() => handleApprove(booking.id)}
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-xs font-semibold font-display text-white shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 hover:from-emerald-500 hover:to-teal-500 transition-all active:scale-[0.97]"
                     >
-                      <Pencil size={13} /> Edit / Cancel Booking
+                      <Check size={14} /> Approve
                     </button>
+                    <button
+                      onClick={() => handleDeny(booking.id)}
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold font-display border border-slate-700/60 transition-all active:scale-[0.97]"
+                    >
+                      <X size={14} /> Deny
+                    </button>
+                  </div>
 
-                    {/* Alternative Pitch Selector */}
-                    <div className="flex items-center gap-1.5">
-                      <select
-                        value={altPitchId[booking.id] || ""}
-                        onChange={(e) =>
-                          setAltPitchId({
-                            ...altPitchId,
-                            [booking.id]: e.target.value,
-                          })
-                        }
-                        className="bg-slate-900 border border-slate-800 text-slate-300 text-[11px] rounded-lg p-2 outline-none w-full focus:border-emerald-500"
-                      >
-                        <option value="">Move Pitch...</option>
-                        {pitches
-                          .filter((p) => p.id !== booking.pitch)
-                          .map((p) => (
-                            <option key={p.id} value={p.id}>
-                              {venues.find((v) => v.id === p.venue)?.name} -{" "}
-                              {p.name}
-                            </option>
-                          ))}
-                      </select>
-                      <button
-                        onClick={() =>
-                          handleProposeAlternative(
-                            booking.id,
-                            altPitchId[booking.id],
-                          )
-                        }
-                        disabled={!altPitchId[booking.id]}
-                        className="p-2 bg-emerald-950/40 hover:bg-emerald-600/30 border border-emerald-800/40 rounded-lg text-emerald-400 hover:text-emerald-300 disabled:opacity-40 transition text-xs font-semibold"
-                        title="Move to alternate pitch"
-                      >
-                        Apply
-                      </button>
-                    </div>
+                  <button
+                    onClick={() => handleEditBooking(booking)}
+                    className="inline-flex items-center justify-center gap-1.5 py-2 px-3.5 rounded-xl border border-emerald-800/50 bg-emerald-950/20 hover:bg-emerald-950/40 text-emerald-400 font-semibold font-display text-xs transition-all active:scale-[0.97]"
+                  >
+                    <Pencil size={13} /> Edit / Cancel Booking
+                  </button>
+
+                  {/* Alternative Pitch Selector */}
+                  <div className="flex items-center gap-1.5">
+                    <select
+                      value={altPitchId[booking.id] || ""}
+                      onChange={(e) =>
+                        setAltPitchId({
+                          ...altPitchId,
+                          [booking.id]: e.target.value,
+                        })
+                      }
+                      className="bg-slate-900 border border-slate-800 text-slate-300 text-[11px] rounded-lg p-2 outline-none w-full focus:border-emerald-500"
+                    >
+                      <option value="">Move Pitch...</option>
+                      {pitches
+                        .filter((p) => p.id !== booking.pitch)
+                        .map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {venues.find((v) => v.id === p.venue)?.name} -{" "}
+                            {p.name}
+                          </option>
+                        ))}
+                    </select>
+                    <button
+                      onClick={() =>
+                        handleProposeAlternative(
+                          booking.id,
+                          altPitchId[booking.id],
+                        )
+                      }
+                      disabled={!altPitchId[booking.id]}
+                      className="p-2 bg-emerald-950/40 hover:bg-emerald-600/30 border border-emerald-800/40 rounded-lg text-emerald-400 hover:text-emerald-300 disabled:opacity-40 transition text-xs font-semibold"
+                      title="Move to alternate pitch"
+                    >
+                      Apply
+                    </button>
                   </div>
                 </div>
               );
@@ -512,11 +505,10 @@ export default function SecretaryDashboard({
                         </td>
                         <td className="p-4">
                           <span
-                            className={`inline-block text-xxs font-bold uppercase tracking-wider px-2 py-0.5 rounded font-display ${
-                              b.status === "APPROVED"
-                                ? "bg-emerald-950/60 text-emerald-400"
-                                : "bg-red-950/60 text-red-400"
-                            }`}
+                            className={`inline-block text-xxs font-bold uppercase tracking-wider px-2 py-0.5 rounded font-display ${b.status === "APPROVED"
+                              ? "bg-emerald-950/60 text-emerald-400"
+                              : "bg-red-950/60 text-red-400"
+                              }`}
                           >
                             {b.status === "APPROVED" ? "Approved" : "Denied"}
                           </span>
@@ -546,7 +538,8 @@ export default function SecretaryDashboard({
             onBookingUpdated(null, null);
           }}
         />
-      ) : null}
+      ) : null
+      }
 
       {/* Edit Booking Modal */}
       <BookingEditModal
@@ -595,6 +588,6 @@ export default function SecretaryDashboard({
         pitches={pitches}
         venues={venues}
       />
-    </div>
+    </div >
   );
 }

@@ -293,30 +293,30 @@ export default function VenuesManager({
         </div>
 
         {/* Sub-Tab Navigation */}
-        <div className="flex bg-slate-900/80 p-1 rounded-xl border border-slate-800">
+        <div className="flex flex-wrap gap-1 bg-slate-900/80 p-1 rounded-xl border border-slate-800">
           <button
             onClick={() => handleTabChange("venues")}
-            className={`px-4 py-2 rounded-lg text-xs font-semibold font-display transition ${activeSubTab === "venues"
-                ? "bg-emerald-500 text-slate-950 font-bold"
-                : "text-slate-400 hover:text-slate-200"
+            className={`px-4 py-2 rounded-lg text-sm font-semibold font-display transition-all ${activeSubTab === "venues"
+                ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md"
+                : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
               }`}
           >
             Ground Venues ({venues.length})
           </button>
           <button
             onClick={() => handleTabChange("pitches")}
-            className={`px-4 py-2 rounded-lg text-xs font-semibold font-display transition ${activeSubTab === "pitches"
-                ? "bg-emerald-500 text-slate-950 font-bold"
-                : "text-slate-400 hover:text-slate-200"
+            className={`px-4 py-2 rounded-lg text-sm font-semibold font-display transition-all ${activeSubTab === "pitches"
+                ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md"
+                : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
               }`}
           >
             Pitches ({pitches.length})
           </button>
           <button
             onClick={() => handleTabChange("lengths")}
-            className={`px-4 py-2 rounded-lg text-xs font-semibold font-display transition ${activeSubTab === "lengths"
-                ? "bg-emerald-500 text-slate-950 font-bold"
-                : "text-slate-400 hover:text-slate-200"
+            className={`px-4 py-2 rounded-lg text-sm font-semibold font-display transition-all ${activeSubTab === "lengths"
+                ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md"
+                : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
               }`}
           >
             Pitch Lengths ({pitchLengths.length})
@@ -337,10 +337,10 @@ export default function VenuesManager({
                   resetVenueForm();
                   setShowVenueForm(true);
                 }}
-                className="py-2 px-3.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs flex items-center space-x-1.5 transition shadow-lg shadow-emerald-500/10"
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-sm font-semibold font-display text-white shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 hover:from-emerald-500 hover:to-teal-500 transition-all active:scale-[0.97]"
               >
                 <Plus size={16} />
-                <span>Add Venue</span>
+                Add Venue
               </button>
             )}
           </div>
@@ -450,10 +450,10 @@ export default function VenuesManager({
             {!showPitchForm && (
               <button
                 onClick={openAddPitch}
-                className="py-2 px-3.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs flex items-center space-x-1.5 transition shadow-lg shadow-emerald-500/10 shrink-0"
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-sm font-semibold font-display text-white shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 hover:from-emerald-500 hover:to-teal-500 transition-all active:scale-[0.97] shrink-0"
               >
                 <Plus size={16} />
-                <span>Add Pitch</span>
+                Add Pitch
               </button>
             )}
           </div>
@@ -517,8 +517,8 @@ export default function VenuesManager({
                         <div className="flex items-center space-x-1">
                           <span
                             className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded ${p.is_active
-                                ? "bg-emerald-950/60 text-emerald-400 border border-emerald-900/50"
-                                : "bg-rose-950/60 text-rose-400 border border-rose-900/50"
+                              ? "bg-emerald-950/60 text-emerald-400 border border-emerald-900/50"
+                              : "bg-rose-950/60 text-rose-400 border border-rose-900/50"
                               }`}
                           >
                             {p.is_active ? "Active" : "Inactive"}
@@ -608,10 +608,10 @@ export default function VenuesManager({
                   resetLengthForm();
                   setShowLengthForm(true);
                 }}
-                className="py-2 px-3.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs flex items-center space-x-1.5 transition shadow-lg shadow-emerald-500/10"
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-sm font-semibold font-display text-white shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 hover:from-emerald-500 hover:to-teal-500 transition-all active:scale-[0.97]"
               >
                 <Plus size={16} />
-                <span>Add Pitch Length</span>
+                Add Pitch Length
               </button>
             )}
           </div>

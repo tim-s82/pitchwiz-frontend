@@ -156,13 +156,13 @@ export default function ChangeRequestsTab({
               <div className="flex gap-2 pt-2">
                 <button
                   onClick={() => handleApproveChange(cr.id)}
-                  className="py-2 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-xs flex items-center gap-1 transition"
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-xs font-semibold font-display text-white shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 hover:from-emerald-500 hover:to-teal-500 transition-all active:scale-[0.97]"
                 >
                   <Check size={14} /> Approve
                 </button>
                 <button
                   onClick={() => handleRejectChange(cr.id)}
-                  className="py-2 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs border border-slate-700 flex items-center gap-1 transition"
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold font-display border border-slate-700/60 transition-all active:scale-[0.97]"
                 >
                   <X size={14} /> Reject
                 </button>
@@ -198,13 +198,13 @@ export default function ChangeRequestsTab({
                 onClick={() =>
                   setChangeRejectModal({ open: false, crId: null, reason: "" })
                 }
-                className="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 text-sm font-semibold transition"
+                className="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 text-sm font-semibold font-display border border-slate-700/60 hover:bg-slate-700 hover:text-slate-200 transition-all active:scale-[0.97]"
               >
                 Cancel
               </button>
               <button
                 onClick={submitChangeRejection}
-                className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-sm font-bold shadow-lg shadow-rose-600/20 transition"
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 text-sm font-semibold font-display text-white shadow-lg shadow-rose-500/20 hover:shadow-rose-500/30 hover:from-rose-500 hover:to-red-500 transition-all active:scale-[0.97]"
               >
                 Reject Change
               </button>
