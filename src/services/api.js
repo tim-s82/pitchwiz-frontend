@@ -176,20 +176,6 @@ export const api = {
       method: "DELETE",
     }),
 
-  importFixtures: (data) =>
-    apiRequest("/api/fixtures/import", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    }),
-
-  syncPlayCricketFixtures: (season) =>
-    apiRequest("/api/fixtures/sync-play-cricket", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ season }),
-    }),
-
   getBookingChangeRequests: () => apiRequest("/api/booking-change-requests"),
   updateBookingChangeRequest: (id, data) =>
     apiRequest(`/api/booking-change-requests/${id}`, {
@@ -217,6 +203,30 @@ export const api = {
       method: "DELETE",
     }),
 
+  previewSpreadsheetFixtures: async (rows) => {
+    // Note: use apiRequest instead of client.post for consistency with your file
+    return await apiRequest("/api/fixtures/preview-spreadsheet", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ rows }),
+    });
+  },
+
+  previewPlayCricketFixtures: async (season) => {
+    return await apiRequest("/api/fixtures/preview-play-cricket", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ season }),
+    });
+  },
+
+  commitImportedFixtures: async (rows) => {
+    return await apiRequest("/api/fixtures/commit-import", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ rows }),
+    });
+  },
   // Catering Requests
   getCateringRequests: () => apiRequest("/api/catering-requests"),
   updateCateringRequest: (id, data) =>

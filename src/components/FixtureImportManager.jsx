@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { api } from "../services/api";
 import {
     Upload,
@@ -10,9 +10,9 @@ import {
 } from "lucide-react";
 
 export default function FixtureImportManager({
-    teams,
-    pitches,
-    venues,
+    teams: initialTeams = [],
+    pitches: initialPitches = [],
+    venues: initialVenues = [],
     onImportComplete,
 }) {
     const [step, setStep] = useState(1);
@@ -25,6 +25,34 @@ export default function FixtureImportManager({
         setToast({ message, type });
         setTimeout(() => setToast(null), 3000);
     };
+
+    // Internal state for dropdown data
+    const [teams, setTeams] = useState(initialTeams);
+    const [pitches, setPitches] = useState(initialPitches);
+    const [venues, setVenues] = useState(initialVenues);
+
+    // Automatically fetch dropdown data if the parent component didn't provide it
+    useEffect(() => {
+        const fetchMissingData = async () => {
+            try {
+                if (initialTeams.length === 0) {
+                    const t = await api.getTeams();
+                    setTeams(t);
+                }
+                if (initialPitches.length === 0) {
+                    const p = await api.getPitches();
+                    setPitches(p);
+                }
+                if (initialVenues.length === 0) {
+                    const v = await api.getVenues();
+                    setVenues(v);
+                }
+            } catch (error) {
+                console.error("Failed to load dropdown reference data:", error);
+            }
+        };
+        fetchMissingData();
+    }, [initialTeams, initialPitches, initialVenues]);
 
     // Dynamically load SheetJS parser library for robust .xlsx and .csv support
     const loadXLSXLibrary = () => {
@@ -39,97 +67,6 @@ export default function FixtureImportManager({
             script.onerror = reject;
             document.head.appendChild(script);
         });
-    };
-
-    // Normalizer for smart matching
-    const normalizeText = (str) => {
-        if (!str) return "";
-        return String(str)
-            .toLowerCase()
-            .replace(/\bfirst\b/g, "1st")
-            .replace(/\bsecond\b/g, "2nd")
-            .replace(/\bthird\b/g, "3rd")
-            .replace(/\bfourth\b/g, "4th")
-            .replace(/[^\w\s]/g, " ");
-    };
-
-    // Smart Team Matcher with ambiguity detection
-    const findBestTeamMatch = (importedName, teamsList) => {
-        const normImported = normalizeText(importedName);
-        const importedTokens = new Set(normImported.split(/\s+/).filter(Boolean));
-
-        let matches = [];
-        for (const team of teamsList) {
-            const normTeam = normalizeText(team.name);
-            const teamTokens = new Set(normTeam.split(/\s+/).filter(Boolean));
-
-            if (normTeam === normImported) {
-                matches.push({ team, score: 100 });
-                continue;
-            }
-
-            let intersectionCount = 0;
-            for (const token of importedTokens) {
-                if (teamTokens.has(token)) intersectionCount++;
-            }
-
-            if (intersectionCount === importedTokens.size && importedTokens.size > 0) {
-                matches.push({ team, score: 80 + intersectionCount });
-            } else if (intersectionCount > 0) {
-                matches.push({ team, score: intersectionCount * 10 });
-            }
-        }
-
-        matches.sort((a, b) => b.score - a.score);
-
-        if (matches.length === 0) {
-            return { defaultId: teamsList[0]?.id || null, ambiguous: false };
-        }
-
-        const topScore = matches[0].score;
-        const topCandidates = matches.filter((m) => m.score === topScore);
-        const isAmbiguous = topCandidates.length > 1 || (matches.length > 1 && matches[0].score - matches[1].score < 5);
-
-        return {
-            defaultId: matches[0].team.id,
-            ambiguous: isAmbiguous,
-        };
-    };
-
-    // Smart Pitch Matcher combining venue and pitch names
-    const findBestPitchMatch = (importedPitchStr, pitchesList, venuesList) => {
-        if (!importedPitchStr) return pitchesList[0]?.id || null;
-        const normImported = normalizeText(importedPitchStr);
-        const importedTokens = new Set(normImported.split(/\s+/).filter(Boolean));
-
-        let bestPitchId = null;
-        let maxScore = -1;
-
-        for (const pitch of pitchesList) {
-            const venueObj = venuesList.find((v) => v.id === pitch.venue);
-            const venueName = venueObj ? venueObj.name : "";
-            const fullPitchStr = `${venueName} ${pitch.name}`;
-            const normFull = normalizeText(fullPitchStr);
-            const pitchTokens = new Set(normFull.split(/\s+/).filter(Boolean));
-
-            let score = 0;
-            for (const token of importedTokens) {
-                if (pitchTokens.has(token)) {
-                    score += 15;
-                }
-            }
-
-            if (normFull.includes(normImported) || normImported.includes(normFull)) {
-                score += 50;
-            }
-
-            if (score > maxScore) {
-                maxScore = score;
-                bestPitchId = pitch.id;
-            }
-        }
-
-        return bestPitchId || pitchesList[0]?.id || null;
     };
 
     // Parse date value safely (handles JS Date objects, Excel serial numbers, or strings)
@@ -161,7 +98,6 @@ export default function FixtureImportManager({
             return `${hours}:${minutes}`;
         }
         if (typeof timeVal === "number") {
-            // Excel decimal fraction of a day
             const totalSeconds = Math.round(timeVal * 86400);
             const hours = String(Math.floor(totalSeconds / 3600) % 24).padStart(2, "0");
             const minutes = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, "0");
@@ -171,25 +107,16 @@ export default function FixtureImportManager({
         return cleanStr || "14:00";
     };
 
-    // Helper: Derive time slot from absolute time string
-    const deriveTimeSlot = (timeStr) => {
-        if (!timeStr) return "AFTERNOON";
-        const hour = parseInt(timeStr.split(":")[0], 10);
-        if (isNaN(hour)) return "AFTERNOON";
-        if (hour < 12) return "MORNING";
-        if (hour >= 17) return "EVENING";
-        return "AFTERNOON";
-    };
-
     const handleFileUpload = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
 
+        setLoading(true);
         try {
             const XLSX = await loadXLSXLibrary();
             const reader = new FileReader();
 
-            reader.onload = (event) => {
+            reader.onload = async (event) => {
                 try {
                     const data = new Uint8Array(event.target.result);
                     const workbook = XLSX.read(data, { type: "array", cellDates: true });
@@ -200,53 +127,38 @@ export default function FixtureImportManager({
 
                     if (rawData.length === 0) {
                         showToast("The uploaded file appears empty.", "error");
+                        setLoading(false);
                         return;
                     }
 
-                    const processed = rawData.map((row, index) => {
-                        const normRow = {};
+                    // Format dates and times cleanly before sending raw rows to backend
+                    const formattedRawRows = rawData.map((row) => {
+                        const newRow = {};
                         Object.keys(row).forEach((k) => {
-                            const cleanKey = k.trim().toLowerCase().replace(/[\s_-]+/g, "_");
-                            normRow[cleanKey] = row[k];
+                            newRow[k] = row[k];
                         });
-
-                        const teamNameRaw = String(normRow.team || normRow.club_team || normRow.club || "").trim();
-                        const opponent = String(normRow.opponent || normRow.opposition || "").trim();
-                        const date = parseDateValue(normRow.date || normRow.match_date || normRow.day);
-                        const time = parseTimeValue(normRow.time || normRow.start_time || normRow.match_time);
-                        const pitchPref = String(normRow.pitch_preference || normRow.pitch || normRow.venue || "").trim();
-
-                        const teamMatch = findBestTeamMatch(teamNameRaw, teams);
-                        const matchedPitchId = findBestPitchMatch(pitchPref, pitches, venues);
-                        const timeSlot = deriveTimeSlot(time);
-
-                        let clashReason = null;
-                        if (!teamNameRaw) clashReason = "Missing team name";
-                        else if (!opponent) clashReason = "Missing opponent name";
-                        else if (!date) clashReason = "Missing match date";
-
-                        return {
-                            id: index,
-                            teamNameRaw,
-                            teamId: teamMatch.defaultId,
-                            teamAmbiguous: teamMatch.ambiguous,
-                            opponent,
-                            date,
-                            time,
-                            timeSlot,
-                            pitchPref,
-                            pitchId: matchedPitchId,
-                            clashReason,
-                            selected: !clashReason,
-                        };
+                        // Pre-sanitize date/time values if they are Excel serials/dates
+                        if (newRow.date) newRow.date = parseDateValue(newRow.date);
+                        if (newRow.match_date) newRow.match_date = parseDateValue(newRow.match_date);
+                        if (newRow.time) newRow.time = parseTimeValue(newRow.time);
+                        return newRow;
                     });
 
-                    setParsedRows(processed);
-                    setStep(2);
-                    showToast(`Successfully parsed ${processed.length} fixture rows.`);
+                    // Send raw rows to backend for matching and validation
+                    const response = await api.previewSpreadsheetFixtures(formattedRawRows);
+
+                    if (response && response.rows) {
+                        setParsedRows(response.rows);
+                        setStep(2);
+                        showToast(`Successfully parsed and matched ${response.rows.length} fixture rows.`);
+                    } else {
+                        showToast("Invalid response received from server preview.", "error");
+                    }
                 } catch (parseErr) {
-                    console.error("Workbook parse error:", parseErr);
-                    showToast("Failed to read spreadsheet structure.", "error");
+                    console.error("Workbook parse or preview error:", parseErr);
+                    showToast("Failed to process spreadsheet structure.", "error");
+                } finally {
+                    setLoading(false);
                 }
             };
 
@@ -254,6 +166,7 @@ export default function FixtureImportManager({
         } catch (libErr) {
             console.error("Library load error:", libErr);
             showToast("Failed to load spreadsheet parser.", "error");
+            setLoading(false);
         }
     };
 
@@ -272,28 +185,10 @@ export default function FixtureImportManager({
 
         setLoading(true);
         try {
-            for (const row of selectedRows) {
-                const fixturePayload = {
-                    team: row.teamId,
-                    opponent: row.opponent,
-                    start_date: row.date,
-                    end_date: row.date,
-                };
-                const createdFixture = await api.createFixture(fixturePayload);
+            // SINGLE API CALL replacing the loop!
+            const result = await api.commitImportedFixtures(selectedRows);
 
-                const bookingPayload = {
-                    fixture: createdFixture.id,
-                    pitch: row.pitchId,
-                    start_date: row.date,
-                    end_date: row.date,
-                    time_slot: row.timeSlot,
-                    status: "APPROVED",
-                    notes: `Imported via spreadsheet (Time: ${row.time})`,
-                };
-                await api.createBooking(bookingPayload);
-            }
-
-            showToast(`Successfully imported ${selectedRows.length} fixtures!`);
+            showToast(`Successfully imported ${result.synced_count + result.updated_count} fixtures!`);
             setStep(3);
             if (onImportComplete) onImportComplete();
         } catch (err) {
@@ -329,7 +224,7 @@ export default function FixtureImportManager({
                             Fixture Spreadsheet Import
                         </h2>
                         <p className="text-sm text-slate-400">
-                            Upload .xlsx or .csv spreadsheets with smart team and pitch matching.
+                            Upload .xlsx or .csv spreadsheets for automated backend matching and review.
                         </p>
                     </div>
                 </div>
@@ -340,7 +235,7 @@ export default function FixtureImportManager({
                 <div className="glass-panel p-10 rounded-2xl border border-slate-800 text-center space-y-6">
                     <div className="max-w-md mx-auto space-y-3">
                         <div
-                            onClick={() => fileInputRef.current?.click()}
+                            onClick={() => !loading && fileInputRef.current?.click()}
                             className="border-2 border-dashed border-slate-700 hover:border-emerald-500/50 bg-slate-900/50 p-10 rounded-2xl cursor-pointer transition flex flex-col items-center space-y-3 group"
                         >
                             <div className="p-4 rounded-full bg-emerald-500/10 text-emerald-400 group-hover:scale-110 transition">
@@ -348,7 +243,7 @@ export default function FixtureImportManager({
                             </div>
                             <div className="space-y-1">
                                 <p className="text-sm font-bold text-slate-200">
-                                    Click to upload .xlsx or .csv spreadsheet
+                                    {loading ? "Analyzing & Matching..." : "Click to upload .xlsx or .csv spreadsheet"}
                                 </p>
                                 <p className="text-xs text-slate-500">
                                     Required columns: team, opponent, date, time, pitch_preference
@@ -442,7 +337,7 @@ export default function FixtureImportManager({
                                                 </select>
                                                 {row.teamAmbiguous && (
                                                     <span
-                                                        title="Multiple similar teams found. Please verify the selected team."
+                                                        title="Multiple similar teams found. Please verify."
                                                         className="inline-flex items-center text-amber-400 bg-amber-950/40 border border-amber-900/50 p-1 rounded"
                                                     >
                                                         <AlertTriangle size={13} />
@@ -510,7 +405,7 @@ export default function FixtureImportManager({
                             Import Completed Successfully!
                         </h3>
                         <p className="text-sm text-slate-400">
-                            All selected fixtures and approved pitch bookings have been recorded in PitchWiz.
+                            All selected fixtures and approved pitch bookings have been recorded.
                         </p>
                     </div>
                     <button

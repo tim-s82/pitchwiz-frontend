@@ -254,7 +254,7 @@ export default function PublicBookingForm({
                   required
                 />
                 <Calendar
-                  size={16}
+                  size={18}
                   className="absolute right-3.5 text-emerald-500 pointer-events-none"
                 />
               </div>
@@ -276,7 +276,7 @@ export default function PublicBookingForm({
                     required
                   />
                   <Calendar
-                    size={16}
+                    size={18}
                     className="absolute right-3.5 text-emerald-500 pointer-events-none"
                   />
                 </div>
@@ -339,9 +339,9 @@ export default function PublicBookingForm({
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-semibold text-xs transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/10"
+          className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 disabled:opacity-50 text-slate-950 font-bold text-sm transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/15"
         >
-          <Send size={14} />
+          <Send size={15} />
           {loading ? "Submitting..." : "Send Booking Request"}
         </button>
       </form>
