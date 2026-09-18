@@ -191,20 +191,20 @@ export default function ChangeRequestsTab({
                 })
               }
               placeholder="Enter the reason for rejection..."
-              className="w-full bg-slate-950 border border-slate-700 text-slate-200 text-sm rounded-xl p-3 h-28 outline-none focus:border-red-500 resize-none"
+              className="w-full bg-slate-950 border border-slate-700 text-slate-200 text-sm rounded-xl p-3 h-28 outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20 resize-none"
             />
             <div className="flex justify-end gap-3">
               <button
                 onClick={() =>
                   setChangeRejectModal({ open: false, crId: null, reason: "" })
                 }
-                className="px-4 py-2 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 text-sm font-semibold transition"
+                className="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 text-sm font-semibold transition"
               >
                 Cancel
               </button>
               <button
                 onClick={submitChangeRejection}
-                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-bold transition"
+                className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-sm font-bold shadow-lg shadow-rose-600/20 transition"
               >
                 Reject Change
               </button>

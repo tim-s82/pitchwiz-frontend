@@ -59,9 +59,10 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-200 transition"
+            className="p-2 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition"
+            aria-label="Close"
           >
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
 
@@ -89,7 +90,7 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
                   onChange={(e) =>
                     setForm({ ...form, old_password: e.target.value })
                   }
-                  className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 outline-none focus:border-blue-500"
+                  className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl px-3.5 py-2.5 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
                 />
               </div>
 
@@ -105,7 +106,7 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
                   onChange={(e) =>
                     setForm({ ...form, new_password: e.target.value })
                   }
-                  className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 outline-none focus:border-blue-500"
+                  className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl px-3.5 py-2.5 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
                 />
               </div>
 
@@ -121,24 +122,22 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
                   onChange={(e) =>
                     setForm({ ...form, confirm: e.target.value })
                   }
-                  className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 outline-none focus:border-blue-500"
+                  className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl px-3.5 py-2.5 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
                 />
               </div>
 
               <div className="pt-2 flex gap-3">
-                {/* <button type="button" onClick={onClose} className="flex-1 py-2.5 px-4 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold transition">Cancel</button> */}
                 <button
                   type="button"
                   onClick={onClose}
-                  className="py-2 px-3.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs flex items-center space-x-1.5 transition shadow-lg shadow-emerald-500/10"
+                  className="flex-1 py-2.5 px-4 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-sm transition"
                 >
                   Cancel
                 </button>
-                {/* <button type="submit" disabled={loading} className="flex-1 py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-bold transition"> */}
                 <button
                   type="submit"
                   disabled={loading}
-                  className="py-2 px-3.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs flex items-center space-x-1.5 transition shadow-lg shadow-emerald-500/10"
+                  className="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-slate-950 font-bold text-sm shadow-lg shadow-emerald-500/10 transition"
                 >
                   {loading ? "Saving..." : "Update Password"}
                 </button>

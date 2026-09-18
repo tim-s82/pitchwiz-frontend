@@ -1,5 +1,5 @@
 import React from "react";
-import { Pencil, Trash2, Calendar } from "lucide-react";
+import { Pencil, Trash2, Calendar, X } from "lucide-react";
 
 export default function BookingEditModal({
   isOpen,
@@ -35,9 +35,10 @@ export default function BookingEditModal({
           <button
             type="button"
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-200 transition"
+            className="p-2 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition"
+            aria-label="Close"
           >
-            ✕
+            <X size={18} />
           </button>
         </div>
 
@@ -54,7 +55,7 @@ export default function BookingEditModal({
               onChange={(e) =>
                 setEditForm({ ...editForm, timeSlot: e.target.value })
               }
-              className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 outline-none focus:border-emerald-500"
+              className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
             >
               <option value="MORNING">Morning Slot</option>
               <option value="AFTERNOON">Afternoon Slot</option>
@@ -176,7 +177,7 @@ export default function BookingEditModal({
                 setEditForm({ ...editForm, notes: e.target.value })
               }
               rows={2}
-              className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 outline-none focus:border-emerald-500"
+              className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
             />
           </div>
 
@@ -219,7 +220,7 @@ export default function BookingEditModal({
               <button
                 type="submit"
                 disabled={saving}
-                className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-semibold shadow-lg transition"
+                className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-slate-950 font-bold shadow-lg transition"
               >
                 {saving ? "Saving…" : "Save Changes"}
               </button>

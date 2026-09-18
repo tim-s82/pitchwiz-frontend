@@ -1,5 +1,5 @@
 import React from "react";
-import { Calendar } from "lucide-react";
+import { Calendar, X } from "lucide-react";
 
 export default function BookingCreateModal({
   isOpen,
@@ -25,9 +25,10 @@ export default function BookingCreateModal({
           <button
             type="button"
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-200 transition"
+            className="p-2 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition"
+            aria-label="Close"
           >
-            ✕
+            <X size={18} />
           </button>
         </div>
         <form onSubmit={onSubmit} className="p-6 space-y-4">
@@ -65,7 +66,7 @@ export default function BookingCreateModal({
                     teamId: updatedTeamId,
                   });
                 }}
-                className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 outline-none focus:border-emerald-500"
+                className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
                 required
               >
                 <option value="">Select Pitch</option>
@@ -85,7 +86,7 @@ export default function BookingCreateModal({
                 onChange={(e) =>
                   setModalData({ ...modalData, timeSlot: e.target.value })
                 }
-                className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 outline-none focus:border-emerald-500"
+                className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
               >
                 <option value="MORNING">Morning Slot</option>
                 <option value="AFTERNOON">Afternoon Slot</option>
@@ -104,7 +105,7 @@ export default function BookingCreateModal({
               onChange={(e) =>
                 setModalData({ ...modalData, teamId: e.target.value })
               }
-              className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 outline-none focus:border-emerald-500"
+              className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
               required
             >
               <option value="">Select Team</option>
@@ -150,7 +151,7 @@ export default function BookingCreateModal({
                 setModalData({ ...modalData, opponent: e.target.value })
               }
               placeholder="e.g. Broadstone CC"
-              className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 outline-none focus:border-emerald-500"
+              className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
               required
             />
           </div>
@@ -280,7 +281,7 @@ export default function BookingCreateModal({
               }
               placeholder="Any special ground prep, cup rules, etc."
               rows={2}
-              className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 outline-none focus:border-emerald-500"
+              className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl p-2.5 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
             />
           </div>
 
@@ -294,7 +295,7 @@ export default function BookingCreateModal({
             </button>
             <button
               type="submit"
-              className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-semibold shadow-lg transition"
+              className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-slate-950 font-bold shadow-lg transition"
             >
               Submit Request
             </button>
