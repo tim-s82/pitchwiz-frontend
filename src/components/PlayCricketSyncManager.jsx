@@ -10,6 +10,14 @@ import {
     ShieldAlert,
 } from "lucide-react";
 
+const formatDateWithDay = (dateString) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString; // fallback to raw if invalid
+    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    return `${dateString} (${days[date.getDay()]})`;
+};
+
 export default function PlayCricketSyncManager({
     teams: initialTeams = [],
     pitches: initialPitches = [],
@@ -34,21 +42,32 @@ export default function PlayCricketSyncManager({
                 if (initialTeams.length === 0) {
                     const t = await api.getTeams();
                     setTeams(t);
+                } else {
+                    setTeams(initialTeams);
                 }
+
                 if (initialPitches.length === 0) {
                     const p = await api.getPitches();
                     setPitches(p);
+                } else {
+                    setPitches(initialPitches);
                 }
+
                 if (initialVenues.length === 0) {
                     const v = await api.getVenues();
                     setVenues(v);
+                } else {
+                    setVenues(initialVenues);
                 }
             } catch (error) {
                 console.error("Failed to load dropdown reference data:", error);
             }
         };
         fetchMissingData();
-    }, [initialTeams, initialPitches, initialVenues]);
+        // FIX: Depend on the .length of the arrays, not the array references themselves.
+        // This breaks the infinite loop caused by default empty arrays re-rendering.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [initialTeams.length, initialPitches.length, initialVenues.length]);
 
     const showToast = (message, type = "success") => {
         setToast({ message, type });
@@ -89,7 +108,6 @@ export default function PlayCricketSyncManager({
 
         setLoading(true);
         try {
-            // SINGLE API CALL replacing the loop!
             const result = await api.commitImportedFixtures(selectedRows);
 
             showToast(`Successfully synchronized ${result.synced_count + result.updated_count} fixtures!`);
@@ -102,6 +120,37 @@ export default function PlayCricketSyncManager({
             setLoading(false);
         }
     };
+
+    // Filter and Sort Pitches Logic
+    const displayPitches = pitches
+        .filter((p) => ["MAIN", "YOUTH"].includes((p.entity_type || "").toUpperCase()))
+        .sort((a, b) => {
+            const vA = venues.find((v) => v.id === a.venue) || {};
+            const vB = venues.find((v) => v.id === b.venue) || {};
+
+            // 1. Default venue first
+            const aDef = vA.is_default ? 1 : 0;
+            const bDef = vB.is_default ? 1 : 0;
+            if (aDef !== bDef) return bDef - aDef; // 1 before 0
+
+            // 2. Venues alphabetically
+            const vNameA = vA.name || "";
+            const vNameB = vB.name || "";
+            const vComp = vNameA.localeCompare(vNameB);
+            if (vComp !== 0) return vComp;
+
+            // 3. MAIN before YOUTH
+            const eA = (a.entity_type || "").toUpperCase();
+            const eB = (b.entity_type || "").toUpperCase();
+            const eWeightA = eA === "MAIN" ? 1 : eA === "YOUTH" ? 2 : 3;
+            const eWeightB = eB === "MAIN" ? 1 : eB === "YOUTH" ? 2 : 3;
+            if (eWeightA !== eWeightB) return eWeightA - eWeightB;
+
+            // 4. Pitches alphabetically
+            const pNameA = a.name || "";
+            const pNameB = b.name || "";
+            return pNameA.localeCompare(pNameB);
+        });
 
     return (
         <div className="space-y-6 max-w-6xl mx-auto">
@@ -153,7 +202,7 @@ export default function PlayCricketSyncManager({
                     <button
                         onClick={handleFetchPreview}
                         disabled={loading}
-                        className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-sm font-semibold font-display rounded-xl hover:from-emerald-500 hover:to-teal-500 transition shadow-lg shadow-emerald-500/20 flex items-center justify-center space-x-2 disabled:opacity-50"
+                        className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 text-sm font-bold font-display rounded-xl hover:from-emerald-400 hover:to-teal-400 transition shadow-xl shadow-emerald-500/20 flex items-center justify-center space-x-2 disabled:opacity-50"
                     >
                         <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
                         <span>{loading ? "Fetching Fixtures..." : "Fetch & Preview Play-Cricket Fixtures"}</span>
@@ -178,7 +227,7 @@ export default function PlayCricketSyncManager({
                             <button
                                 onClick={handleCommitSync}
                                 disabled={loading || parsedRows.filter((r) => r.selected).length === 0}
-                                className="px-5 py-2 bg-emerald-500 text-slate-950 font-bold text-xs rounded-xl hover:bg-emerald-400 transition disabled:opacity-50 flex items-center space-x-2"
+                                className="px-5 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-bold text-xs rounded-xl hover:from-emerald-400 hover:to-teal-400 transition shadow-lg shadow-emerald-500/25 disabled:opacity-50 flex items-center space-x-2"
                             >
                                 <span>{loading ? "Syncing..." : "Confirm & Import Selected"}</span>
                                 <ArrowRight size={16} />
@@ -191,10 +240,10 @@ export default function PlayCricketSyncManager({
                             <thead className="bg-slate-950 border-b border-slate-800 text-slate-400 font-semibold">
                                 <tr>
                                     <th className="px-4 py-3">Import</th>
-                                    <th className="px-4 py-3">Play-Cricket Team &rarr; Matched Team</th>
+                                    <th className="px-4 py-3">Matched Team</th>
                                     <th className="px-4 py-3">Opponent</th>
-                                    <th className="px-4 py-3">Date & Time</th>
-                                    <th className="px-4 py-3">Assigned Pitch (Ground: Match)</th>
+                                    <th className="px-4 py-3">Date & Slot</th>
+                                    <th className="px-4 py-3">Matched Venue/Pitch</th>
                                     <th className="px-4 py-3">Status</th>
                                 </tr>
                             </thead>
@@ -216,7 +265,7 @@ export default function PlayCricketSyncManager({
                                         </td>
                                         <td className="px-4 py-3 space-y-1">
                                             <div className="text-slate-400 text-[10px]">
-                                                ECB Home: <span className="text-slate-200 font-medium">{row.teamNameRaw}</span>
+                                                Home Team (from P-C): <span className="text-slate-200 font-medium">{row.teamNameRaw}</span>
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <select
@@ -247,14 +296,14 @@ export default function PlayCricketSyncManager({
                                         </td>
                                         <td className="px-4 py-3 font-semibold text-white">{row.opponent}</td>
                                         <td className="px-4 py-3">
-                                            <div>{row.date}</div>
+                                            <div>{formatDateWithDay(row.date)}</div>
                                             <span className="text-[10px] text-emerald-400">
                                                 {row.time} ({row.timeSlot})
                                             </span>
                                         </td>
                                         <td className="px-4 py-3 space-y-1">
                                             <div className="text-slate-400 text-[10px]">
-                                                Ground: <span className="text-slate-200">{row.pitchPref || "Unspecified"}</span>
+                                                Ground (from P-C): <span className="text-slate-200">{row.pitchPref || "Unspecified"}</span>
                                             </div>
                                             <select
                                                 value={row.pitchId || ""}
@@ -266,7 +315,7 @@ export default function PlayCricketSyncManager({
                                                 }}
                                                 className="bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-200 outline-none focus:border-emerald-500"
                                             >
-                                                {pitches.map((p) => {
+                                                {displayPitches.map((p) => {
                                                     const vObj = venues.find((v) => v.id === p.venue);
                                                     return (
                                                         <option key={p.id} value={p.id}>
@@ -316,7 +365,7 @@ export default function PlayCricketSyncManager({
                             setStep(1);
                             setParsedRows([]);
                         }}
-                        className="px-6 py-2.5 bg-emerald-500 text-slate-950 font-bold text-xs rounded-xl hover:bg-emerald-400 transition"
+                        className="px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-bold text-sm rounded-xl hover:from-emerald-400 hover:to-teal-400 transition shadow-lg shadow-emerald-500/25"
                     >
                         Sync Another Season
                     </button>
