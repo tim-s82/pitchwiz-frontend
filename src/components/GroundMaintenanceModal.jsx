@@ -93,7 +93,7 @@ export default function GroundMaintenanceModal({
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {/* Venue Selection */}
           <div>
-            <label className="block text-xs font-semibold text-slate-400 mb-1.5">
+            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
               Venue <span className="text-red-400">*</span>
             </label>
             <select
@@ -103,7 +103,7 @@ export default function GroundMaintenanceModal({
                 setSelectedPitches([]); // Reset pitch selection on venue change
               }}
               required
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700/60 text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+              className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
             >
               <option value="">— Select Venue —</option>
               {sortedVenues.map((v) => (
@@ -117,7 +117,7 @@ export default function GroundMaintenanceModal({
           {/* Pitches Multi-select */}
           {selectedVenueId && (
             <div>
-              <label className="block text-xs font-semibold text-slate-400 mb-1.5">
+              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
                 Affected Pitches <span className="text-red-400">*</span>
               </label>
               <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 rounded-xl bg-slate-950 border border-slate-800">
@@ -153,7 +153,7 @@ export default function GroundMaintenanceModal({
           {/* Date & Slot */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-400 mb-1.5">
+              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
                 Date <span className="text-red-400">*</span>
               </label>
               <div className="relative flex items-center">
@@ -171,13 +171,13 @@ export default function GroundMaintenanceModal({
               </div>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-400 mb-1.5">
+              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
                 Time Slot <span className="text-red-400">*</span>
               </label>
               <select
                 value={timeSlot}
                 onChange={(e) => setTimeSlot(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700/60 text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
               >
                 <option value="ALL_DAY">All Day</option>
                 <option value="MORNING">Morning (09:00 - 13:00)</option>
@@ -189,7 +189,7 @@ export default function GroundMaintenanceModal({
 
           {/* Notes & Warning */}
           <div>
-            <label className="block text-xs font-semibold text-slate-400 mb-1.5">
+            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
               Maintenance Notes / Reason
             </label>
             <textarea
@@ -197,7 +197,7 @@ export default function GroundMaintenanceModal({
               onChange={(e) => setNotes(e.target.value)}
               placeholder="e.g. Verti-draining and harrowing"
               rows={2}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700/60 text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40 resize-none"
+              className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40 resize-none"
             />
           </div>
 
@@ -223,7 +223,13 @@ export default function GroundMaintenanceModal({
               disabled={saving || selectedPitches.length === 0}
               className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-sm font-semibold font-display text-white shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 hover:from-emerald-500 hover:to-teal-500 transition-all active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {saving ? "Scheduling..." : "Confirm Maintenance"}
+              {saving ? (
+                "Scheduling..."
+              ) : (
+                <>
+                  <Check size={16} /> Confirm Maintenance
+                </>
+              )}
             </button>
           </div>
         </form>

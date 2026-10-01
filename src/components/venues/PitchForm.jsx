@@ -1,4 +1,5 @@
 import React from "react";
+import { Check } from "lucide-react";
 
 export default function PitchForm({
   editingPitch,
@@ -186,18 +187,19 @@ export default function PitchForm({
         </label>
       </div>
 
-      <div className="flex justify-end space-x-3 pt-2">
+      <div className="flex items-center justify-end gap-3 pt-2">
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl text-xs transition"
+          className="px-5 py-2.5 rounded-xl bg-slate-800 text-slate-300 text-sm font-semibold font-display border border-slate-700/60 hover:bg-slate-700 hover:text-slate-200 transition-all active:scale-[0.97]"
         >
           Cancel
         </button>
         <button
           type="submit"
-          className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs transition"
+          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-sm font-semibold font-display text-white shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 hover:from-emerald-500 hover:to-teal-500 transition-all active:scale-[0.97]"
         >
+          <Check size={16} />
           {editingPitch ? "Update Pitch" : "Save Pitch"}
         </button>
       </div>

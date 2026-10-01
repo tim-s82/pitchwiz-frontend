@@ -244,8 +244,8 @@ export default function FixtureImportManager({
             {toast && (
                 <div
                     className={`fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-xl flex items-center space-x-2 text-sm font-semibold ${toast.type === "error"
-                        ? "bg-rose-500 text-white"
-                        : "bg-emerald-500 text-slate-950"
+                        ? "bg-rose-600 text-white shadow-rose-500/20"
+                        : "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-emerald-500/20"
                         }`}
                 >
                     {toast.type === "error" ? <AlertTriangle size={18} /> : <Check size={18} />}
@@ -311,14 +311,14 @@ export default function FixtureImportManager({
                         <div className="flex space-x-3">
                             <button
                                 onClick={() => setStep(1)}
-                                className="px-4 py-2 bg-slate-800 text-slate-300 text-xs font-semibold rounded-xl hover:bg-slate-700 transition"
+                                className="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 text-sm font-semibold font-display border border-slate-700/60 hover:bg-slate-700 hover:text-slate-200 transition-all active:scale-[0.97]"
                             >
                                 Back / Upload Another
                             </button>
                             <button
                                 onClick={handleCommitImport}
                                 disabled={loading || parsedRows.filter((r) => r.selected).length === 0}
-                                className="px-5 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-bold text-xs rounded-xl hover:from-emerald-400 hover:to-teal-400 transition shadow-lg shadow-emerald-500/25 disabled:opacity-50 flex items-center space-x-2"
+                                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-sm font-semibold font-display text-white shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 hover:from-emerald-500 hover:to-teal-500 transition-all active:scale-[0.97] disabled:opacity-50"
                             >
                                 <span>{loading ? "Importing..." : "Confirm & Import Selected"}</span>
                                 <ArrowRight size={16} />

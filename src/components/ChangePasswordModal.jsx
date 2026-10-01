@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { api } from "../services/api";
-import { Lock, X } from "lucide-react";
+import { Lock, X, Key } from "lucide-react";
 
 export default function ChangePasswordModal({ isOpen, onClose }) {
   const [form, setForm] = useState({
@@ -80,7 +80,7 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
               )}
 
               <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
                   Current Password
                 </label>
                 <input
@@ -90,12 +90,12 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
                   onChange={(e) =>
                     setForm({ ...form, old_password: e.target.value })
                   }
-                  className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl px-3.5 py-2.5 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                  className="w-full bg-slate-950 border border-slate-700 text-slate-100 text-sm rounded-xl px-4 py-2.5 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
                   New Password
                 </label>
                 <input
@@ -106,12 +106,12 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
                   onChange={(e) =>
                     setForm({ ...form, new_password: e.target.value })
                   }
-                  className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl px-3.5 py-2.5 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                  className="w-full bg-slate-950 border border-slate-700 text-slate-100 text-sm rounded-xl px-4 py-2.5 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
                   Confirm New Password
                 </label>
                 <input
@@ -122,7 +122,7 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
                   onChange={(e) =>
                     setForm({ ...form, confirm: e.target.value })
                   }
-                  className="w-full bg-slate-800 border border-slate-700 text-slate-100 text-sm rounded-xl px-3.5 py-2.5 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                  className="w-full bg-slate-950 border border-slate-700 text-slate-100 text-sm rounded-xl px-4 py-2.5 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
                 />
               </div>
 
@@ -130,15 +130,16 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
                 <button
                   type="button"
                   onClick={onClose}
-                  className="flex-1 py-2.5 px-4 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-sm transition"
+                  className="flex-1 py-2.5 px-4 rounded-xl bg-slate-800 text-slate-300 text-sm font-semibold font-display border border-slate-700/60 hover:bg-slate-700 hover:text-slate-200 transition-all active:scale-[0.97]"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-slate-950 font-bold text-sm shadow-lg shadow-emerald-500/10 transition"
+                  className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-sm font-semibold font-display text-white shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 hover:from-emerald-500 hover:to-teal-500 transition-all active:scale-[0.97] disabled:opacity-50"
                 >
+                  <Key size={16} />
                   {loading ? "Saving..." : "Update Password"}
                 </button>
               </div>

@@ -174,7 +174,7 @@ export default function ChangeRequestsTab({
 
       {/* Change Request Rejection Modal */}
       {changeRejectModal.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
           <div className="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-6 w-full max-w-md space-y-4">
             <h3 className="text-lg font-bold text-white font-display">
               Rejection Reason
@@ -206,6 +206,7 @@ export default function ChangeRequestsTab({
                 onClick={submitChangeRejection}
                 className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 text-sm font-semibold font-display text-white shadow-lg shadow-rose-500/20 hover:shadow-rose-500/30 hover:from-rose-500 hover:to-red-500 transition-all active:scale-[0.97]"
               >
+                <X size={16} />
                 Reject Change
               </button>
             </div>

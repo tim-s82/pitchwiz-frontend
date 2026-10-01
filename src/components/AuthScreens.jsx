@@ -31,8 +31,8 @@ export function LoginScreen({ onLoginSuccess }) {
       <div className="w-full max-w-md relative z-10">
         <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-3xl shadow-2xl p-8 transform transition-all hover:scale-[1.01] duration-500">
           <div className="text-center mb-8">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-500 flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/20 mb-4 transform -rotate-6 hover:rotate-0 transition-transform duration-300">
-              <span className="font-bold font-display text-3xl text-slate-950 tracking-tighter">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/20 mb-4 transform -rotate-6 hover:rotate-0 transition-transform duration-300">
+              <span className="font-bold font-display text-3xl text-white tracking-tighter">
                 PW
               </span>
             </div>
@@ -95,11 +95,11 @@ export function LoginScreen({ onLoginSuccess }) {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-bold rounded-xl shadow-lg shadow-emerald-500/20 transition-all transform active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center space-x-2 mt-2"
+              className="w-full inline-flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-sm font-semibold font-display text-white shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 hover:from-emerald-500 hover:to-teal-500 transition-all active:scale-[0.97] disabled:opacity-50 mt-2"
             >
               {loading ? (
                 <>
-                  <RefreshCw className="animate-spin" size={20} />
+                  <RefreshCw className="animate-spin" size={16} />
                   <span>Authenticating...</span>
                 </>
               ) : (
@@ -194,16 +194,16 @@ export function ForcePasswordResetScreen({ onResetSuccess, onCancel }) {
               <button
                 type="button"
                 onClick={onCancel}
-                className="flex-1 py-3.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl transition-all"
+                className="flex-1 py-3 px-4 rounded-xl bg-slate-800 text-slate-300 text-sm font-semibold font-display border border-slate-700/60 hover:bg-slate-700 hover:text-slate-200 transition-all active:scale-[0.97] flex items-center justify-center"
               >
                 Logout
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="flex-1 py-3.5 px-4 bg-gradient-to-r from-rose-500 to-orange-500 hover:from-rose-400 hover:to-orange-400 text-slate-950 font-bold rounded-xl shadow-lg transition-all"
+                className="flex-1 inline-flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-gradient-to-r from-rose-600 to-orange-600 text-sm font-semibold font-display text-white shadow-lg shadow-rose-500/20 hover:shadow-rose-500/30 hover:from-rose-500 hover:to-orange-500 transition-all active:scale-[0.97] disabled:opacity-50"
               >
-                {loading ? "Updating..." : "Update"}
+                {loading ? "Updating..." : "Update Password"}
               </button>
             </div>
           </form>
