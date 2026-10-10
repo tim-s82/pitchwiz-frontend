@@ -268,7 +268,7 @@ export default function App() {
       <header className="sticky top-0 z-40 bg-slate-950/85 backdrop-blur-md border-b border-slate-900 px-6 py-4">
         <div className="max-w-[1600px] mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/20 font-bold font-display text-lg text-slate-950">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/20 font-bold font-display text-lg text-white">
               PW
             </div>
             <div>
@@ -313,7 +313,7 @@ export default function App() {
           >
             <div className="p-6 border-b border-slate-800 flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-emerald-500 to-teal-500 flex items-center justify-center font-bold font-display text-sm text-slate-950">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 flex items-center justify-center font-bold font-display text-sm text-white shadow-md shadow-emerald-500/20">
                   PW
                 </div>
                 <h2 className="font-bold font-display text-slate-100">

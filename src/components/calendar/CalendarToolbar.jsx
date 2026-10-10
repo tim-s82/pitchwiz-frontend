@@ -103,7 +103,7 @@ export default function CalendarToolbar({
               <select
                 value={selectedVenueId}
                 onChange={(e) => setSelectedVenueId(e.target.value)}
-                className="bg-slate-800 text-slate-200 text-sm rounded-xl py-2 px-3 outline-none border border-slate-700 w-full focus:border-emerald-500"
+                className="bg-slate-950 text-slate-200 text-sm rounded-xl py-2.5 px-3.5 outline-none border border-slate-700 w-full focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
               >
                 {sortedVenues.map((v) => (
                   <option key={v.id} value={v.id}>
@@ -117,7 +117,7 @@ export default function CalendarToolbar({
             <select
               value={selectedTeamId}
               onChange={(e) => setSelectedTeamId(e.target.value)}
-              className="bg-slate-800 text-slate-200 text-sm rounded-xl py-2 px-3 outline-none border border-slate-700 w-full focus:border-emerald-500"
+              className="bg-slate-950 text-slate-200 text-sm rounded-xl py-2.5 px-3.5 outline-none border border-slate-700 w-full focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
             >
               <option value="all">Filter by Team</option>
               {sortedTeams
@@ -137,7 +137,7 @@ export default function CalendarToolbar({
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              className="bg-slate-800 text-slate-200 text-sm rounded-xl py-2 px-3 outline-none border border-slate-700 w-full focus:border-emerald-500"
+              className="bg-slate-950 text-slate-200 text-sm rounded-xl py-2.5 px-3.5 outline-none border border-slate-700 w-full focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
             >
               <option value="all">All Booking Statuses</option>
               <option value="APPROVED">Confirmed Only</option>

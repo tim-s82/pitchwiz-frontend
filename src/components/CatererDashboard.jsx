@@ -418,7 +418,7 @@ export default function CatererDashboard({
 
       {/* Rejection Reason Modal */}
       {rejectModal.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
           <div className="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-6 w-full max-w-md space-y-4">
             <h3 className="text-lg font-bold text-white font-display">
               Rejection Reason
@@ -432,21 +432,22 @@ export default function CatererDashboard({
                 setRejectModal({ ...rejectModal, reason: e.target.value })
               }
               placeholder="Enter the reason for rejection..."
-              className="w-full bg-slate-950 border border-slate-700 text-slate-200 text-sm rounded-xl p-3 h-28 outline-none focus:border-red-500 resize-none"
+              className="w-full bg-slate-950 border border-slate-700 text-slate-200 text-sm rounded-xl p-3 h-28 outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20 resize-none"
             />
             <div className="flex justify-end gap-3">
               <button
                 onClick={() =>
                   setRejectModal({ open: false, crId: null, reason: "" })
                 }
-                className="px-4 py-2 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 text-sm font-semibold transition"
+                className="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 text-sm font-semibold font-display border border-slate-700/60 hover:bg-slate-700 hover:text-slate-200 transition-all active:scale-[0.97]"
               >
                 Cancel
               </button>
               <button
                 onClick={submitCateringRejection}
-                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-bold transition"
+                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 text-sm font-semibold font-display text-white shadow-lg shadow-rose-500/20 hover:shadow-rose-500/30 hover:from-rose-500 hover:to-red-500 transition-all active:scale-[0.97]"
               >
+                <X size={16} />
                 Reject Request
               </button>
             </div>
