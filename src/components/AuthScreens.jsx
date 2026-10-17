@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Lock, Mail, KeyRound, AlertCircle, RefreshCw } from "lucide-react";
 import { api } from "../services/api";
+import Footer from "./Footer";
 
 export function LoginScreen({ onLoginSuccess }) {
   const [username, setUsername] = useState("");
@@ -23,13 +24,14 @@ export function LoginScreen({ onLoginSuccess }) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-950 p-6 relative overflow-hidden">
+    <div className="min-h-screen flex flex-col justify-between bg-slate-950 relative overflow-hidden">
       {/* Dynamic Background Effects */}
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-[128px] mix-blend-screen animate-pulse pointer-events-none"></div>
       <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-teal-500/10 rounded-full blur-[128px] mix-blend-screen animate-pulse pointer-events-none delay-700"></div>
 
-      <div className="w-full max-w-md relative z-10">
-        <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-3xl shadow-2xl p-8 transform transition-all hover:scale-[1.01] duration-500">
+      <div className="flex-1 flex items-center justify-center p-6 relative z-10">
+        <div className="w-full max-w-md">
+          <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-3xl shadow-2xl p-8 transform transition-all hover:scale-[1.01] duration-500">
           <div className="text-center mb-8">
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/20 mb-4 transform -rotate-6 hover:rotate-0 transition-transform duration-300">
               <span className="font-bold font-display text-3xl text-white tracking-tighter">
@@ -110,7 +112,9 @@ export function LoginScreen({ onLoginSuccess }) {
         </div>
       </div>
     </div>
-  );
+    <Footer />
+  </div>
+);
 }
 
 export function ForcePasswordResetScreen({ onResetSuccess, onCancel }) {
@@ -137,9 +141,10 @@ export function ForcePasswordResetScreen({ onResetSuccess, onCancel }) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-950 p-6 relative overflow-hidden">
-      <div className="w-full max-w-md relative z-10">
-        <div className="bg-slate-900/60 backdrop-blur-xl border border-rose-900/50 rounded-3xl shadow-2xl p-8">
+    <div className="min-h-screen flex flex-col justify-between bg-slate-950 relative overflow-hidden">
+      <div className="flex-1 flex items-center justify-center p-6 relative z-10">
+        <div className="w-full max-w-md">
+          <div className="bg-slate-900/60 backdrop-blur-xl border border-rose-900/50 rounded-3xl shadow-2xl p-8">
           <div className="text-center mb-8">
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-rose-500 to-orange-500 flex items-center justify-center mx-auto shadow-lg shadow-rose-500/20 mb-4">
               <KeyRound className="text-slate-950" size={32} />
@@ -210,5 +215,7 @@ export function ForcePasswordResetScreen({ onResetSuccess, onCancel }) {
         </div>
       </div>
     </div>
-  );
+    <Footer />
+  </div>
+);
 }

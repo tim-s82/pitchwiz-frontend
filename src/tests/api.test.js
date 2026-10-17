@@ -48,6 +48,15 @@ const server = setupServer(
     http.patch("*/api/catering-requests/1", async ({ request }) => {
         const body = await request.json();
         return HttpResponse.json({ id: 1, ...body });
+    }),
+
+    http.get("*/api/version", () => {
+        return HttpResponse.json({
+            service: "pitchwiz-backend",
+            version: "1.0.0",
+            build_date: "2026-10-17",
+            commit: "fe700a7",
+        });
     })
 );
 
@@ -98,5 +107,15 @@ describe("API Service Layer Tests", () => {
 
         const updated = await api.updateCateringRequest(1, { status: "APPROVED" });
         expect(updated.status).toBe("APPROVED");
+    });
+
+    it("fetches backend version and build information successfully", async () => {
+        const versionInfo = await api.getVersion();
+        expect(versionInfo).toEqual({
+            service: "pitchwiz-backend",
+            version: "1.0.0",
+            build_date: "2026-10-17",
+            commit: "fe700a7",
+        });
     });
 });

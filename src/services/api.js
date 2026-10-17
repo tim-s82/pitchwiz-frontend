@@ -61,6 +61,7 @@ export const api = {
     localStorage.setItem("refresh_token", data.refresh);
     return data;
   },
+  getVersion: () => apiRequest("/api/version"),
   getMe: () => apiRequest("/api/users/me"),
   getVenues: () => apiRequest("/api/venues"),
   getPitches: () => apiRequest("/api/pitches"),
