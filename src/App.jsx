@@ -32,6 +32,7 @@ import {
 import ChangePasswordModal from "./components/ChangePasswordModal";
 import GroundMaintenanceModal from "./components/GroundMaintenanceModal";
 import FixtureImportManager from "./components/FixtureImportManager";
+import Footer from "./components/Footer";
 
 export default function App() {
   const [activeView, setActiveView] = useState("calendar");
@@ -574,14 +575,8 @@ export default function App() {
         )}
       </main>
 
-      {/* Premium Footer */}
-      <footer className="border-t border-slate-900 bg-slate-950 py-6 px-6 text-center text-xs text-slate-500">
-        <div className="max-w-[1600px] mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
-          <span>
-            &copy; 2026 PitchWiz. Designed for cricket club match efficiency.
-          </span>
-        </div>
-      </footer>
+      {/* Premium Footer with Version & Build info */}
+      <Footer />
 
       {/* Password Reset Modal */}
       <ChangePasswordModal
