@@ -42,6 +42,23 @@ export function useConflictDetection({
         };
       }
 
+      if (approvedBooking.booking_type === "TRAINING") {
+        const teamList = approvedBooking.teams?.length
+          ? approvedBooking.teams
+              .map((tid) => teams.find((t) => t.id === tid)?.name)
+              .filter(Boolean)
+              .join(", ")
+          : null;
+        return {
+          type: "BOOKED",
+          booking: approvedBooking,
+          label: teamList ? `Training — ${teamList}` : "Training — Club-wide",
+          status: approvedBooking.status,
+          isMaintenance: false,
+          isTraining: true,
+        };
+      }
+
       if (approvedBooking.notes?.startsWith("AUTO_LOCK:")) {
         const parts = approvedBooking.notes.split(":");
         const pitchName = parts[2] || "Pitch";
@@ -79,6 +96,19 @@ export function useConflictDetection({
       }
 
       const pendingItems = pendingBookings.map((b) => {
+        if (b.booking_type === "TRAINING") {
+          const teamList = b.teams?.length
+            ? b.teams
+                .map((tid) => teams.find((t) => t.id === tid)?.name)
+                .filter(Boolean)
+                .join(", ")
+            : null;
+          return {
+            booking: b,
+            label: teamList ? `Training — ${teamList}` : "Training — Club-wide",
+            isTraining: true,
+          };
+        }
         const fixtureObj = b.fixture ? fixtures.find((f) => f.id === b.fixture) : null;
         const teamObj = fixtureObj ? teams.find((t) => t.id === fixtureObj.team) : null;
         const label = teamObj
@@ -143,6 +173,14 @@ export function useConflictDetection({
           const team = teams.find((t) => t.id === fix.team);
           if (team && team.managers?.includes(currentUser.id)) return true;
         }
+      }
+      // Training bookings
+      if (booking.booking_type === "TRAINING" && booking.teams?.length) {
+        const manages = booking.teams.some((tid) => {
+          const team = teams.find((t) => t.id === tid);
+          return team?.managers?.includes(currentUser.id);
+        });
+        if (manages) return true;
       }
     }
     return false;

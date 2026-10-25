@@ -27,14 +27,16 @@ export function useCalendarState({
     return monday.toISOString().split("T")[0];
   });
 
-  // Modal State (create fixture booking)
+  // Modal State (create fixture / training booking)
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalData, setModalData] = useState({
     pitchId: "",
     date: "",
     timeSlot: "ALL_DAY",
+    bookingType: "FIXTURE",
     teamId: "",
     opponent: "",
+    trainingTeamIds: [],
     requiresTeas: false,
     requiresDrinks: false,
     notes: "",
