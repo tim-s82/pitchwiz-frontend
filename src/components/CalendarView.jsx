@@ -200,6 +200,18 @@ export default function CalendarView({
       return;
     }
 
+    const isPrivileged =
+      currentUser?.roles?.includes("ADMIN") ||
+      currentUser?.roles?.includes("FIXTURE_SECRETARY");
+    if (
+      isTraining &&
+      !isPrivileged &&
+      (!modalData.trainingTeamIds || modalData.trainingTeamIds.length === 0)
+    ) {
+      alert("Please select at least one team.");
+      return;
+    }
+
     const payload = {
       pitch: parseInt(modalData.pitchId, 10),
       booking_type: modalData.bookingType,

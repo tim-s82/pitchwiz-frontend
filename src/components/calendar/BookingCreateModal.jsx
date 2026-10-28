@@ -211,9 +211,6 @@ export default function BookingCreateModal({
             <div>
               <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
                 Invited Teams
-                <span className="ml-1 text-slate-500 normal-case font-normal">
-                  (leave empty for club-wide)
-                </span>
               </label>
               <div className="flex flex-wrap gap-2">
                 {/* Club-wide pill — Admin/Secretary only */}

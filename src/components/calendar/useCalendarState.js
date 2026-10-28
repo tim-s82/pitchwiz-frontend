@@ -177,10 +177,11 @@ export function useCalendarState({
     if (!currentUser) return sortedTeams;
     const hasAdminOrSec =
       currentUser.roles?.includes("ADMIN") ||
-      currentUser.roles?.includes("FIXTURE_SECRETARY") ||
-      currentUser.roles?.includes("USER_MANAGER");
+      currentUser.roles?.includes("FIXTURE_SECRETARY");
     if (hasAdminOrSec) return sortedTeams;
-    return sortedTeams.filter((t) => t.managers?.includes(currentUser.id));
+    return sortedTeams.filter((t) =>
+      t.managers?.some((m) => String(m) === String(currentUser.id))
+    );
   }, [currentUser, sortedTeams]);
 
   const isDateInBooking = (dateStr, booking) => {

@@ -9,6 +9,7 @@ import {
   Clock,
   Coffee,
   Pencil,
+  Dumbbell,
 } from "lucide-react";
 import { useConflictDetection } from "./secretary/useConflictDetection";
 import RejectModal from "./secretary/RejectModal";
@@ -287,9 +288,23 @@ export default function SecretaryDashboard({
               const teamObj = fixtureObj
                 ? teams.find((t) => t.id === fixtureObj.team)
                 : null;
-              const label = teamObj
-                ? `${teamObj.name} vs ${fixtureObj.opponent}`
-                : `${booking.external_contact_name || "External"} (Dorset/Public)`;
+
+              // Derive label based on booking type
+              let label;
+              if (booking.booking_type === "TRAINING") {
+                if (booking.teams && booking.teams.length > 0) {
+                  const teamNames = booking.teams
+                    .map((tid) => teams.find((t) => t.id === tid)?.name || `Team ${tid}`)
+                    .join(", ");
+                  label = `Training — ${teamNames}`;
+                } else {
+                  label = "Training — Club-wide";
+                }
+              } else if (teamObj) {
+                label = `${teamObj.name} vs ${fixtureObj.opponent}`;
+              } else {
+                label = `${booking.external_contact_name || "External"} (Dorset/Public)`;
+              }
 
               const conflicts = detectConflicts(booking);
 
@@ -303,14 +318,19 @@ export default function SecretaryDashboard({
                 >
                   <div className="space-y-3 max-w-2xl">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span
-                        className={`text-xxs px-2 py-0.5 rounded font-extrabold font-display uppercase ${booking.fixture
-                          ? "bg-indigo-900/50 text-indigo-400 border border-indigo-900/55"
-                          : "bg-pink-900/40 text-pink-400 border border-pink-900/50"
-                          }`}
-                      >
-                        {booking.fixture ? "Club Fixture" : "External Booking"}
-                      </span>
+                      {booking.booking_type === "TRAINING" ? (
+                        <span className="text-xxs px-2 py-0.5 rounded font-extrabold font-display uppercase bg-cyan-900/50 text-cyan-400 border border-cyan-900/55 flex items-center gap-1">
+                          <Dumbbell size={10} /> Training Session
+                        </span>
+                      ) : booking.fixture ? (
+                        <span className="text-xxs px-2 py-0.5 rounded font-extrabold font-display uppercase bg-indigo-900/50 text-indigo-400 border border-indigo-900/55">
+                          Club Fixture
+                        </span>
+                      ) : (
+                        <span className="text-xxs px-2 py-0.5 rounded font-extrabold font-display uppercase bg-pink-900/40 text-pink-400 border border-pink-900/50">
+                          External Booking
+                        </span>
+                      )}
                       {booking.requires_teas && (
                         <span className="text-xxs bg-emerald-950/50 text-emerald-400 border border-emerald-900/60 px-2 py-0.5 rounded flex items-center gap-1 font-bold">
                           <Coffee size={10} /> Teas
@@ -473,9 +493,21 @@ export default function SecretaryDashboard({
                     const teamObj = fixObj
                       ? teams.find((t) => t.id === fixObj.team)
                       : null;
-                    const label = teamObj
-                      ? `${teamObj.name} vs ${fixObj.opponent}`
-                      : b.external_contact_name || "External Org";
+                    let label;
+                    if (b.booking_type === "TRAINING") {
+                      if (b.teams && b.teams.length > 0) {
+                        const teamNames = b.teams
+                          .map((tid) => teams.find((t) => t.id === tid)?.name || `Team ${tid}`)
+                          .join(", ");
+                        label = `Training — ${teamNames}`;
+                      } else {
+                        label = "Training — Club-wide";
+                      }
+                    } else if (teamObj) {
+                      label = `${teamObj.name} vs ${fixObj.opponent}`;
+                    } else {
+                      label = b.external_contact_name || "External Org";
+                    }
 
                     return (
                       <tr key={b.id} className="hover:bg-slate-800/10">
