@@ -17,7 +17,6 @@ import {
   Calendar,
   ShieldAlert,
   Utensils,
-  FormInput,
   Activity,
   Users,
   LogOut,
@@ -28,6 +27,7 @@ import {
   Lock,
   Shovel,
   FileSpreadsheet,
+  ArrowLeft,
 } from "lucide-react";
 import ChangePasswordModal from "./components/ChangePasswordModal";
 import GroundMaintenanceModal from "./components/GroundMaintenanceModal";
@@ -36,6 +36,7 @@ import Footer from "./components/Footer";
 
 export default function App() {
   const [activeView, setActiveView] = useState("calendar");
+  const [unauthView, setUnauthView] = useState("login");
   const [loading, setLoading] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -133,7 +134,20 @@ export default function App() {
           if (isMounted) setLoading(false);
         }
       } else {
-        if (isMounted) setLoading(false);
+        try {
+          const [v, p] = await Promise.all([
+            api.getVenues(),
+            api.getPitches(),
+          ]);
+          if (isMounted) {
+            setVenues(v);
+            setPitches(p);
+          }
+        } catch (err) {
+          if (isMounted) console.error("Failed to load public data: ", err);
+        } finally {
+          if (isMounted) setLoading(false);
+        }
       }
     }
 
@@ -154,7 +168,6 @@ export default function App() {
       secretary: hasRole("FIXTURE_SECRETARY") || hasRole("ADMIN"),
       caterer: hasRole("CATERER") || hasRole("ADMIN"),
       groundstaff: hasRole("GROUNDSTAFF") || hasRole("ADMIN"),
-      publicForm: hasRole("EXTERNAL") || hasRole("ADMIN"),
       teams:
         hasRole("USER_MANAGER") ||
         hasRole("FIXTURE_SECRETARY") ||
@@ -185,6 +198,7 @@ export default function App() {
     setIsAuthenticated(false);
     setCurrentUser(null);
     setActiveView("calendar");
+    setUnauthView("login");
   };
 
   // Handler to submit booking request
@@ -201,23 +215,35 @@ export default function App() {
       fixId = createdFixture.id;
     }
 
+    let notes = payload.notes || "";
+    if (payload.fixture_opponent && !payload.fixture_team) {
+      notes = notes
+        ? `[Event: ${payload.fixture_opponent}] ${notes}`
+        : `Event: ${payload.fixture_opponent}`;
+    }
+
     const bookingData = {
       fixture: fixId,
       pitch: payload.pitch,
+      booking_type: payload.booking_type || "FIXTURE",
+      ...(payload.teams !== undefined ? { teams: payload.teams } : {}),
       start_date: payload.start_date,
       end_date: payload.end_date,
       time_slot: payload.time_slot,
-      requires_teas: payload.requires_teas,
-      requires_drinks: payload.requires_drinks,
+      requires_teas: payload.requires_teas || false,
+      requires_drinks: payload.requires_drinks || false,
       requested_by: currentUser ? currentUser.id : null,
       external_contact_name: payload.external_contact_name || "",
       external_contact_email: payload.external_contact_email || "",
-      notes: payload.notes || "",
+      notes,
     };
 
     const newBooking = await api.createBooking(bookingData);
-    setBookings((prev) => [...prev, newBooking]);
-    await loadData();
+    if (isAuthenticated) {
+      setBookings((prev) => [...prev, newBooking]);
+      await loadData();
+    }
+    return newBooking;
   };
 
   // Handler to approve/deny booking request
@@ -246,7 +272,73 @@ export default function App() {
   };
 
   if (!isAuthenticated) {
-    return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
+    if (unauthView === "externalBooking") {
+      return (
+        <div className="min-h-screen flex flex-col justify-between bg-slate-950 text-slate-100 relative overflow-hidden">
+          {/* Dynamic Background Effects */}
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-[128px] mix-blend-screen animate-pulse pointer-events-none" />
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-teal-500/10 rounded-full blur-[128px] mix-blend-screen animate-pulse pointer-events-none delay-700" />
+
+          {/* Top Header */}
+          <header className="sticky top-0 z-40 bg-slate-950/85 backdrop-blur-md border-b border-slate-900 px-6 py-4">
+            <div className="max-w-[1600px] mx-auto flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/20 font-bold font-display text-lg text-white">
+                  PW
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold font-display tracking-tight text-slate-100 flex items-center gap-1.5">
+                    PitchWiz
+                    <span className="text-[10px] uppercase font-bold tracking-widest px-1.5 py-0.5 rounded bg-emerald-950/60 text-emerald-400 border border-emerald-900/40">
+                      v1.0
+                    </span>
+                  </h1>
+                  <p className="text-xs text-slate-400">
+                    Cricket Club Pitch Booking System
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setUnauthView("login")}
+                className="px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-emerald-400 hover:border-slate-700 transition flex items-center space-x-2 text-xs font-semibold font-display cursor-pointer"
+              >
+                <ArrowLeft size={16} />
+                <span>Back to Sign In</span>
+              </button>
+            </div>
+          </header>
+
+          <main className="flex-grow max-w-[1600px] w-full mx-auto px-6 py-8 relative z-10 flex items-center justify-center">
+            {loading && venues.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 space-y-3">
+                <Activity className="animate-spin text-emerald-400" size={32} />
+                <p className="text-xs text-slate-400 font-display">
+                  Loading available pitches...
+                </p>
+              </div>
+            ) : (
+              <PublicBookingForm
+                venues={venues}
+                pitches={pitches}
+                onBookingCreated={handleBookingCreated}
+                onBack={() => setUnauthView("login")}
+              />
+            )}
+          </main>
+
+          <Footer />
+        </div>
+      );
+    }
+
+    return (
+      <LoginScreen
+        onLoginSuccess={handleLoginSuccess}
+        onRequestExternalBooking={() => setUnauthView("externalBooking")}
+      />
+    );
   }
 
   if (isForceReset) {
@@ -409,19 +501,6 @@ export default function App() {
                 </button>
               )}
 
-              {hasRole("EXTERNAL") && (
-                <button
-                  onClick={() => handleNavClick("publicForm")}
-                  className={`w-full flex items-center space-x-3 py-3 px-4 rounded-xl text-xs font-semibold tracking-wide transition font-display ${activeView === "publicForm"
-                    ? "bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60"
-                    : "text-slate-400 hover:text-emerald-400 hover:bg-slate-800/50"
-                    }`}
-                >
-                  <FormInput size={16} />
-                  <span>External Pitch Request</span>
-                </button>
-              )}
-
               {(hasRole("USER_MANAGER") || hasRole("FIXTURE_SECRETARY")) && (
                 <button
                   onClick={() => handleNavClick("teams")}
@@ -543,13 +622,6 @@ export default function App() {
                 fixtures={fixtures}
                 bookings={bookings}
                 currentUser={currentUser}
-              />
-            )}
-            {activeView === "publicForm" && (
-              <PublicBookingForm
-                venues={venues}
-                pitches={pitches}
-                onBookingCreated={handleBookingCreated}
               />
             )}
             {activeView === "teams" && (

@@ -7,12 +7,14 @@ import {
   Clock,
   Send,
   CheckCircle2,
+  ArrowLeft,
 } from "lucide-react";
 
 export default function PublicBookingForm({
   venues,
   pitches,
   onBookingCreated,
+  onBack,
 }) {
   // 1. Sort venues alphabetically, bringing the default venue to the top
   const sortedVenues = useMemo(() => {
@@ -148,12 +150,23 @@ export default function PublicBookingForm({
             once a decision is made.
           </p>
         </div>
-        <button
-          onClick={handleReset}
-          className="w-full px-4 py-3 rounded-xl bg-slate-800 text-slate-300 text-sm font-semibold font-display border border-slate-700/60 hover:bg-slate-700 hover:text-slate-200 transition-all active:scale-[0.97]"
-        >
-          Submit Another Request
-        </button>
+        <div className="flex flex-col gap-2.5">
+          <button
+            onClick={handleReset}
+            className="w-full px-4 py-3 rounded-xl bg-slate-800 text-slate-300 text-sm font-semibold font-display border border-slate-700/60 hover:bg-slate-700 hover:text-slate-200 transition-all active:scale-[0.97] cursor-pointer"
+          >
+            Submit Another Request
+          </button>
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              className="w-full px-4 py-2.5 rounded-xl text-slate-400 hover:text-slate-200 text-xs font-semibold font-display transition-colors cursor-pointer"
+            >
+              Back to Sign In
+            </button>
+          )}
+        </div>
       </div>
     );
   }
@@ -161,6 +174,15 @@ export default function PublicBookingForm({
   return (
     <div className="w-full max-w-xl mx-auto bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
       <div className="p-6 border-b border-slate-800 space-y-1.5">
+        {onBack && (
+          <button
+            type="button"
+            onClick={onBack}
+            className="mb-2 inline-flex items-center gap-1.5 text-xs font-semibold font-display text-slate-400 hover:text-emerald-400 transition-colors cursor-pointer"
+          >
+            <ArrowLeft size={14} /> Back to Sign In
+          </button>
+        )}
         <h2 className="text-lg font-bold font-display text-slate-100">
           External Pitch Booking Request
         </h2>

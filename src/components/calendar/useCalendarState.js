@@ -27,14 +27,16 @@ export function useCalendarState({
     return monday.toISOString().split("T")[0];
   });
 
-  // Modal State (create fixture booking)
+  // Modal State (create fixture / training booking)
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalData, setModalData] = useState({
     pitchId: "",
     date: "",
     timeSlot: "ALL_DAY",
+    bookingType: "FIXTURE",
     teamId: "",
     opponent: "",
+    trainingTeamIds: [],
     requiresTeas: false,
     requiresDrinks: false,
     notes: "",
@@ -175,10 +177,11 @@ export function useCalendarState({
     if (!currentUser) return sortedTeams;
     const hasAdminOrSec =
       currentUser.roles?.includes("ADMIN") ||
-      currentUser.roles?.includes("FIXTURE_SECRETARY") ||
-      currentUser.roles?.includes("USER_MANAGER");
+      currentUser.roles?.includes("FIXTURE_SECRETARY");
     if (hasAdminOrSec) return sortedTeams;
-    return sortedTeams.filter((t) => t.managers?.includes(currentUser.id));
+    return sortedTeams.filter((t) =>
+      t.managers?.some((m) => String(m) === String(currentUser.id))
+    );
   }, [currentUser, sortedTeams]);
 
   const isDateInBooking = (dateStr, booking) => {

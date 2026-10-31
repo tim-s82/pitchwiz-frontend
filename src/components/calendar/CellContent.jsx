@@ -1,5 +1,5 @@
 import React from "react";
-import { Plus, ShieldAlert, Shovel } from "lucide-react";
+import { Plus, ShieldAlert, Shovel, Dumbbell } from "lucide-react";
 
 export default function CellContent({ cell, onClick, compact = false, isExternal = false }) {
   const heightClass = compact ? "h-16" : "h-24";
@@ -93,6 +93,7 @@ export default function CellContent({ cell, onClick, compact = false, isExternal
 
   const isApproved = cell.status === "APPROVED";
   const isMaintenance = cell.isMaintenance;
+  const isTraining = cell.isTraining;
 
   return (
     <button
@@ -103,9 +104,11 @@ export default function CellContent({ cell, onClick, compact = false, isExternal
       } flex flex-col justify-between overflow-hidden transition-all duration-300 ${
         isMaintenance
           ? "bg-amber-950/40 border-amber-800/80 hover:border-amber-500 shadow-sm"
-          : isApproved
-            ? "bg-emerald-950/30 border-emerald-900/80 hover:border-blue-500 shadow-sm"
-            : "bg-amber-950/20 border-amber-900/50 hover:border-blue-500"
+          : isTraining
+            ? "bg-cyan-950/30 border-cyan-900/80 hover:border-cyan-500 shadow-sm"
+            : isApproved
+              ? "bg-emerald-950/30 border-emerald-900/80 hover:border-blue-500 shadow-sm"
+              : "bg-amber-950/20 border-amber-900/50 hover:border-blue-500"
       }`}
     >
       <div className="pointer-events-none w-full">
@@ -114,6 +117,11 @@ export default function CellContent({ cell, onClick, compact = false, isExternal
             <span className="text-[9px] px-1.5 py-0.5 rounded font-extrabold uppercase font-display truncate bg-amber-900/60 text-amber-300 flex items-center gap-1">
               <Shovel size={10} />
               Maintenance
+            </span>
+          ) : isTraining ? (
+            <span className="text-[9px] px-1.5 py-0.5 rounded font-extrabold uppercase font-display truncate bg-cyan-900/50 text-cyan-400 flex items-center gap-1">
+              <Dumbbell size={10} />
+              Training
             </span>
           ) : (
             <span
