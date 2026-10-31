@@ -3,7 +3,7 @@ import { Lock, Mail, KeyRound, AlertCircle, RefreshCw } from "lucide-react";
 import { api } from "../services/api";
 import Footer from "./Footer";
 
-export function LoginScreen({ onLoginSuccess }) {
+export function LoginScreen({ onLoginSuccess, onRequestExternalBooking }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -109,6 +109,21 @@ export function LoginScreen({ onLoginSuccess }) {
               )}
             </button>
           </form>
+
+          {onRequestExternalBooking && (
+            <div className="mt-6 pt-6 border-t border-slate-800 text-center">
+              <p className="text-xs text-slate-400 mb-2 font-display">
+                Looking to request a pitch for an external match or event?
+              </p>
+              <button
+                type="button"
+                onClick={onRequestExternalBooking}
+                className="text-xs font-semibold font-display text-emerald-400 hover:text-emerald-300 transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+              >
+                External Pitch Booking Request &rarr;
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

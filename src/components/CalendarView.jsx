@@ -136,8 +136,10 @@ export default function CalendarView({
           pitchId: pitchId.toString(),
           date: dateStr,
           timeSlot,
+          bookingType: "FIXTURE",
           teamId: selectedTeamId !== "all" ? selectedTeamId : "",
           opponent: "",
+          trainingTeamIds: [],
           requiresTeas: false,
           requiresDrinks: false,
           notes: "",
@@ -171,8 +173,10 @@ export default function CalendarView({
       pitchId: pitchId.toString(),
       date: dateStr,
       timeSlot,
+      bookingType: "FIXTURE",
       teamId: selectedTeamId !== "all" ? selectedTeamId : "",
       opponent: "",
+      trainingTeamIds: [],
       requiresTeas: false,
       requiresDrinks: false,
       notes: "",
@@ -184,26 +188,47 @@ export default function CalendarView({
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
-    if (
-      !modalData.pitchId ||
-      !modalData.date ||
-      !modalData.teamId ||
-      !modalData.opponent
-    ) {
+    const isTraining = modalData.bookingType === "TRAINING";
+
+    // Validation
+    if (!modalData.pitchId || !modalData.date) {
+      alert("Please select a pitch and date.");
+      return;
+    }
+    if (!isTraining && (!modalData.teamId || !modalData.opponent)) {
       alert("Please fill in all required fields.");
+      return;
+    }
+
+    const isPrivileged =
+      currentUser?.roles?.includes("ADMIN") ||
+      currentUser?.roles?.includes("FIXTURE_SECRETARY");
+    if (
+      isTraining &&
+      !isPrivileged &&
+      (!modalData.trainingTeamIds || modalData.trainingTeamIds.length === 0)
+    ) {
+      alert("Please select at least one team.");
       return;
     }
 
     const payload = {
       pitch: parseInt(modalData.pitchId, 10),
+      booking_type: modalData.bookingType,
       start_date: modalData.date,
       end_date: modalData.isMultiDay ? modalData.endDate : modalData.date,
       time_slot: modalData.timeSlot,
-      requires_teas: modalData.requiresTeas,
-      requires_drinks: modalData.requiresDrinks,
       notes: modalData.notes,
-      fixture_team: parseInt(modalData.teamId, 10),
-      fixture_opponent: modalData.opponent,
+      ...(isTraining
+        ? {
+            teams: modalData.trainingTeamIds,
+          }
+        : {
+            requires_teas: modalData.requiresTeas,
+            requires_drinks: modalData.requiresDrinks,
+            fixture_team: parseInt(modalData.teamId, 10),
+            fixture_opponent: modalData.opponent,
+          }),
     };
 
     try {
