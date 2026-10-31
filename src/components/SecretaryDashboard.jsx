@@ -276,186 +276,235 @@ export default function SecretaryDashboard({
               No pending booking requests. All caught up!
             </div>
           ) : (
-            pendingBookings.map((booking) => {
-              const pitchObj = pitches.find((p) => p.id === booking.pitch);
-              const venueObj = pitchObj
-                ? venues.find((v) => v.id === pitchObj.venue)
-                : null;
+            <>
+              {/* Desktop Column Headers to ensure visual alignment across cards */}
+              <div className="hidden lg:grid lg:grid-cols-[minmax(0,2.2fr)_minmax(0,1.3fr)_minmax(0,1.3fr)_minmax(0,1.1fr)_minmax(0,2.4fr)] gap-4 px-5 py-2 text-xs uppercase tracking-wider text-slate-400 font-display font-semibold">
+                <div>Fixture / Request</div>
+                <div>Pitch</div>
+                <div>Date</div>
+                <div>Time Slot</div>
+                <div>Actions</div>
+              </div>
 
-              const fixtureObj = booking.fixture
-                ? fixtures.find((f) => f.id === booking.fixture)
-                : null;
-              const teamObj = fixtureObj
-                ? teams.find((t) => t.id === fixtureObj.team)
-                : null;
+              {pendingBookings.map((booking) => {
+                const pitchObj = pitches.find((p) => p.id === booking.pitch);
+                const venueObj = pitchObj
+                  ? venues.find((v) => v.id === pitchObj.venue)
+                  : null;
 
-              // Derive label based on booking type
-              let label;
-              if (booking.booking_type === "TRAINING") {
-                if (booking.teams && booking.teams.length > 0) {
-                  const teamNames = booking.teams
-                    .map((tid) => teams.find((t) => t.id === tid)?.name || `Team ${tid}`)
-                    .join(", ");
-                  label = `Training — ${teamNames}`;
+                const fixtureObj = booking.fixture
+                  ? fixtures.find((f) => f.id === booking.fixture)
+                  : null;
+                const teamObj = fixtureObj
+                  ? teams.find((t) => t.id === fixtureObj.team)
+                  : null;
+
+                // Derive label based on booking type
+                let label;
+                if (booking.booking_type === "TRAINING") {
+                  if (booking.teams && booking.teams.length > 0) {
+                    const teamNames = booking.teams
+                      .map((tid) => teams.find((t) => t.id === tid)?.name || `Team ${tid}`)
+                      .join(", ");
+                    label = `Training — ${teamNames}`;
+                  } else {
+                    label = "Training — Club-wide";
+                  }
+                } else if (teamObj) {
+                  label = `${teamObj.name} vs ${fixtureObj.opponent}`;
                 } else {
-                  label = "Training — Club-wide";
+                  label = `${booking.external_contact_name || "External"} (Dorset/Public)`;
                 }
-              } else if (teamObj) {
-                label = `${teamObj.name} vs ${fixtureObj.opponent}`;
-              } else {
-                label = `${booking.external_contact_name || "External"} (Dorset/Public)`;
-              }
 
-              const conflicts = detectConflicts(booking);
+                const conflicts = detectConflicts(booking);
 
-              return (
-                <div
-                  key={booking.id}
-                  className={`glass-panel p-6 rounded-2xl border transition duration-300 flex flex-col lg:flex-row lg:items-center justify-between gap-6 ${conflicts.length > 0
-                    ? "border-amber-900/50 bg-amber-950/5"
-                    : "border-slate-800"
-                    }`}
-                >
-                  <div className="space-y-3 max-w-2xl">
-                    <div className="flex flex-wrap items-center gap-2">
-                      {booking.booking_type === "TRAINING" ? (
-                        <span className="text-xxs px-2 py-0.5 rounded font-extrabold font-display uppercase bg-cyan-900/50 text-cyan-400 border border-cyan-900/55 flex items-center gap-1">
-                          <Dumbbell size={10} /> Training Session
-                        </span>
-                      ) : booking.fixture ? (
-                        <span className="text-xxs px-2 py-0.5 rounded font-extrabold font-display uppercase bg-indigo-900/50 text-indigo-400 border border-indigo-900/55">
-                          Club Fixture
-                        </span>
-                      ) : (
-                        <span className="text-xxs px-2 py-0.5 rounded font-extrabold font-display uppercase bg-pink-900/40 text-pink-400 border border-pink-900/50">
-                          External Booking
-                        </span>
-                      )}
-                      {booking.requires_teas && (
-                        <span className="text-xxs bg-emerald-950/50 text-emerald-400 border border-emerald-900/60 px-2 py-0.5 rounded flex items-center gap-1 font-bold">
-                          <Coffee size={10} /> Teas
-                        </span>
-                      )}
-                      {booking.requires_drinks && (
-                        <span className="text-xxs bg-teal-950/50 text-teal-400 border border-teal-900/60 px-2 py-0.5 rounded flex items-center gap-1 font-bold">
-                          <Coffee size={10} /> Drinks
-                        </span>
-                      )}
-                    </div>
+                return (
+                  <div
+                    key={booking.id}
+                    className={`glass-panel p-5 rounded-2xl border transition duration-300 ${conflicts.length > 0
+                      ? "border-amber-900/50 bg-amber-950/5"
+                      : "border-slate-800"
+                      }`}
+                  >
+                    {/* Aligned Columns Grid */}
+                    <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,2.2fr)_minmax(0,1.3fr)_minmax(0,1.3fr)_minmax(0,1.1fr)_minmax(0,2.4fr)] gap-4 items-center">
+                      {/* Column 1: Fixture / Request Info & Badges */}
+                      <div className="space-y-1.5 min-w-0">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {booking.booking_type === "TRAINING" ? (
+                            <span className="text-xxs px-2 py-0.5 rounded font-extrabold font-display uppercase bg-cyan-900/50 text-cyan-400 border border-cyan-900/55 flex items-center gap-1">
+                              <Dumbbell size={10} /> Training Session
+                            </span>
+                          ) : booking.fixture ? (
+                            <span className="text-xxs px-2 py-0.5 rounded font-extrabold font-display uppercase bg-indigo-900/50 text-indigo-400 border border-indigo-900/55">
+                              Club Fixture
+                            </span>
+                          ) : (
+                            <span className="text-xxs px-2 py-0.5 rounded font-extrabold font-display uppercase bg-pink-900/40 text-pink-400 border border-pink-900/50">
+                              External Booking
+                            </span>
+                          )}
+                          {booking.requires_teas && (
+                            <span className="text-xxs bg-emerald-950/50 text-emerald-400 border border-emerald-900/60 px-2 py-0.5 rounded flex items-center gap-1 font-bold">
+                              <Coffee size={10} /> Teas
+                            </span>
+                          )}
+                          {booking.requires_drinks && (
+                            <span className="text-xxs bg-teal-950/50 text-teal-400 border border-teal-900/60 px-2 py-0.5 rounded flex items-center gap-1 font-bold">
+                              <Coffee size={10} /> Drinks
+                            </span>
+                          )}
+                        </div>
 
-                    <h3 className="text-lg font-bold font-display text-slate-100">
-                      {label}
-                    </h3>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-slate-400 text-xs">
-                      <div className="flex items-center space-x-1.5">
-                        <MapPin size={14} className="text-slate-500" />
-                        <span>
-                          {venueObj?.name} &bull; {pitchObj?.name}
-                        </span>
+                        <h3
+                          className="text-base font-bold font-display text-slate-100 truncate"
+                          title={label}
+                        >
+                          {label}
+                        </h3>
                       </div>
-                      <div className="flex items-center space-x-1.5">
-                        <Calendar size={14} className="text-slate-500" />
-                        <span>
-                          {booking.start_date === booking.end_date
-                            ? booking.start_date
-                            : `${booking.start_date} to ${booking.end_date}`}
-                        </span>
-                      </div>
-                      <div className="flex items-center space-x-1.5">
-                        <Clock size={14} className="text-slate-500" />
-                        <span className="capitalize">
-                          {booking.time_slot.toLowerCase().replace("_", " ")}
-                        </span>
-                      </div>
-                    </div>
 
-                    {booking.notes && (
-                      <p className="text-xs text-slate-450 italic bg-slate-900/50 px-3 py-2 rounded-lg border border-slate-850">
-                        Notes: "{booking.notes}"
-                      </p>
-                    )}
+                      {/* Columns 2, 3, 4: Pitch, Date, Time (Responsive subgrid on mobile/tablet, unboxed on desktop) */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 lg:contents gap-2 sm:gap-3">
+                        {/* Column 2: Pitch */}
+                        <div className="flex items-center space-x-2 text-xs text-slate-350 min-w-0">
+                          <MapPin size={15} className="text-slate-500 shrink-0" />
+                          <div className="min-w-0">
+                            <div
+                              className="font-semibold text-slate-200 truncate"
+                              title={pitchObj?.name || "Pitch"}
+                            >
+                              {pitchObj?.name || "Unassigned Pitch"}
+                            </div>
+                            <div
+                              className="text-[11px] text-slate-400 truncate"
+                              title={venueObj?.name || "Venue"}
+                            >
+                              {venueObj?.name || "Unassigned Venue"}
+                            </div>
+                          </div>
+                        </div>
 
-                    {/* Conflict Section */}
-                    {conflicts.length > 0 && (
-                      <div className="bg-amber-950/40 border border-amber-900/60 rounded-xl p-3.5 space-y-2 mt-2">
-                        <div className="flex items-center space-x-2 text-amber-400 text-xs font-bold font-display">
-                          <AlertTriangle size={15} />
-                          <span>
-                            Potential Conflicts Detected ({conflicts.length})
+                        {/* Column 3: Date */}
+                        <div className="flex items-center space-x-2 text-xs text-slate-350 min-w-0">
+                          <Calendar size={15} className="text-slate-500 shrink-0" />
+                          <div className="min-w-0">
+                            <div className="font-semibold text-slate-200 truncate">
+                              {booking.start_date}
+                            </div>
+                            {booking.start_date !== booking.end_date && (
+                              <div className="text-[11px] text-slate-400 truncate">
+                                to {booking.end_date}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Column 4: Time Slot */}
+                        <div className="flex items-center space-x-2 text-xs text-slate-350 min-w-0">
+                          <Clock size={15} className="text-slate-500 shrink-0" />
+                          <span className="capitalize font-semibold text-slate-200 truncate">
+                            {booking.time_slot.toLowerCase().replace("_", " ")}
                           </span>
                         </div>
-                        <ul className="list-disc list-inside text-xxs text-amber-300/90 space-y-1 pl-1 leading-normal">
-                          {conflicts.map((c, i) => (
-                            <li key={i}>{c}</li>
-                          ))}
-                        </ul>
+                      </div>
+
+                      {/* Column 5: Actions Panel */}
+                      <div className="flex flex-col gap-2 min-w-0">
+                        {/* Primary Buttons: Approve, Deny, Edit */}
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() => handleApprove(booking.id)}
+                            className="flex-1 inline-flex items-center justify-center gap-1 py-1.5 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-xs font-semibold font-display text-white shadow-md shadow-emerald-500/20 hover:shadow-emerald-500/30 hover:from-emerald-500 hover:to-teal-500 transition-all active:scale-[0.97]"
+                          >
+                            <Check size={14} /> Approve
+                          </button>
+                          <button
+                            onClick={() => handleDeny(booking.id)}
+                            className="flex-1 inline-flex items-center justify-center gap-1 py-1.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold font-display border border-slate-700/60 transition-all active:scale-[0.97]"
+                          >
+                            <X size={14} /> Deny
+                          </button>
+                          <button
+                            onClick={() => handleEditBooking(booking)}
+                            className="inline-flex items-center justify-center gap-1 py-1.5 px-2.5 rounded-xl border border-emerald-800/50 bg-emerald-950/20 hover:bg-emerald-950/40 text-emerald-400 font-semibold font-display text-xs transition-all active:scale-[0.97]"
+                            title="Edit or Cancel Booking"
+                          >
+                            <Pencil size={13} />
+                            <span className="hidden xl:inline">Edit / Cancel</span>
+                            <span className="xl:hidden">Edit</span>
+                          </button>
+                        </div>
+
+                        {/* Alternative Pitch Selector */}
+                        <div className="flex items-center gap-1.5">
+                          <select
+                            value={altPitchId[booking.id] || ""}
+                            onChange={(e) =>
+                              setAltPitchId({
+                                ...altPitchId,
+                                [booking.id]: e.target.value,
+                              })
+                            }
+                            className="bg-slate-900 border border-slate-800 text-slate-300 text-[11px] rounded-lg py-1.5 px-2 outline-none flex-1 min-w-0 focus:border-emerald-500"
+                          >
+                            <option value="">Move Pitch...</option>
+                            {pitches
+                              .filter((p) => p.id !== booking.pitch)
+                              .map((p) => (
+                                <option key={p.id} value={p.id}>
+                                  {venues.find((v) => v.id === p.venue)?.name} -{" "}
+                                  {p.name}
+                                </option>
+                              ))}
+                          </select>
+                          <button
+                            onClick={() =>
+                              handleProposeAlternative(
+                                booking.id,
+                                altPitchId[booking.id],
+                              )
+                            }
+                            disabled={!altPitchId[booking.id]}
+                            className="py-1.5 px-3 bg-emerald-950/40 hover:bg-emerald-600/30 border border-emerald-800/40 rounded-lg text-emerald-400 hover:text-emerald-300 disabled:opacity-40 transition text-xs font-semibold shrink-0"
+                            title="Move to alternate pitch"
+                          >
+                            Apply
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Secondary Full-Width Section: Notes & Conflicts */}
+                    {(booking.notes || conflicts.length > 0) && (
+                      <div className="mt-3 pt-3 border-t border-slate-800/80 space-y-2">
+                        {booking.notes && (
+                          <p className="text-xs text-slate-400 italic bg-slate-900/50 px-3 py-2 rounded-lg border border-slate-850">
+                            Notes: &ldquo;{booking.notes}&rdquo;
+                          </p>
+                        )}
+
+                        {conflicts.length > 0 && (
+                          <div className="bg-amber-950/40 border border-amber-900/60 rounded-xl p-3.5 space-y-2">
+                            <div className="flex items-center space-x-2 text-amber-400 text-xs font-bold font-display">
+                              <AlertTriangle size={15} />
+                              <span>
+                                Potential Conflicts Detected ({conflicts.length})
+                              </span>
+                            </div>
+                            <ul className="list-disc list-inside text-xxs text-amber-300/90 space-y-1 pl-1 leading-normal">
+                              {conflicts.map((c, i) => (
+                                <li key={i}>{c}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
-
-                  {/* Actions Panel */}
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleApprove(booking.id)}
-                      className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-xs font-semibold font-display text-white shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 hover:from-emerald-500 hover:to-teal-500 transition-all active:scale-[0.97]"
-                    >
-                      <Check size={14} /> Approve
-                    </button>
-                    <button
-                      onClick={() => handleDeny(booking.id)}
-                      className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold font-display border border-slate-700/60 transition-all active:scale-[0.97]"
-                    >
-                      <X size={14} /> Deny
-                    </button>
-                  </div>
-
-                  <button
-                    onClick={() => handleEditBooking(booking)}
-                    className="inline-flex items-center justify-center gap-1.5 py-2 px-3.5 rounded-xl border border-emerald-800/50 bg-emerald-950/20 hover:bg-emerald-950/40 text-emerald-400 font-semibold font-display text-xs transition-all active:scale-[0.97]"
-                  >
-                    <Pencil size={13} /> Edit / Cancel Booking
-                  </button>
-
-                  {/* Alternative Pitch Selector */}
-                  <div className="flex items-center gap-1.5">
-                    <select
-                      value={altPitchId[booking.id] || ""}
-                      onChange={(e) =>
-                        setAltPitchId({
-                          ...altPitchId,
-                          [booking.id]: e.target.value,
-                        })
-                      }
-                      className="bg-slate-900 border border-slate-800 text-slate-300 text-[11px] rounded-lg p-2 outline-none w-full focus:border-emerald-500"
-                    >
-                      <option value="">Move Pitch...</option>
-                      {pitches
-                        .filter((p) => p.id !== booking.pitch)
-                        .map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {venues.find((v) => v.id === p.venue)?.name} -{" "}
-                            {p.name}
-                          </option>
-                        ))}
-                    </select>
-                    <button
-                      onClick={() =>
-                        handleProposeAlternative(
-                          booking.id,
-                          altPitchId[booking.id],
-                        )
-                      }
-                      disabled={!altPitchId[booking.id]}
-                      className="p-2 bg-emerald-950/40 hover:bg-emerald-600/30 border border-emerald-800/40 rounded-lg text-emerald-400 hover:text-emerald-300 disabled:opacity-40 transition text-xs font-semibold"
-                      title="Move to alternate pitch"
-                    >
-                      Apply
-                    </button>
-                  </div>
-                </div>
-              );
-            })
+                );
+              })}
+            </>
           )}
         </div>
       ) : activeTab === "resolved" ? (
