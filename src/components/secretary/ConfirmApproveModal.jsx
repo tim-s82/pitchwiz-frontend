@@ -1,5 +1,6 @@
 import React from "react";
 import { AlertTriangle, Check, X } from "lucide-react";
+import { useLockBodyScroll } from "../../hooks/useLockBodyScroll";
 
 export default function ConfirmApproveModal({
   isOpen,
@@ -13,66 +14,82 @@ export default function ConfirmApproveModal({
   pitches,
   venues,
 }) {
+  useLockBodyScroll(isOpen && Boolean(booking));
+
   if (!isOpen || !booking) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-sm">
-      <div className="bg-slate-900 border border-amber-800/60 rounded-2xl shadow-2xl p-6 w-full max-w-lg space-y-5">
-        <div className="flex items-start gap-3">
-          <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 shrink-0">
-            <AlertTriangle size={22} />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto">
+      <div className="bg-slate-900 border border-amber-800/60 rounded-2xl shadow-2xl w-full max-w-xl max-h-[calc(100vh-2rem)] sm:max-h-[90vh] flex flex-col my-auto overflow-hidden">
+        {/* Header Warning */}
+        <div className="p-5 sm:p-6 pb-4 border-b border-slate-800 flex items-start justify-between gap-3 shrink-0">
+          <div className="flex items-start gap-3">
+            <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 shrink-0">
+              <AlertTriangle size={22} />
+            </div>
+            <div>
+              <h3 className="text-base sm:text-lg font-bold text-white font-display">
+                Competing Requests Exist
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-400 mt-1">
+                Approving this booking will automatically{" "}
+                <span className="text-red-400 font-semibold">deny</span> the
+                following conflicting pending request
+                {competingBookings.length > 1 ? "s" : ""}:
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-lg font-bold text-white font-display">
-              Competing Requests Exist
-            </h3>
-            <p className="text-sm text-slate-400 mt-1">
-              Approving this booking will automatically{" "}
-              <span className="text-red-400 font-semibold">deny</span> the
-              following conflicting pending request
-              {competingBookings.length > 1 ? "s" : ""}:
-            </p>
-          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition"
+            aria-label="Close"
+          >
+            <X size={18} />
+          </button>
         </div>
 
-        <ul className="space-y-2">
-          {competingBookings.map((cb) => {
-            const fix = cb.fixture
-              ? fixtures.find((f) => f.id === cb.fixture)
-              : null;
-            const team = fix ? teams.find((t) => t.id === fix.team) : null;
-            const cbPitch = pitches.find((p) => p.id === cb.pitch);
-            const cbVenue = cbPitch
-              ? venues.find((v) => v.id === cbPitch.venue)
-              : null;
-            const cbLabel = team
-              ? `${team.name} vs ${fix.opponent}`
-              : cb.external_contact_name || "External Booking";
-            return (
-              <li
-                key={cb.id}
-                className="flex items-start gap-2.5 bg-red-950/30 border border-red-900/50 rounded-xl p-3"
-              >
-                <X size={14} className="text-red-400 mt-0.5 shrink-0" />
-                <div className="text-xs">
-                  <p className="font-semibold text-slate-200">{cbLabel}</p>
-                  <p className="text-slate-400 mt-0.5">
-                    {cbVenue?.name} · {cbPitch?.name} · {cb.start_date}
-                    {cb.start_date !== cb.end_date ? ` → ${cb.end_date}` : ""} ·{" "}
-                    {cb.time_slot.toLowerCase().replace("_", " ")}
-                  </p>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+        {/* Scrollable Competing List */}
+        <div className="p-4 sm:p-6 space-y-3 overflow-y-auto flex-1 custom-scrollbar min-h-0">
+          <ul className="space-y-2">
+            {competingBookings.map((cb) => {
+              const fix = cb.fixture
+                ? fixtures.find((f) => f.id === cb.fixture)
+                : null;
+              const team = fix ? teams.find((t) => t.id === fix.team) : null;
+              const cbPitch = pitches.find((p) => p.id === cb.pitch);
+              const cbVenue = cbPitch
+                ? venues.find((v) => v.id === cbPitch.venue)
+                : null;
+              const cbLabel = team
+                ? `${team.name} vs ${fix.opponent}`
+                : cb.external_contact_name || "External Booking";
+              return (
+                <li
+                  key={cb.id}
+                  className="flex items-start gap-2.5 bg-red-950/30 border border-red-900/50 rounded-xl p-3"
+                >
+                  <X size={14} className="text-red-400 mt-0.5 shrink-0" />
+                  <div className="text-xs">
+                    <p className="font-semibold text-slate-200">{cbLabel}</p>
+                    <p className="text-slate-400 mt-0.5">
+                      {cbVenue?.name} · {cbPitch?.name} · {cb.start_date}
+                      {cb.start_date !== cb.end_date ? ` → ${cb.end_date}` : ""} ·{" "}
+                      {cb.time_slot.toLowerCase().replace("_", " ")}
+                    </p>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
 
-        <p className="text-xs text-slate-500">
-          This action cannot be undone. The denied parties will see their
-          requests marked as rejected.
-        </p>
+          <p className="text-xxs sm:text-xs text-slate-500">
+            This action cannot be undone. The denied parties will see their
+            requests marked as rejected.
+          </p>
+        </div>
 
-        <div className="flex justify-end gap-3">
+        {/* Pinned Action Buttons Footer */}
+        <div className="p-4 sm:px-6 bg-slate-900/60 border-t border-slate-800/80 flex justify-end gap-3 shrink-0">
           <button
             onClick={onClose}
             disabled={isSubmitting}

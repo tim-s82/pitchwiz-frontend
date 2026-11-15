@@ -1,12 +1,15 @@
 import React from "react";
 import { Trash2 } from "lucide-react";
+import { useLockBodyScroll } from "../../hooks/useLockBodyScroll";
 
 export default function DeleteConfirmModal({ target, onConfirm, onClose }) {
+  useLockBodyScroll(Boolean(target));
+
   if (!target) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
-      <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-md space-y-4 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-sm p-4 overflow-y-auto">
+      <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-md space-y-4 shadow-2xl max-h-[calc(100vh-2rem)] my-auto flex flex-col">
         <h3 className="text-lg font-bold text-white font-display">Confirm Deletion</h3>
         <p className="text-sm text-slate-300">
           Are you sure you want to delete{" "}

@@ -11,6 +11,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { api } from "../services/api";
+import { useLockBodyScroll } from "../hooks/useLockBodyScroll";
 
 export default function CatererDashboard({
   venues,
@@ -25,6 +26,7 @@ export default function CatererDashboard({
     crId: null,
     reason: "",
   });
+  useLockBodyScroll(rejectModal.open);
 
   useEffect(() => {
     let isMounted = true;
@@ -418,8 +420,8 @@ export default function CatererDashboard({
 
       {/* Rejection Reason Modal */}
       {rejectModal.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-6 w-full max-w-md space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-6 w-full max-w-md space-y-4 max-h-[calc(100vh-2rem)] my-auto flex flex-col">
             <h3 className="text-lg font-bold text-white font-display">
               Rejection Reason
             </h3>
@@ -434,7 +436,7 @@ export default function CatererDashboard({
               placeholder="Enter the reason for rejection..."
               className="w-full bg-slate-950 border border-slate-700 text-slate-200 text-sm rounded-xl p-3 h-28 outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20 resize-none"
             />
-            <div className="flex justify-end gap-3">
+            <div className="flex justify-end gap-3 pt-2">
               <button
                 onClick={() =>
                   setRejectModal({ open: false, crId: null, reason: "" })

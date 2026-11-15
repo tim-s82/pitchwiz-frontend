@@ -1,8 +1,11 @@
 import React, { useState } from "react";
 import { api } from "../services/api";
 import { Lock, X, Key } from "lucide-react";
+import { useLockBodyScroll } from "../hooks/useLockBodyScroll";
 
 export default function ChangePasswordModal({ isOpen, onClose }) {
+  useLockBodyScroll(isOpen);
+
   const [form, setForm] = useState({
     old_password: "",
     new_password: "",
@@ -46,27 +49,30 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl w-full max-w-md">
-        <div className="p-6 border-b border-slate-800 flex items-center justify-between">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-sm p-4 overflow-y-auto">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl w-full max-w-md max-h-[calc(100vh-2rem)] sm:max-h-[90vh] flex flex-col my-auto overflow-hidden">
+        <div className="px-5 sm:px-6 py-3.5 border-b border-slate-800 flex items-center justify-between shrink-0">
           <div className="flex items-center space-x-3">
             <div className="p-2 bg-emerald-500/10 rounded-xl text-emerald-400">
-              <Lock size={20} />
+              <Lock size={18} />
             </div>
-            <h2 className="text-lg font-bold font-display text-slate-100">
+            <h2 className="text-base sm:text-lg font-bold font-display text-slate-100">
               Change Password
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition"
             aria-label="Close"
           >
             <X size={18} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form
+          onSubmit={handleSubmit}
+          className="p-4 sm:p-6 space-y-3.5 overflow-y-auto flex-1 custom-scrollbar"
+        >
           {success ? (
             <div className="p-4 bg-emerald-950/50 border border-emerald-900/60 rounded-xl text-emerald-400 text-sm font-semibold text-center">
               Password updated successfully!
@@ -80,7 +86,7 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
               )}
 
               <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
                   Current Password
                 </label>
                 <input
@@ -90,12 +96,12 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
                   onChange={(e) =>
                     setForm({ ...form, old_password: e.target.value })
                   }
-                  className="w-full bg-slate-950 border border-slate-700 text-slate-100 text-sm rounded-xl px-4 py-2.5 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                  className="w-full bg-slate-950 border border-slate-700/60 text-slate-100 text-sm rounded-xl px-3 py-2 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
                   New Password
                 </label>
                 <input
@@ -106,12 +112,12 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
                   onChange={(e) =>
                     setForm({ ...form, new_password: e.target.value })
                   }
-                  className="w-full bg-slate-950 border border-slate-700 text-slate-100 text-sm rounded-xl px-4 py-2.5 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                  className="w-full bg-slate-950 border border-slate-700/60 text-slate-100 text-sm rounded-xl px-3 py-2 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
                   Confirm New Password
                 </label>
                 <input
@@ -122,7 +128,7 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
                   onChange={(e) =>
                     setForm({ ...form, confirm: e.target.value })
                   }
-                  className="w-full bg-slate-950 border border-slate-700 text-slate-100 text-sm rounded-xl px-4 py-2.5 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                  className="w-full bg-slate-950 border border-slate-700/60 text-slate-100 text-sm rounded-xl px-3 py-2 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
                 />
               </div>
 
@@ -130,14 +136,14 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
                 <button
                   type="button"
                   onClick={onClose}
-                  className="flex-1 py-2.5 px-4 rounded-xl bg-slate-800 text-slate-300 text-sm font-semibold font-display border border-slate-700/60 hover:bg-slate-700 hover:text-slate-200 transition-all active:scale-[0.97]"
+                  className="flex-1 py-2 px-4 rounded-xl bg-slate-800 text-slate-300 text-sm font-semibold font-display border border-slate-700/60 hover:bg-slate-700 hover:text-slate-200 transition-all active:scale-[0.97]"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-sm font-semibold font-display text-white shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 hover:from-emerald-500 hover:to-teal-500 transition-all active:scale-[0.97] disabled:opacity-50"
+                  className="flex-1 inline-flex items-center justify-center gap-2 py-2 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-sm font-semibold font-display text-white shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 hover:from-emerald-500 hover:to-teal-500 transition-all active:scale-[0.97] disabled:opacity-50"
                 >
                   <Key size={16} />
                   {loading ? "Saving..." : "Update Password"}
