@@ -11,6 +11,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { api } from "../services/api";
+import { useLockBodyScroll } from "../hooks/useLockBodyScroll";
 
 const AVAILABLE_ROLES = [
   { id: "ADMIN", label: "Admin" },
@@ -30,6 +31,7 @@ export default function UserManagement() {
 
   // Form / Modal state
   const [showModal, setShowModal] = useState(false);
+  useLockBodyScroll(showModal);
   const [editingUser, setEditingUser] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState(null);
@@ -388,137 +390,144 @@ export default function UserManagement() {
 
       {/* Add / Edit User Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-6 w-full max-w-lg space-y-5 animate-in fade-in zoom-in-95">
-            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-              <h3 className="text-lg font-bold text-white font-display">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-xl max-h-[calc(100vh-2rem)] sm:max-h-[90vh] flex flex-col my-auto overflow-hidden animate-in fade-in zoom-in-95">
+            <div className="flex justify-between items-center border-b border-slate-800 px-5 sm:px-6 py-3.5 shrink-0">
+              <h3 className="text-base sm:text-lg font-bold text-white font-display">
                 {editingUser
                   ? `Edit User (${editingUser.username})`
                   : "Create New User Account"}
               </h3>
               <button
                 onClick={resetForm}
-                className="p-2 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition"
                 aria-label="Close"
               >
                 <X size={18} />
               </button>
             </div>
 
-            {formError && (
-              <div className="p-3.5 bg-rose-500/10 border border-rose-500/30 rounded-xl text-xs text-rose-300">
-                {formError}
-              </div>
-            )}
+            <form
+              onSubmit={handleSubmit}
+              className="flex flex-col flex-1 min-h-0 overflow-hidden"
+            >
+              <div className="p-4 sm:p-5 space-y-3.5 overflow-y-auto flex-1 custom-scrollbar">
+                {formError && (
+                  <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-xs text-rose-300">
+                    {formError}
+                  </div>
+                )}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {!editingUser && (
+                {!editingUser && (
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                      Username *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      placeholder="e.g. jsmith"
+                      className="w-full bg-slate-950 border border-slate-700/60 rounded-xl px-3 py-2 text-sm text-slate-200 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                    />
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                      First Name
+                    </label>
+                    <input
+                      type="text"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      placeholder="John"
+                      className="w-full bg-slate-950 border border-slate-700/60 rounded-xl px-3 py-2 text-sm text-slate-200 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                      Last Name
+                    </label>
+                    <input
+                      type="text"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      placeholder="Smith"
+                      className="w-full bg-slate-950 border border-slate-700/60 rounded-xl px-3 py-2 text-sm text-slate-200 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                    />
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
-                    Username *
+                    Email Address
                   </label>
                   <input
-                    type="text"
-                    required
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    placeholder="e.g. jsmith"
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-200 outline-none focus:border-emerald-500"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="john.smith@cricketclub.com"
+                    className="w-full bg-slate-950 border border-slate-700/60 rounded-xl px-3 py-2 text-sm text-slate-200 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
                   />
                 </div>
-              )}
 
-              <div className="grid grid-cols-2 gap-3">
+                {!editingUser && (
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                      Password *
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Must meet complexity rules"
+                      className="w-full bg-slate-950 border border-slate-700/60 rounded-xl px-3 py-2 text-sm text-slate-200 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                    />
+                    <p className="text-xxs text-slate-500 mt-1">
+                      Min 10 chars, 1 uppercase, 1 lowercase, 1 digit, 1 special
+                      symbol.
+                    </p>
+                  </div>
+                )}
+
+                {/* Roles Multi-Select Checkboxes */}
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
-                    First Name
+                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                    Assign Roles
                   </label>
-                  <input
-                    type="text"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    placeholder="John"
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-200 outline-none focus:border-emerald-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
-                    Last Name
-                  </label>
-                  <input
-                    type="text"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    placeholder="Smith"
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-200 outline-none focus:border-emerald-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="john.smith@cricketclub.com"
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-200 outline-none focus:border-emerald-500"
-                />
-              </div>
-
-              {!editingUser && (
-                <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
-                    Password *
-                  </label>
-                  <input
-                    type="password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Must meet complexity rules"
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-200 outline-none focus:border-emerald-500"
-                  />
-                  <p className="text-xxs text-slate-500 mt-1">
-                    Min 10 chars, 1 uppercase, 1 lowercase, 1 digit, 1 special
-                    symbol.
-                  </p>
-                </div>
-              )}
-
-              {/* Roles Multi-Select Checkboxes */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-                  Assign Roles
-                </label>
-                <div className="grid grid-cols-2 gap-2 bg-slate-950/60 p-3 rounded-xl border border-slate-800">
-                  {AVAILABLE_ROLES.map((r) => {
-                    const isChecked = selectedRoles.includes(r.id);
-                    return (
-                      <label
-                        key={r.id}
-                        onClick={() => toggleRole(r.id)}
-                        className={`flex items-center space-x-2.5 p-2 rounded-lg cursor-pointer border transition text-xs select-none ${isChecked
-                          ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-400"
-                          : "bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700"
+                  <div className="grid grid-cols-2 gap-1.5 bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
+                    {AVAILABLE_ROLES.map((r) => {
+                      const isChecked = selectedRoles.includes(r.id);
+                      return (
+                        <label
+                          key={r.id}
+                          onClick={() => toggleRole(r.id)}
+                          className={`flex items-center space-x-2.5 p-2 rounded-lg cursor-pointer border transition text-xs select-none ${
+                            isChecked
+                              ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-400"
+                              : "bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700"
                           }`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={isChecked}
-                          onChange={() => { }} // Handled by label click
-                          className="rounded text-emerald-500 bg-slate-950 border-slate-700 focus:ring-emerald-500"
-                        />
-                        <span className="font-semibold">{r.label}</span>
-                      </label>
-                    );
-                  })}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => {}} // Handled by label click
+                            className="rounded text-emerald-500 bg-slate-950 border-slate-700 focus:ring-emerald-500"
+                          />
+                          <span className="font-semibold">{r.label}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
 
-              <div className="flex justify-end space-x-3 pt-3 border-t border-slate-800">
+              {/* Pinned Action Buttons Footer */}
+              <div className="p-4 sm:px-6 bg-slate-900/60 border-t border-slate-800/80 flex justify-end space-x-3 shrink-0">
                 <button
                   type="button"
                   onClick={resetForm}
