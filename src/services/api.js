@@ -204,20 +204,23 @@ export const api = {
       method: "DELETE",
     }),
 
-  previewSpreadsheetFixtures: async (rows) => {
-    // Note: use apiRequest instead of client.post for consistency with your file
+  previewSpreadsheetFixtures: async (rows, selectedTeamIds = null) => {
+    const payload = { rows };
+    if (selectedTeamIds) payload.selected_team_ids = selectedTeamIds;
     return await apiRequest("/api/fixtures/preview-spreadsheet", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ rows }),
+      body: JSON.stringify(payload),
     });
   },
 
-  previewPlayCricketFixtures: async (season) => {
+  previewPlayCricketFixtures: async (season, selectedTeamIds = null) => {
+    const payload = { season };
+    if (selectedTeamIds) payload.selected_team_ids = selectedTeamIds;
     return await apiRequest("/api/fixtures/preview-play-cricket", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ season }),
+      body: JSON.stringify(payload),
     });
   },
 
